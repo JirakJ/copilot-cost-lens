@@ -1,8 +1,8 @@
 {
   "name": "copilot-cost-lens",
   "displayName": "Cost Lens for GitHub Copilot",
-  "description": "Track GitHub Copilot AI Credits and spend per repository — local, private, real-time. Per-repo cost breakdown, model analytics, budgets and forecasts.",
-  "version": "1.0.0",
+  "description": "Track GitHub Copilot and Claude Code spend per repository — local, private, real-time. Per-repo cost breakdown, model and cache analytics, budgets and forecasts.",
+  "version": "1.1.0",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -21,7 +21,9 @@
     "budget",
     "premium requests",
     "spend",
-    "analytics"
+    "analytics",
+    "claude code",
+    "copilot cli"
   ],
   "galleryBanner": {
     "color": "#1b1f24",
@@ -160,6 +162,16 @@
           },
           "default": [],
           "description": "Additional VS Code 'workspaceStorage' roots to scan (absolute paths). Standard locations of VS Code, Insiders and VSCodium are detected automatically."
+        },
+        "copilotCostLens.claudeCode.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include Claude Code usage (~/.claude/projects) in per-repository costs. Claude Code spend never counts against the Copilot allowance gauge."
+        },
+        "copilotCostLens.copilotCli.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Include GitHub Copilot CLI usage (~/.copilot/session-state) in per-repository costs."
         },
         "copilotCostLens.estimation.enabled": {
           "type": "boolean",

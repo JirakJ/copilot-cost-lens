@@ -1,7 +1,6 @@
-import { createReadStream } from 'node:fs';
 import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
-import * as readline from 'node:readline';
+import { readJsonlRecords } from './jsonl';
 import { RawUsage } from '../types';
 
 /**
@@ -52,7 +51,7 @@ export async function parseJsonlUsage(
 ): Promise<RawUsage[]> {
   const usages: RawUsage[] = [];
 
-  await forEachJsonLine(file.filePath, (record) => {
+  await readJsonlRecords(file.filePath, (record) => {
     const attrs = isRecord(record.attrs) ? record.attrs : {};
     const fields: Record<string, unknown> = { ...attrs, ...record };
 
@@ -60,6 +59,7 @@ export async function parseJsonlUsage(
     const inputTokens = firstNumber(fields, ['inputTokens', 'input_tokens', 'usage_input_tokens', 'promptTokens', 'prompt_tokens']);
     const outputTokens = firstNumber(fields, ['outputTokens', 'output_tokens', 'usage_output_tokens', 'completionTokens', 'completion_tokens']);
     const cachedTokens = firstNumber(fields, ['cachedTokens', 'cached_tokens', 'usage_cached_tokens']);
+    const cacheWriteTokens = firstNumber(fields, ['cacheWriteTokens', 'cache_write_tokens', 'cacheCreationTokens']);
     const nanoCredits = firstNumber(fields, ['copilotUsageNanoAiu', 'copilot_usage_nano_aiu']);
 
     const hasUsage =
@@ -70,52 +70,20 @@ export async function parseJsonlUsage(
 
     usages.push({
       sessionId: file.sessionId,
+      provider: 'copilot',
       workspaceStorageDir,
       timestamp: readTimestamp(fields) ?? Date.now(),
       model: model ?? 'unknown',
       inputTokens: inputTokens ?? 0,
       outputTokens: outputTokens ?? 0,
       cachedTokens: cachedTokens ?? 0,
+      cacheWriteTokens: cacheWriteTokens ?? 0,
       nanoCredits,
       estimated: false,
     });
   });
 
   return usages;
-}
-
-async function forEachJsonLine(
-  filePath: string,
-  onRecord: (record: Record<string, unknown>) => void,
-): Promise<void> {
-  let stream;
-  try {
-    await fs.access(filePath);
-    stream = createReadStream(filePath, { encoding: 'utf8' });
-  } catch {
-    return;
-  }
-
-  const lines = readline.createInterface({ input: stream, crlfDelay: Infinity });
-  try {
-    for await (const line of lines) {
-      const trimmed = line.trim();
-      if (!trimmed) {
-        continue;
-      }
-      try {
-        const parsed = JSON.parse(trimmed);
-        if (isRecord(parsed)) {
-          onRecord(parsed);
-        }
-      } catch {
-        // tolerate malformed lines — never let one record break the scan
-      }
-    }
-  } finally {
-    lines.close();
-    stream.destroy();
-  }
 }
 
 function readTimestamp(fields: Record<string, unknown>): number | undefined {

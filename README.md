@@ -1,8 +1,8 @@
 # Cost Lens for GitHub Copilot
 
-**Know exactly what GitHub Copilot costs you — per repository, per model, per day. 100% local and private.**
+**Know exactly what your AI coding tools cost you — per repository, per model, per day. 100% local and private.**
 
-Cost Lens reads the Copilot Chat logs that VS Code already keeps on your machine, attributes every request to the repository you were working in, prices it using GitHub's AI Credits model rates, and turns the result into a live dashboard, a tree view and a status-bar ticker.
+Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI) and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard, a tree view and a status-bar ticker.
 
 ![Dashboard](docs/dashboard.png)
 
@@ -13,6 +13,8 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 ## Features
 
 - **Cost per repository** — every chat request is attributed to the workspace it ran in, resolved to a `owner/repo` slug via the project's git remote when available.
+- **All your AI tools in one ledger** — VS Code Copilot Chat, GitHub Copilot CLI agent sessions and Claude Code transcripts, with a per-provider spend split. Claude Code never counts against your Copilot allowance — it's shown so you see the *total* AI cost of a project.
+- **Token anatomy** — input, output, cache read and cache write tokens per repository, plus the exact models used and how often.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
 - **Status bar** — month-to-date credits and dollars at a glance; turns orange when you cross your warning threshold.
 - **Tree view** — repositories ranked by spend with per-model breakdown, right in the activity bar.
@@ -24,16 +26,18 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 
 ## How it works
 
-Copilot Chat stores conversation data in VS Code's `workspaceStorage`. Cost Lens combines two local sources:
+Cost Lens combines four local sources:
 
 | Source | What it provides | Accuracy |
 |---|---|---|
-| `GitHub.copilot-chat/transcripts/*.jsonl` and `debug-logs/**.jsonl` | exact token counts and billed AI-credit units per request | **exact** |
-| `chatSessions/*.json` (VS Code's chat store) | model, timestamp and conversation content | **estimated** from content length |
+| VS Code: `GitHub.copilot-chat/transcripts/*.jsonl`, `debug-logs/**.jsonl` | exact token counts and billed AI-credit units per request | **exact** |
+| VS Code: `chatSessions/*.json` | model, timestamp and conversation content | **estimated** from content length |
+| Copilot CLI: `~/.copilot/session-state/**` | exact per-model tokens incl. cache read/write, billed premium requests / AI-credit units, repository slug | **exact** (estimation fallback for crashed sessions) |
+| Claude Code: `~/.claude/projects/**/*.jsonl` | exact per-request tokens incl. cache read/write, model, working directory | **exact** |
 
-When both exist for the same session, exact data wins. Estimated entries are always marked (`~est`) in every view. Costs are computed as:
+When both exact and estimated data exist for the same session, exact wins. Estimated entries are always marked (`~est`) in every view. Costs are computed as:
 
-1. **Billed credits** from the logs when present (`1 credit = $0.01`),
+1. **Billed units** from the logs when present — AI-credit nano units (`1 credit = $0.01`) or premium requests (`$0.04` each, pre-June-2026 Copilot billing),
 2. otherwise **exact tokens × model rate** (built-in price table, USD per 1M tokens),
 3. otherwise **estimated tokens × model rate**.
 
@@ -67,6 +71,8 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.warnAtPercent` | `80` | Warning threshold for allowance/budget. |
 | `copilotCostLens.statusBar.enabled` | `true` | Status-bar spend ticker. |
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
+| `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
+| `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
 | `copilotCostLens.estimation.enabled` | `true` | Estimate sessions that have no exact token data. |
 | `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator. |
 | `copilotCostLens.priceOverrides` | `{}` | Per-model rate overrides (USD per 1M tokens). |
@@ -88,7 +94,10 @@ Expected. Sessions without exact token logs are estimated from content length, c
 Your Copilot Chat version isn't writing token-level transcripts yet. Estimates still give you a faithful *relative* picture across repos; exact data is used automatically the moment it appears.
 
 **Does it work with older "premium requests" billing?**
-The pricing model targets AI Credits (effective June 2026). For older periods the relative per-repo breakdown is still valid.
+Yes — Copilot CLI sessions log the billed premium requests directly and Cost Lens prices them at $0.04 each; everything else falls back to token-based pricing. The AI Credits model (effective June 2026) is the primary target.
+
+**Why is Claude Code in a Copilot extension?**
+Because the question you actually ask is "what does this repository cost me in AI tools?" Claude Code spend is tracked separately from the Copilot allowance gauge and can be disabled with one setting.
 
 ## Development
 

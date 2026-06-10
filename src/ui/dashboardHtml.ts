@@ -66,7 +66,9 @@ export function renderDashboardHtml(): string {
   .gauge > div { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--c1), var(--c2)); transition: width .4s ease; }
   .gauge.over > div { background: linear-gradient(90deg, var(--warn), var(--c6)); }
   svg text { fill: var(--muted); font-size: 10px; font-family: var(--vscode-font-family); }
+  .tablewrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td.models { max-width: 230px; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
   th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
   td.num, th.num { text-align: right; }
@@ -132,14 +134,15 @@ export function renderDashboardHtml(): string {
       return;
     }
 
-    const overBudget = r.includedCredits > 0 && r.totalCredits > r.includedCredits;
+    const overBudget = r.includedCredits > 0 && r.copilotCredits > r.includedCredits;
     const pct = r.includedCredits > 0 ? Math.min(100, r.usedPercent) : 0;
-    const topRepo = r.repos[0];
+    const providerNames = { 'copilot': 'Copilot', 'copilot-cli': 'Copilot CLI', 'claude-code': 'Claude Code' };
+    const providerSplit = (r.providers || []).map((p) => (providerNames[p.provider] || p.provider) + ' ' + usd(p.usd)).join(' · ');
 
     app.innerHTML =
       '<div class="grid kpis">' +
-        kpi('Spend · ' + r.month, usd(r.totalUsd), cr(r.totalCredits) + ' AI Credits' + (r.hasEstimates ? ' · includes estimates' : '')) +
-        kpiGauge('Allowance used', r, pct, overBudget) +
+        kpi('Spend · ' + r.month, usd(r.totalUsd), providerSplit || (cr(r.totalCredits) + ' AI Credits')) +
+        kpiGauge('Copilot allowance', r, pct, overBudget) +
         kpi('Forecast (EOM)', usd(r.forecastUsd), cr(r.forecastCredits) + ' credits at current pace') +
         kpi('Activity', r.requestCount.toLocaleString('en-US') + ' req', r.sessionCount + ' sessions · ' + r.repos.length + ' repos') +
       '</div>' +
@@ -151,7 +154,8 @@ export function renderDashboardHtml(): string {
       '<div class="card"><h2>Repositories</h2>' + repoTable(r) + '</div>';
 
     foot.innerHTML =
-      'Data source: local VS Code Copilot Chat logs · all processing happens on this machine, nothing leaves it.' +
+      'Data sources: VS Code Copilot Chat, GitHub Copilot CLI and Claude Code local logs · all processing happens on this machine, nothing leaves it.' +
+      '<br>The allowance gauge counts Copilot usage only; Claude Code is billed separately and is shown for total AI spend per project.' +
       (r.hasEstimates ? '<br>Entries marked <b>~est</b> are estimated from chat content length because exact token counts were not present in the logs.' : '');
   }
 
@@ -165,7 +169,7 @@ export function renderDashboardHtml(): string {
     return '<div class="card"><div class="label">' + esc(label) + '</div>' +
       '<div class="value">' + r.usedPercent.toFixed(0) + '%</div>' +
       '<div class="gauge' + (over ? ' over' : '') + '"><div style="width:' + pct + '%"></div></div>' +
-      '<div class="sub">' + cr(r.totalCredits) + ' / ' + r.includedCredits.toLocaleString('en-US') + ' credits</div></div>';
+      '<div class="sub">' + cr(r.copilotCredits) + ' / ' + r.includedCredits.toLocaleString('en-US') + ' credits (Copilot only)</div></div>';
   }
 
   function repoBars(repos) {
@@ -232,17 +236,25 @@ export function renderDashboardHtml(): string {
     const total = r.totalCredits || 1;
     const rows = r.repos.map((repo) => {
       const share = (repo.credits / total) * 100;
+      const models = (repo.models || []);
+      const shown = models.slice(0, 2).map((m) => esc(m.model)).join(', ');
+      const more = models.length > 2 ? ' <span class="badge" title="' + esc(models.slice(2).map((m) => m.model).join(', ')) + '">+' + (models.length - 2) + '</span>' : '';
       return '<tr><td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') + '</td>' +
+        '<td class="models" title="' + esc(models.map((m) => m.model + ' (' + m.requestCount + '×)').join(', ')) + '">' + shown + more + '</td>' +
         '<td class="num">' + repo.requestCount + '</td>' +
         '<td class="num">' + repo.sessionCount + '</td>' +
-        '<td class="num">' + tok(repo.inputTokens) + ' / ' + tok(repo.outputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.inputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.outputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.cachedTokens) + '</td>' +
+        '<td class="num">' + tok(repo.cacheWriteTokens) + '</td>' +
         '<td class="num">' + cr(repo.credits) + '</td>' +
         '<td class="num"><b>' + usd(repo.usd) + '</b></td>' +
         '<td><span class="sharebar" style="width:' + Math.max(3, share) + 'px"></span>' + share.toFixed(1) + '%</td></tr>';
     }).join('');
-    return '<table><thead><tr><th>Repository</th><th class="num">Requests</th><th class="num">Sessions</th>' +
-      '<th class="num">Tokens in/out</th><th class="num">Credits</th><th class="num">Spend</th><th>Share</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>';
+    return '<div class="tablewrap"><table><thead><tr><th>Repository</th><th>Models</th><th class="num">Req</th><th class="num">Sessions</th>' +
+      '<th class="num">Input</th><th class="num">Output</th><th class="num">Cache&nbsp;R</th><th class="num">Cache&nbsp;W</th>' +
+      '<th class="num">Credits</th><th class="num">Spend</th><th>Share</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
   }
 
   function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }

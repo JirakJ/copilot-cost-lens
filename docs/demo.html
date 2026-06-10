@@ -5,7 +5,7 @@
 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Copilot Cost Lens</title>
-<style nonce="o5Y+m5PdIMbS0yl89lEsjQ==">
+<style nonce="qSAFD9A7eZxJ/P3qFCS0Eg==">
   :root {
     --bg: var(--vscode-editor-background);
     --fg: var(--vscode-editor-foreground);
@@ -57,7 +57,9 @@
   .gauge > div { height: 100%; border-radius: 4px; background: linear-gradient(90deg, var(--c1), var(--c2)); transition: width .4s ease; }
   .gauge.over > div { background: linear-gradient(90deg, var(--warn), var(--c6)); }
   svg text { fill: var(--muted); font-size: 10px; font-family: var(--vscode-font-family); }
+  .tablewrap { overflow-x: auto; }
   table { width: 100%; border-collapse: collapse; font-variant-numeric: tabular-nums; }
+  td.models { max-width: 230px; overflow: hidden; text-overflow: ellipsis; color: var(--muted); }
   th, td { text-align: left; padding: 7px 10px; border-bottom: 1px solid var(--border); white-space: nowrap; }
   th { color: var(--muted); font-size: 11px; text-transform: uppercase; letter-spacing: 0.6px; font-weight: 500; }
   td.num, th.num { text-align: right; }
@@ -73,7 +75,7 @@
   .empty .icon { font-size: 34px; margin-bottom: 10px; }
   footer { color: var(--muted); font-size: 11.5px; margin-top: 18px; line-height: 1.6; }
 </style>
-<script>window.acquireVsCodeApi = () => ({ postMessage(){}, getState(){}, setState(){} });window.addEventListener("DOMContentLoaded", () => window.postMessage({"type":"data","months":["2026-06","2026-05","2026-04"],"selectedMonth":"2026-06","report":{"month":"2026-06","totalCredits":1287.4,"totalUsd":12.874,"includedCredits":1900,"usedPercent":67.8,"forecastCredits":3862,"forecastUsd":38.62,"requestCount":412,"sessionCount":48,"hasEstimates":true,"repos":[{"repo":{"name":"acme/payments-api"},"credits":402.1,"usd":4.02,"inputTokens":2950000,"outputTokens":410000,"cachedTokens":1200000,"requestCount":121,"sessionCount":14,"lastActivity":1781122944674,"hasEstimates":false,"models":[{"model":"claude-sonnet-4.6","credits":300,"usd":3,"requestCount":80},{"model":"gpt-5.3-codex","credits":102.1,"usd":1.02,"requestCount":41}]},{"repo":{"name":"acme/web-frontend"},"credits":311.6,"usd":3.12,"inputTokens":2100000,"outputTokens":350000,"cachedTokens":900000,"requestCount":98,"sessionCount":11,"lastActivity":1781122944674,"hasEstimates":true,"models":[{"model":"gpt-5.3-codex","credits":311.6,"usd":3.12,"requestCount":98}]},{"repo":{"name":"acme/infra-terraform"},"credits":244,"usd":2.44,"inputTokens":1500000,"outputTokens":210000,"cachedTokens":480000,"requestCount":64,"sessionCount":9,"lastActivity":1781122944674,"hasEstimates":false,"models":[{"model":"gpt-5.5","credits":244,"usd":2.44,"requestCount":64}]},{"repo":{"name":"acme/mobile-app"},"credits":175.2,"usd":1.75,"inputTokens":1100000,"outputTokens":160000,"cachedTokens":300000,"requestCount":71,"sessionCount":8,"lastActivity":1781122944674,"hasEstimates":true,"models":[{"model":"claude-haiku-4.5","credits":175.2,"usd":1.75,"requestCount":71}]},{"repo":{"name":"acme/data-pipeline"},"credits":154.5,"usd":1.55,"inputTokens":900000,"outputTokens":140000,"cachedTokens":260000,"requestCount":58,"sessionCount":6,"lastActivity":1781122944674,"hasEstimates":false,"models":[{"model":"gemini-3.1-pro","credits":154.5,"usd":1.55,"requestCount":58}]}],"models":[{"model":"claude-sonnet-4.6","credits":455,"usd":4.55,"requestCount":132},{"model":"gpt-5.3-codex","credits":413.7,"usd":4.14,"requestCount":139},{"model":"gpt-5.5","credits":244,"usd":2.44,"requestCount":64},{"model":"claude-haiku-4.5","credits":120.2,"usd":1.2,"requestCount":55},{"model":"gemini-3.1-pro","credits":54.5,"usd":0.55,"requestCount":22}],"days":[{"day":"2026-06-01","credits":60,"usd":0.6},{"day":"2026-06-02","credits":95,"usd":0.95},{"day":"2026-06-03","credits":140,"usd":1.4},{"day":"2026-06-04","credits":80,"usd":0.8},{"day":"2026-06-05","credits":210,"usd":2.1},{"day":"2026-06-06","credits":170,"usd":1.7},{"day":"2026-06-07","credits":55,"usd":0.55},{"day":"2026-06-08","credits":190,"usd":1.9},{"day":"2026-06-09","credits":150,"usd":1.5},{"day":"2026-06-10","credits":137,"usd":1.37}]}}, "*"));</script><style>:root{--vscode-editor-background:#1e2227;--vscode-editor-foreground:#d6dbe2;--vscode-descriptionForeground:#8a93a1;--vscode-editorWidget-background:#262b33;--vscode-widget-border:#343b46;--vscode-font-family:-apple-system,"Segoe UI",sans-serif;--vscode-dropdown-background:#2c323b;--vscode-dropdown-foreground:#d6dbe2;--vscode-button-background:#3794ff;--vscode-button-foreground:#fff;}</style></head>
+<script>window.acquireVsCodeApi = () => ({ postMessage(){}, getState(){}, setState(){} });window.addEventListener("DOMContentLoaded", () => window.postMessage({"type":"data","months":["2026-06","2026-05","2026-04"],"selectedMonth":"2026-06","report":{"month":"2026-06","totalCredits":14182,"totalUsd":141.82,"copilotCredits":1287,"copilotUsd":12.87,"includedCredits":1900,"usedPercent":67.8,"forecastCredits":42546,"forecastUsd":425.46,"requestCount":2412,"sessionCount":86,"hasEstimates":true,"providers":[{"provider":"claude-code","usd":96.2,"credits":9620,"requestCount":1610},{"provider":"copilot-cli","usd":32.75,"credits":3275,"requestCount":540},{"provider":"copilot","usd":12.87,"credits":1287,"requestCount":262}],"repos":[{"repo":{"name":"acme/payments-api"},"credits":4802,"usd":48.02,"inputTokens":12950000,"outputTokens":410000,"cachedTokens":193000000,"cacheWriteTokens":7400000,"requestCount":459,"sessionCount":14,"lastActivity":1781125738081,"hasEstimates":false,"providers":["copilot"],"models":[{"model":"claude-opus-4.8","credits":3000,"usd":30,"requestCount":200},{"model":"claude-fable-5","credits":1500,"usd":15,"requestCount":180},{"model":"gpt-5.5","credits":302,"usd":3.02,"requestCount":79}]},{"repo":{"name":"acme/web-frontend"},"credits":3116,"usd":31.16,"inputTokens":8100000,"outputTokens":350000,"cachedTokens":135000000,"cacheWriteTokens":4000000,"requestCount":793,"sessionCount":21,"lastActivity":1781125738081,"hasEstimates":true,"providers":["copilot"],"models":[{"model":"claude-fable-5","credits":2000,"usd":20,"requestCount":500},{"model":"gpt-5.3-codex","credits":1116,"usd":11.16,"requestCount":293}]},{"repo":{"name":"acme/infra-terraform"},"credits":2440,"usd":24.4,"inputTokens":4500000,"outputTokens":210000,"cachedTokens":63600000,"cacheWriteTokens":1200000,"requestCount":337,"sessionCount":9,"lastActivity":1781125738081,"hasEstimates":false,"providers":["copilot"],"models":[{"model":"gpt-5.5","credits":2440,"usd":24.4,"requestCount":337}]},{"repo":{"name":"acme/mobile-app"},"credits":1752,"usd":17.52,"inputTokens":2100000,"outputTokens":160000,"cachedTokens":37700000,"cacheWriteTokens":2800000,"requestCount":124,"sessionCount":8,"lastActivity":1781125738081,"hasEstimates":true,"providers":["copilot"],"models":[{"model":"claude-sonnet-4.6","credits":1752,"usd":17.52,"requestCount":124}]},{"repo":{"name":"acme/data-pipeline"},"credits":1545,"usd":15.45,"inputTokens":1900000,"outputTokens":140000,"cachedTokens":45000000,"cacheWriteTokens":1100000,"requestCount":205,"sessionCount":6,"lastActivity":1781125738081,"hasEstimates":false,"providers":["copilot"],"models":[{"model":"gemini-3.1-pro","credits":1045,"usd":10.45,"requestCount":150},{"model":"gpt-5-mini","credits":500,"usd":5,"requestCount":55}]}],"models":[{"model":"claude-opus-4.8","credits":4800,"usd":48,"requestCount":620},{"model":"claude-fable-5","credits":3500,"usd":35,"requestCount":690},{"model":"gpt-5.5","credits":2750,"usd":27.5,"requestCount":416},{"model":"gpt-5.3-codex","credits":1610,"usd":16.1,"requestCount":432},{"model":"claude-sonnet-4.6","credits":1052,"usd":10.52,"requestCount":184},{"model":"gemini-3.1-pro","credits":470,"usd":4.7,"requestCount":70}],"days":[{"day":"2026-06-01","credits":600,"usd":6},{"day":"2026-06-02","credits":950,"usd":9.5},{"day":"2026-06-03","credits":1400,"usd":14},{"day":"2026-06-04","credits":800,"usd":8},{"day":"2026-06-05","credits":2100,"usd":21},{"day":"2026-06-06","credits":1700,"usd":17},{"day":"2026-06-07","credits":550,"usd":5.5},{"day":"2026-06-08","credits":1900,"usd":19},{"day":"2026-06-09","credits":1500,"usd":15},{"day":"2026-06-10","credits":2682,"usd":26.82}]}}, "*"));</script><style>:root{--vscode-editor-background:#1e2227;--vscode-editor-foreground:#d6dbe2;--vscode-descriptionForeground:#8a93a1;--vscode-editorWidget-background:#262b33;--vscode-widget-border:#343b46;--vscode-font-family:-apple-system,"Segoe UI",sans-serif;--vscode-dropdown-background:#2c323b;--vscode-dropdown-foreground:#d6dbe2;--vscode-button-background:#3794ff;--vscode-button-foreground:#fff;}</style></head>
 <body>
   <header>
     <h1>Copilot Cost Lens</h1>
@@ -87,7 +89,7 @@
   <div id="app"></div>
   <footer id="foot"></footer>
 
-<script nonce="o5Y+m5PdIMbS0yl89lEsjQ==">
+<script nonce="qSAFD9A7eZxJ/P3qFCS0Eg==">
   const vscode = acquireVsCodeApi();
   const app = document.getElementById('app');
   const foot = document.getElementById('foot');
@@ -123,14 +125,15 @@
       return;
     }
 
-    const overBudget = r.includedCredits > 0 && r.totalCredits > r.includedCredits;
+    const overBudget = r.includedCredits > 0 && r.copilotCredits > r.includedCredits;
     const pct = r.includedCredits > 0 ? Math.min(100, r.usedPercent) : 0;
-    const topRepo = r.repos[0];
+    const providerNames = { 'copilot': 'Copilot', 'copilot-cli': 'Copilot CLI', 'claude-code': 'Claude Code' };
+    const providerSplit = (r.providers || []).map((p) => (providerNames[p.provider] || p.provider) + ' ' + usd(p.usd)).join(' · ');
 
     app.innerHTML =
       '<div class="grid kpis">' +
-        kpi('Spend · ' + r.month, usd(r.totalUsd), cr(r.totalCredits) + ' AI Credits' + (r.hasEstimates ? ' · includes estimates' : '')) +
-        kpiGauge('Allowance used', r, pct, overBudget) +
+        kpi('Spend · ' + r.month, usd(r.totalUsd), providerSplit || (cr(r.totalCredits) + ' AI Credits')) +
+        kpiGauge('Copilot allowance', r, pct, overBudget) +
         kpi('Forecast (EOM)', usd(r.forecastUsd), cr(r.forecastCredits) + ' credits at current pace') +
         kpi('Activity', r.requestCount.toLocaleString('en-US') + ' req', r.sessionCount + ' sessions · ' + r.repos.length + ' repos') +
       '</div>' +
@@ -142,7 +145,8 @@
       '<div class="card"><h2>Repositories</h2>' + repoTable(r) + '</div>';
 
     foot.innerHTML =
-      'Data source: local VS Code Copilot Chat logs · all processing happens on this machine, nothing leaves it.' +
+      'Data sources: VS Code Copilot Chat, GitHub Copilot CLI and Claude Code local logs · all processing happens on this machine, nothing leaves it.' +
+      '<br>The allowance gauge counts Copilot usage only; Claude Code is billed separately and is shown for total AI spend per project.' +
       (r.hasEstimates ? '<br>Entries marked <b>~est</b> are estimated from chat content length because exact token counts were not present in the logs.' : '');
   }
 
@@ -156,7 +160,7 @@
     return '<div class="card"><div class="label">' + esc(label) + '</div>' +
       '<div class="value">' + r.usedPercent.toFixed(0) + '%</div>' +
       '<div class="gauge' + (over ? ' over' : '') + '"><div style="width:' + pct + '%"></div></div>' +
-      '<div class="sub">' + cr(r.totalCredits) + ' / ' + r.includedCredits.toLocaleString('en-US') + ' credits</div></div>';
+      '<div class="sub">' + cr(r.copilotCredits) + ' / ' + r.includedCredits.toLocaleString('en-US') + ' credits (Copilot only)</div></div>';
   }
 
   function repoBars(repos) {
@@ -223,17 +227,25 @@
     const total = r.totalCredits || 1;
     const rows = r.repos.map((repo) => {
       const share = (repo.credits / total) * 100;
+      const models = (repo.models || []);
+      const shown = models.slice(0, 2).map((m) => esc(m.model)).join(', ');
+      const more = models.length > 2 ? ' <span class="badge" title="' + esc(models.slice(2).map((m) => m.model).join(', ')) + '">+' + (models.length - 2) + '</span>' : '';
       return '<tr><td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') + '</td>' +
+        '<td class="models" title="' + esc(models.map((m) => m.model + ' (' + m.requestCount + '×)').join(', ')) + '">' + shown + more + '</td>' +
         '<td class="num">' + repo.requestCount + '</td>' +
         '<td class="num">' + repo.sessionCount + '</td>' +
-        '<td class="num">' + tok(repo.inputTokens) + ' / ' + tok(repo.outputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.inputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.outputTokens) + '</td>' +
+        '<td class="num">' + tok(repo.cachedTokens) + '</td>' +
+        '<td class="num">' + tok(repo.cacheWriteTokens) + '</td>' +
         '<td class="num">' + cr(repo.credits) + '</td>' +
         '<td class="num"><b>' + usd(repo.usd) + '</b></td>' +
         '<td><span class="sharebar" style="width:' + Math.max(3, share) + 'px"></span>' + share.toFixed(1) + '%</td></tr>';
     }).join('');
-    return '<table><thead><tr><th>Repository</th><th class="num">Requests</th><th class="num">Sessions</th>' +
-      '<th class="num">Tokens in/out</th><th class="num">Credits</th><th class="num">Spend</th><th>Share</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table>';
+    return '<div class="tablewrap"><table><thead><tr><th>Repository</th><th>Models</th><th class="num">Req</th><th class="num">Sessions</th>' +
+      '<th class="num">Input</th><th class="num">Output</th><th class="num">Cache&nbsp;R</th><th class="num">Cache&nbsp;W</th>' +
+      '<th class="num">Credits</th><th class="num">Spend</th><th>Share</th></tr></thead>' +
+      '<tbody>' + rows + '</tbody></table></div>';
   }
 
   function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }

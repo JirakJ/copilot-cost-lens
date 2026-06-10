@@ -1,13 +1,17 @@
 import * as fs from 'node:fs/promises';
 import { normalizeModelId, priceUsage, PricingOptions } from '../core/pricing';
 import { findChatSessionFiles, parseChatSessionUsage } from '../sources/chatSessionSource';
+import { defaultClaudeCodeRoot, findClaudeCodeFiles, parseClaudeCodeUsage } from '../sources/claudeCodeSource';
+import { defaultCopilotCliRoot, findCopilotCliFiles, parseCopilotCliUsage } from '../sources/copilotCliSource';
 import { findJsonlFiles, parseJsonlUsage } from '../sources/jsonlSource';
 import { detectStorageRoots, listWorkspaceStorageDirs } from '../sources/storageRoots';
 import { WorkspaceIndex } from '../sources/workspaceIndex';
-import { RawUsage, UsageEvent } from '../types';
+import { RawUsage, RepoRef, UsageEvent } from '../types';
 
 export interface StoreConfig {
   extraStorageRoots: string[];
+  claudeCodeEnabled: boolean;
+  copilotCliEnabled: boolean;
   estimationEnabled: boolean;
   charsPerToken: number;
   pricing: PricingOptions;
@@ -20,9 +24,10 @@ interface FileCacheEntry {
 }
 
 /**
- * Scans every detected workspaceStorage root, parses usage from both
- * sources, dedupes and prices it. Incremental: unchanged files are
- * served from an mtime+size cache, so periodic rescans stay cheap.
+ * Scans every detected data source — VS Code Copilot Chat logs, Claude Code
+ * transcripts and Copilot CLI session events — then dedupes and prices the
+ * result. Incremental: unchanged files are served from an mtime+size cache,
+ * so periodic rescans stay cheap.
  */
 export class UsageStore {
   private fileCache = new Map<string, FileCacheEntry>();
@@ -40,7 +45,6 @@ export class UsageStore {
 
   updateConfig(config: StoreConfig): void {
     this.config = config;
-    // pricing/estimation changes invalidate priced results but not parses
   }
 
   getEvents(): UsageEvent[] {
@@ -49,7 +53,14 @@ export class UsageStore {
 
   /** Directories worth watching for new usage data. */
   async getWatchDirs(): Promise<string[]> {
-    return detectStorageRoots(this.config.extraStorageRoots);
+    const dirs = await detectStorageRoots(this.config.extraStorageRoots);
+    if (this.config.claudeCodeEnabled) {
+      dirs.push(defaultClaudeCodeRoot());
+    }
+    if (this.config.copilotCliEnabled) {
+      dirs.push(defaultCopilotCliRoot());
+    }
+    return dirs;
   }
 
   async refresh(): Promise<UsageEvent[]> {
@@ -62,28 +73,47 @@ export class UsageStore {
   }
 
   private async scan(): Promise<UsageEvent[]> {
-    const roots = await detectStorageRoots(this.config.extraStorageRoots);
     const exact: RawUsage[] = [];
     const estimated: RawUsage[] = [];
+    const push = (usages: RawUsage[]) => {
+      for (const usage of usages) {
+        (usage.estimated ? estimated : exact).push(usage);
+      }
+    };
 
+    const roots = await detectStorageRoots(this.config.extraStorageRoots);
     for (const root of roots) {
       for (const wsDir of await listWorkspaceStorageDirs(root)) {
-        const jsonlFiles = await findJsonlFiles(wsDir);
-        for (const file of jsonlFiles) {
-          exact.push(...(await this.parseCached(file.filePath, () => parseJsonlUsage(file, wsDir))));
+        for (const file of await findJsonlFiles(wsDir)) {
+          push(await this.parseCached(file.filePath, () => parseJsonlUsage(file, wsDir)));
         }
-
         if (this.config.estimationEnabled) {
           for (const sessionFile of await findChatSessionFiles(wsDir)) {
-            estimated.push(
-              ...(await this.parseCached(sessionFile, () =>
+            push(
+              await this.parseCached(sessionFile, () =>
                 parseChatSessionUsage(sessionFile, wsDir, {
                   charsPerToken: this.config.charsPerToken,
                 }),
-              )),
+              ),
             );
           }
         }
+      }
+    }
+
+    if (this.config.claudeCodeEnabled) {
+      for (const file of await findClaudeCodeFiles(defaultClaudeCodeRoot())) {
+        push(await this.parseCached(file, () => parseClaudeCodeUsage(file)));
+      }
+    }
+
+    if (this.config.copilotCliEnabled) {
+      for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
+        push(
+          await this.parseCached(file.filePath, () =>
+            parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
+          ),
+        );
       }
     }
 
@@ -123,12 +153,14 @@ export class UsageStore {
       const { credits, costSource } = priceUsage(usage, this.config.pricing);
       events.push({
         sessionId: usage.sessionId,
-        repo: await this.workspaceIndex.resolve(usage.workspaceStorageDir),
+        provider: usage.provider,
+        repo: await this.resolveRepo(usage),
         timestamp: usage.timestamp,
         model: normalizeModelId(usage.model),
         inputTokens: usage.inputTokens,
         outputTokens: usage.outputTokens,
         cachedTokens: usage.cachedTokens,
+        cacheWriteTokens: usage.cacheWriteTokens,
         credits,
         costSource,
       });
@@ -136,11 +168,24 @@ export class UsageStore {
     events.sort((a, b) => a.timestamp - b.timestamp);
     return events;
   }
+
+  private async resolveRepo(usage: RawUsage): Promise<RepoRef> {
+    if (usage.repoSlug) {
+      return { name: usage.repoSlug, folderPath: usage.folderPath, remoteSlug: usage.repoSlug };
+    }
+    if (usage.folderPath) {
+      return this.workspaceIndex.resolveFolder(usage.folderPath);
+    }
+    if (usage.workspaceStorageDir) {
+      return this.workspaceIndex.resolve(usage.workspaceStorageDir);
+    }
+    return { name: '(unknown)' };
+  }
 }
 
 /**
- * Exact JSONL data wins over estimates for the same session: a session
- * that has any exact usage drops all of its estimated records.
+ * Exact data wins over estimates for the same session: a session that has
+ * any exact usage drops all of its estimated records.
  */
 export function dedupeBySession(exact: RawUsage[], estimated: RawUsage[]): RawUsage[] {
   const exactSessions = new Set(exact.map((u) => u.sessionId));

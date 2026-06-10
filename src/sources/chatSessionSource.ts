@@ -61,12 +61,14 @@ export async function parseChatSessionUsage(
 
     usages.push({
       sessionId,
+      provider: 'copilot',
       workspaceStorageDir,
       timestamp,
       model,
       inputTokens: estimateTokensFromChars(promptChars, options.charsPerToken),
       outputTokens: estimateTokensFromChars(responseChars, options.charsPerToken),
       cachedTokens: 0,
+      cacheWriteTokens: 0,
       estimated: true,
     });
   }

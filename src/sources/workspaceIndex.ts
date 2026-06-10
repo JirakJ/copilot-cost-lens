@@ -20,6 +20,23 @@ export class WorkspaceIndex {
     return ref;
   }
 
+  /** Resolve a plain workspace folder path (Claude Code / Copilot CLI cwd). */
+  async resolveFolder(folderPath: string): Promise<RepoRef> {
+    const key = `folder:${folderPath}`;
+    const cached = this.cache.get(key);
+    if (cached) {
+      return cached;
+    }
+    const remoteSlug = await readGitRemoteSlug(folderPath);
+    const ref: RepoRef = {
+      name: remoteSlug ?? path.basename(folderPath),
+      folderPath,
+      remoteSlug,
+    };
+    this.cache.set(key, ref);
+    return ref;
+  }
+
   private async resolveUncached(workspaceStorageDir: string): Promise<RepoRef> {
     const folderPath = await readWorkspaceFolder(workspaceStorageDir);
     if (!folderPath) {

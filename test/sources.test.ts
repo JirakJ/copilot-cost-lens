@@ -135,12 +135,14 @@ describe('chatSessionSource', () => {
 describe('dedupeBySession', () => {
   const mk = (sessionId: string, estimated: boolean): RawUsage => ({
     sessionId,
+    provider: 'copilot',
     workspaceStorageDir: wsDir,
     timestamp: 1,
     model: 'gpt-5-mini',
     inputTokens: 1,
     outputTokens: 1,
     cachedTokens: 0,
+    cacheWriteTokens: 0,
     estimated,
   });
 

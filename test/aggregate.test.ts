@@ -5,12 +5,14 @@ import { UsageEvent } from '../src/types';
 function event(partial: Partial<UsageEvent>): UsageEvent {
   return {
     sessionId: 's1',
+    provider: 'copilot',
     repo: { name: 'owner/alpha' },
     timestamp: new Date(2026, 5, 10, 12).getTime(), // 2026-06-10 local
     model: 'gpt-5.5',
     inputTokens: 1000,
     outputTokens: 200,
     cachedTokens: 0,
+    cacheWriteTokens: 0,
     credits: 10,
     costSource: 'billed',
     ...partial,
@@ -32,7 +34,12 @@ describe('availableMonths', () => {
       event({ timestamp: new Date(2026, 5, 1).getTime() }),
       event({ timestamp: new Date(2026, 5, 20).getTime() }),
     ];
-    expect(availableMonths(events)).toEqual(['2026-06', '2026-05']);
+    expect(availableMonths(events, new Date(2026, 5, 10))).toEqual(['2026-06', '2026-05']);
+  });
+
+  it('always offers the current month, even without data', () => {
+    const events = [event({ timestamp: new Date(2025, 11, 1).getTime() })];
+    expect(availableMonths(events, new Date(2026, 5, 10))).toEqual(['2026-06', '2025-12']);
   });
 });
 
@@ -87,6 +94,29 @@ describe('buildMonthReport', () => {
     });
     expect(report.hasEstimates).toBe(true);
     expect(report.repos[0]!.hasEstimates).toBe(true);
+  });
+
+  it('splits providers and excludes Claude Code from the allowance', () => {
+    const events = [
+      event({ credits: 100, provider: 'copilot' }),
+      event({ credits: 50, provider: 'copilot-cli', sessionId: 's2' }),
+      event({ credits: 900, provider: 'claude-code', sessionId: 's3' }),
+    ];
+    const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(report.totalCredits).toBe(1050);
+    expect(report.copilotCredits).toBe(150);
+    expect(report.usedPercent).toBeCloseTo((150 / 1900) * 100);
+    expect(report.providers.map((p) => p.provider)).toEqual(['claude-code', 'copilot', 'copilot-cli']);
+  });
+
+  it('sums cache tokens per repository', () => {
+    const events = [
+      event({ cachedTokens: 100, cacheWriteTokens: 40 }),
+      event({ cachedTokens: 50, cacheWriteTokens: 10 }),
+    ];
+    const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(report.repos[0]!.cachedTokens).toBe(150);
+    expect(report.repos[0]!.cacheWriteTokens).toBe(50);
   });
 
   it('aggregates per model and per day', () => {

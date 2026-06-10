@@ -1,16 +1,20 @@
+/** Where a usage event came from. */
+export type Provider = 'copilot' | 'copilot-cli' | 'claude-code';
+
 /** How the cost of a usage event was determined. */
 export type CostSource =
-  /** AI Credits reported directly by Copilot logs (authoritative). */
+  /** Billed units reported directly by logs (AI-credit nano units or premium requests). */
   | 'billed'
   /** Computed from exact token counts in logs using the model price table. */
   | 'computed'
   /** Estimated from chat content length (no token data available). */
   | 'estimated';
 
-/** A single billable interaction (one model request or one chat turn). */
+/** A single billable interaction (one model request, turn or session-run slice). */
 export interface UsageEvent {
   /** Chat session id this event belongs to. */
   sessionId: string;
+  provider: Provider;
   /** Stable identity of the repository / workspace folder. */
   repo: RepoRef;
   /** Unix epoch ms. */
@@ -19,7 +23,10 @@ export interface UsageEvent {
   model: string;
   inputTokens: number;
   outputTokens: number;
+  /** Cache read (cached input) tokens. */
   cachedTokens: number;
+  /** Cache write (cache creation) tokens. */
+  cacheWriteTokens: number;
   /** AI Credits (1 credit = $0.01). Always populated by the pricing engine. */
   credits: number;
   costSource: CostSource;
@@ -37,14 +44,23 @@ export interface RepoRef {
 /** Raw usage extracted by a source, before pricing. */
 export interface RawUsage {
   sessionId: string;
-  workspaceStorageDir: string;
+  provider: Provider;
+  /** VS Code workspaceStorage dir — repo resolved via workspace.json. */
+  workspaceStorageDir?: string;
+  /** Direct workspace folder path — repo resolved via .git/config. */
+  folderPath?: string;
+  /** Direct "owner/repo" slug when the log already carries it. */
+  repoSlug?: string;
   timestamp: number;
   model: string;
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
+  cacheWriteTokens: number;
   /** copilotUsageNanoAiu when present: nano AI-credit units, 1e9 = 1 credit. */
   nanoCredits?: number;
+  /** Billed premium requests (pre-June-2026 Copilot billing), 1 = $0.04. */
+  premiumRequests?: number;
   /** True when token counts were estimated from text length. */
   estimated: boolean;
 }
@@ -67,9 +83,11 @@ export interface RepoSummary {
   inputTokens: number;
   outputTokens: number;
   cachedTokens: number;
+  cacheWriteTokens: number;
   requestCount: number;
   sessionCount: number;
   models: ModelSummary[];
+  providers: Provider[];
   lastActivity: number;
   /** True when any part of the total is an estimate. */
   hasEstimates: boolean;
@@ -77,6 +95,13 @@ export interface RepoSummary {
 
 export interface ModelSummary {
   model: string;
+  credits: number;
+  usd: number;
+  requestCount: number;
+}
+
+export interface ProviderSummary {
+  provider: Provider;
   credits: number;
   usd: number;
   requestCount: number;
@@ -94,14 +119,18 @@ export interface MonthReport {
   month: string;
   totalCredits: number;
   totalUsd: number;
+  /** Credits consumed by GitHub Copilot only (counts against the allowance). */
+  copilotCredits: number;
+  copilotUsd: number;
   includedCredits: number;
-  /** Percentage 0..N of the included allowance used. */
+  /** Percentage 0..N of the included Copilot allowance used. */
   usedPercent: number;
   /** Naive linear forecast of total credits at end of month. */
   forecastCredits: number;
   forecastUsd: number;
   repos: RepoSummary[];
   models: ModelSummary[];
+  providers: ProviderSummary[];
   days: DayPoint[];
   requestCount: number;
   sessionCount: number;

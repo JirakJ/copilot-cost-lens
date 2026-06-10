@@ -15,10 +15,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const tree = new CostTreeProvider();
   const dashboard = new Dashboard({
     getReport: (month) => buildReport(store, month),
-    getMonths: () => {
-      const months = availableMonths(store.getEvents());
-      return months.length > 0 ? months : [currentMonthKey()];
-    },
+    getMonths: () => availableMonths(store.getEvents()),
     refresh: async () => {
       await store.refresh();
     },
@@ -64,6 +61,8 @@ function readStoreConfig(): StoreConfig {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return {
     extraStorageRoots: config.get<string[]>('extraStorageRoots', []),
+    claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
+    copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),
     estimationEnabled: config.get<boolean>('estimation.enabled', true),
     charsPerToken: config.get<number>('estimation.charsPerToken', 4),
     pricing: {

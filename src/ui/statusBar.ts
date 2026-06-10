@@ -28,10 +28,22 @@ export class CostStatusBar implements vscode.Disposable {
 
     const md = new vscode.MarkdownString(undefined, true);
     md.appendMarkdown(`**Copilot Cost Lens — ${report.month}**\n\n`);
-    md.appendMarkdown(`Spend: **$${usd}** (${credits} AI Credits)\n\n`);
+    md.appendMarkdown(`Spend: **$${usd}** (${credits} credits)\n\n`);
+    if (report.providers.length > 1) {
+      const names: Record<string, string> = {
+        copilot: 'Copilot',
+        'copilot-cli': 'Copilot CLI',
+        'claude-code': 'Claude Code',
+      };
+      md.appendMarkdown(
+        report.providers
+          .map((p) => `${names[p.provider] ?? p.provider}: $${p.usd.toFixed(2)}`)
+          .join(' · ') + '\n\n',
+      );
+    }
     if (report.includedCredits > 0) {
       md.appendMarkdown(
-        `Allowance: ${report.usedPercent.toFixed(0)}% of ${report.includedCredits.toLocaleString('en-US')} credits\n\n`,
+        `Copilot allowance: ${report.usedPercent.toFixed(0)}% of ${report.includedCredits.toLocaleString('en-US')} credits\n\n`,
       );
     }
     md.appendMarkdown(`Forecast: $${report.forecastUsd.toFixed(2)} by end of month\n\n`);

@@ -1,5 +1,12 @@
 import { creditsToUsd } from './pricing';
-import { DayPoint, ModelSummary, MonthReport, RepoSummary, UsageEvent } from '../types';
+import {
+  DayPoint,
+  ModelSummary,
+  MonthReport,
+  ProviderSummary,
+  RepoSummary,
+  UsageEvent,
+} from '../types';
 
 /** YYYY-MM in local time. */
 export function monthKey(timestamp: number): string {
@@ -17,9 +24,9 @@ export function currentMonthKey(now = new Date()): string {
   return monthKey(now.getTime());
 }
 
-/** Months present in the data, newest first. */
-export function availableMonths(events: UsageEvent[]): string[] {
-  const months = new Set<string>();
+/** Months present in the data plus the current month, newest first. */
+export function availableMonths(events: UsageEvent[], now = new Date()): string[] {
+  const months = new Set<string>([currentMonthKey(now)]);
   for (const e of events) {
     months.add(monthKey(e.timestamp));
   }
@@ -35,31 +42,46 @@ export interface ReportOptions {
 export function buildMonthReport(events: UsageEvent[], options: ReportOptions): MonthReport {
   const inMonth = events.filter((e) => monthKey(e.timestamp) === options.month);
 
-  const repoMap = new Map<string, { events: UsageEvent[] }>();
+  const repoMap = new Map<string, UsageEvent[]>();
   const modelMap = new Map<string, ModelSummary>();
+  const providerMap = new Map<string, ProviderSummary>();
   const dayMap = new Map<string, DayPoint>();
   const sessions = new Set<string>();
 
   let totalCredits = 0;
+  let copilotCredits = 0;
   let hasEstimates = false;
 
   for (const e of inMonth) {
     totalCredits += e.credits;
+    if (e.provider !== 'claude-code') {
+      copilotCredits += e.credits;
+    }
     sessions.add(e.sessionId);
     if (e.costSource === 'estimated') {
       hasEstimates = true;
     }
 
-    const repoKey = e.repo.name;
-    const repoEntry = repoMap.get(repoKey) ?? { events: [] };
-    repoEntry.events.push(e);
-    repoMap.set(repoKey, repoEntry);
+    const repoEvents = repoMap.get(e.repo.name) ?? [];
+    repoEvents.push(e);
+    repoMap.set(e.repo.name, repoEvents);
 
     const model = modelMap.get(e.model) ?? { model: e.model, credits: 0, usd: 0, requestCount: 0 };
     model.credits += e.credits;
     model.usd = creditsToUsd(model.credits);
     model.requestCount += 1;
     modelMap.set(e.model, model);
+
+    const provider = providerMap.get(e.provider) ?? {
+      provider: e.provider,
+      credits: 0,
+      usd: 0,
+      requestCount: 0,
+    };
+    provider.credits += e.credits;
+    provider.usd = creditsToUsd(provider.credits);
+    provider.requestCount += 1;
+    providerMap.set(e.provider, provider);
 
     const day = dayKey(e.timestamp);
     const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
@@ -69,10 +91,11 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
   }
 
   const repos: RepoSummary[] = [...repoMap.values()]
-    .map(({ events: repoEvents }) => summarizeRepo(repoEvents))
+    .map((repoEvents) => summarizeRepo(repoEvents))
     .sort((a, b) => b.credits - a.credits);
 
   const models = [...modelMap.values()].sort((a, b) => b.credits - a.credits);
+  const providers = [...providerMap.values()].sort((a, b) => b.credits - a.credits);
   const days = [...dayMap.values()].sort((a, b) => a.day.localeCompare(b.day));
 
   const { forecastCredits } = forecast(options.month, totalCredits, days, options.now ?? new Date());
@@ -81,12 +104,15 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     month: options.month,
     totalCredits,
     totalUsd: creditsToUsd(totalCredits),
+    copilotCredits,
+    copilotUsd: creditsToUsd(copilotCredits),
     includedCredits: options.includedCredits,
-    usedPercent: options.includedCredits > 0 ? (totalCredits / options.includedCredits) * 100 : 0,
+    usedPercent: options.includedCredits > 0 ? (copilotCredits / options.includedCredits) * 100 : 0,
     forecastCredits,
     forecastUsd: creditsToUsd(forecastCredits),
     repos,
     models,
+    providers,
     days,
     requestCount: inMonth.length,
     sessionCount: sessions.size,
@@ -97,11 +123,13 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 function summarizeRepo(events: UsageEvent[]): RepoSummary {
   const first = events[0]!;
   const models = new Map<string, ModelSummary>();
+  const providers = new Set<UsageEvent['provider']>();
   const sessions = new Set<string>();
   let credits = 0;
   let inputTokens = 0;
   let outputTokens = 0;
   let cachedTokens = 0;
+  let cacheWriteTokens = 0;
   let lastActivity = 0;
   let hasEstimates = false;
 
@@ -110,7 +138,9 @@ function summarizeRepo(events: UsageEvent[]): RepoSummary {
     inputTokens += e.inputTokens;
     outputTokens += e.outputTokens;
     cachedTokens += e.cachedTokens;
+    cacheWriteTokens += e.cacheWriteTokens;
     sessions.add(e.sessionId);
+    providers.add(e.provider);
     lastActivity = Math.max(lastActivity, e.timestamp);
     if (e.costSource === 'estimated') {
       hasEstimates = true;
@@ -129,9 +159,11 @@ function summarizeRepo(events: UsageEvent[]): RepoSummary {
     inputTokens,
     outputTokens,
     cachedTokens,
+    cacheWriteTokens,
     requestCount: events.length,
     sessionCount: sessions.size,
     models: [...models.values()].sort((a, b) => b.credits - a.credits),
+    providers: [...providers].sort(),
     lastActivity,
     hasEstimates,
   };

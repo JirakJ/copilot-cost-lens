@@ -80,8 +80,16 @@ export class CostTreeProvider implements vscode.TreeDataProvider<Node> {
       children.push({
         kind: 'info',
         icon: 'symbol-number',
-        label: `${compactTokens(node.summary.inputTokens)} in / ${compactTokens(node.summary.outputTokens)} out tokens`,
+        label: `${compactTokens(node.summary.inputTokens)} in / ${compactTokens(node.summary.outputTokens)} out`,
+        description: `cache ${compactTokens(node.summary.cachedTokens)} r / ${compactTokens(node.summary.cacheWriteTokens)} w`,
       });
+      if (node.summary.providers.length > 0) {
+        children.push({
+          kind: 'info',
+          icon: 'plug',
+          label: node.summary.providers.map(providerLabel).join(', '),
+        });
+      }
       return children;
     }
     return [];
@@ -99,6 +107,19 @@ function repoTooltip(summary: RepoSummary): string {
     lines.push('Contains estimated entries (~)');
   }
   return lines.filter(Boolean).join('\n');
+}
+
+export function providerLabel(provider: string): string {
+  switch (provider) {
+    case 'copilot':
+      return 'Copilot';
+    case 'copilot-cli':
+      return 'Copilot CLI';
+    case 'claude-code':
+      return 'Claude Code';
+    default:
+      return provider;
+  }
 }
 
 export function compactTokens(tokens: number): string {

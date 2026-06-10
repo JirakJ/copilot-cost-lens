@@ -3,6 +3,9 @@ import { CostSource, ModelRate, RawUsage } from '../types';
 /** 1 AI Credit = $0.01 (GitHub's dollar-normalized unit). */
 export const USD_PER_CREDIT = 0.01;
 
+/** Overage price of one premium request (pre-June-2026 Copilot billing). */
+export const USD_PER_PREMIUM_REQUEST = 0.04;
+
 /**
  * Built-in price table, USD per 1M tokens.
  * Source: GitHub Copilot usage-based billing model rates (June 2026).
@@ -20,13 +23,18 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, output: 4.5 },
   'gpt-5.4-nano': { input: 0.2, cachedInput: 0.02, output: 1.25 },
   'gpt-5.5': { input: 5.0, cachedInput: 0.5, output: 30.0 },
+  'claude-haiku-4': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-haiku-4.5': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-sonnet-4': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
   'claude-sonnet-4.5': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
   'claude-sonnet-4.6': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
+  // 'claude-opus-4' also acts as a prefix catch-all for future 4.x releases
+  'claude-opus-4': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'claude-opus-4.5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'claude-opus-4.6': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'claude-opus-4.7': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  // assumed Opus-tier until an official rate is published; override in settings if needed
+  'claude-fable-5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'gemini-2.5-pro': { input: 1.25, cachedInput: 0.125, output: 10.0 },
   'gemini-3-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
   'gemini-3-flash': { input: 0.5, cachedInput: 0.05, output: 3.0 },
@@ -61,6 +69,8 @@ export function normalizeModelId(raw: string): string {
   id = id.replace(/\s+/g, '-');
   // strip trailing date-like or build suffixes: claude-opus-4.6-20260203 → claude-opus-4.6
   id = id.replace(/-(\d{8}|\d{4}-\d{2}-\d{2}|preview|latest)$/i, '');
+  // Anthropic API ids use dashed versions: claude-opus-4-5 → claude-opus-4.5
+  id = id.replace(/-(\d+)-(\d+)$/, '-$1.$2');
   return id;
 }
 
@@ -89,15 +99,17 @@ function bestPrefixMatch(id: string): ModelRate | undefined {
 
 /** Price exact or estimated token counts, in USD. */
 export function priceTokensUsd(
-  usage: { inputTokens: number; outputTokens: number; cachedTokens: number },
+  usage: { inputTokens: number; outputTokens: number; cachedTokens: number; cacheWriteTokens?: number },
   rate: ModelRate,
 ): number {
   const M = 1_000_000;
-  // cachedTokens are a subset reported separately; bill non-cached input at full rate
+  const cacheWrite = usage.cacheWriteTokens ?? 0;
+  // cachedTokens (cache reads) are reported as part of input; bill the rest fresh
   const freshInput = Math.max(0, usage.inputTokens - usage.cachedTokens);
   return (
     (freshInput / M) * rate.input +
     (usage.cachedTokens / M) * rate.cachedInput +
+    (cacheWrite / M) * (rate.cacheWrite ?? rate.input) +
     (usage.outputTokens / M) * rate.output
   );
 }
@@ -109,11 +121,18 @@ export interface PricedUsage {
 
 /**
  * Resolve the cost of one raw usage record.
- * Order of authority: billed nano-credits → exact tokens → estimate.
+ * Order of authority: billed nano-credits → billed premium requests →
+ * exact tokens → estimate.
  */
 export function priceUsage(raw: RawUsage, options: PricingOptions = {}): PricedUsage {
   if (raw.nanoCredits !== undefined && raw.nanoCredits > 0) {
     return { credits: raw.nanoCredits / 1_000_000_000, costSource: 'billed' };
+  }
+  if (raw.premiumRequests !== undefined && raw.premiumRequests > 0) {
+    return {
+      credits: (raw.premiumRequests * USD_PER_PREMIUM_REQUEST) / USD_PER_CREDIT,
+      costSource: 'billed',
+    };
   }
   const usd = priceTokensUsd(raw, rateFor(raw.model, options));
   return { credits: usd / USD_PER_CREDIT, costSource: raw.estimated ? 'estimated' : 'computed' };

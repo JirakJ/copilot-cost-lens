@@ -13,12 +13,14 @@ import { RawUsage } from '../src/types';
 function raw(partial: Partial<RawUsage>): RawUsage {
   return {
     sessionId: 's1',
+    provider: 'copilot',
     workspaceStorageDir: '/tmp/ws',
     timestamp: Date.now(),
     model: 'gpt-5.5',
     inputTokens: 0,
     outputTokens: 0,
     cachedTokens: 0,
+    cacheWriteTokens: 0,
     estimated: false,
     ...partial,
   };
@@ -35,6 +37,14 @@ describe('normalizeModelId', () => {
 
   it('strips date suffixes', () => {
     expect(normalizeModelId('claude-opus-4.6-20260203')).toBe('claude-opus-4.6');
+  });
+
+  it('converts Anthropic dashed versions to dotted', () => {
+    expect(normalizeModelId('claude-opus-4-5-20251101')).toBe('claude-opus-4.5');
+    expect(normalizeModelId('claude-haiku-4-5')).toBe('claude-haiku-4.5');
+    // non-numeric suffixes stay untouched
+    expect(normalizeModelId('gpt-5-mini')).toBe('gpt-5-mini');
+    expect(normalizeModelId('claude-fable-5')).toBe('claude-fable-5');
   });
 });
 
@@ -75,6 +85,14 @@ describe('priceTokensUsd', () => {
     // 1M fresh input × $2 + 1M cached × $0.5 + 0.5M out × $8
     expect(usd).toBeCloseTo(2 + 0.5 + 4);
   });
+
+  it('bills cache writes at the cache-write rate', () => {
+    const usd = priceTokensUsd(
+      { inputTokens: 0, outputTokens: 0, cachedTokens: 0, cacheWriteTokens: 1_000_000 },
+      { input: 5, cachedInput: 0.5, cacheWrite: 6.25, output: 25 },
+    );
+    expect(usd).toBeCloseTo(6.25);
+  });
 });
 
 describe('priceUsage', () => {
@@ -94,6 +112,13 @@ describe('priceUsage', () => {
   it('marks estimated usage', () => {
     const priced = priceUsage(raw({ model: 'gpt-5-mini', inputTokens: 1000, estimated: true }));
     expect(priced.costSource).toBe('estimated');
+  });
+
+  it('prices billed premium requests at $0.04 each', () => {
+    const priced = priceUsage(raw({ premiumRequests: 39, inputTokens: 13_000_000 }));
+    // 39 × $0.04 = $1.56 = 156 credits
+    expect(priced.credits).toBeCloseTo(156);
+    expect(priced.costSource).toBe('billed');
   });
 });
 
