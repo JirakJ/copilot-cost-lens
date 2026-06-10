@@ -50,7 +50,7 @@ export class Dashboard implements vscode.Disposable {
         case 'openSettings':
           void vscode.commands.executeCommand(
             'workbench.action.openSettings',
-            '@ext:jirakj.copilot-cost-lens',
+            '@ext:JakubJirak.copilot-cost-lens',
           );
           break;
       }

@@ -34,7 +34,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.exportCsv', () => exportUsage(store.getEvents(), 'csv')),
     vscode.commands.registerCommand('copilotCostLens.exportJson', () => exportUsage(store.getEvents(), 'json')),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
-      vscode.commands.executeCommand('workbench.action.openSettings', '@ext:jirakj.copilot-cost-lens'),
+      vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('copilotCostLens')) {

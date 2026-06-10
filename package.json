@@ -3,7 +3,7 @@
   "displayName": "Cost Lens for GitHub Copilot",
   "description": "Track GitHub Copilot AI Credits and spend per repository — local, private, real-time. Per-repo cost breakdown, model analytics, budgets and forecasts.",
   "version": "1.0.0",
-  "publisher": "jirakj",
+  "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
   "engines": {
