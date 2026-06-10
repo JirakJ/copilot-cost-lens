@@ -1,0 +1,228 @@
+{
+  "name": "copilot-cost-lens",
+  "displayName": "Cost Lens for GitHub Copilot",
+  "description": "Track GitHub Copilot AI Credits and spend per repository — local, private, real-time. Per-repo cost breakdown, model analytics, budgets and forecasts.",
+  "version": "1.0.0",
+  "publisher": "jirakj",
+  "license": "MIT",
+  "icon": "media/icon.png",
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Visualization",
+    "Other"
+  ],
+  "keywords": [
+    "copilot",
+    "cost",
+    "usage",
+    "ai credits",
+    "budget",
+    "premium requests",
+    "spend",
+    "analytics"
+  ],
+  "galleryBanner": {
+    "color": "#1b1f24",
+    "theme": "dark"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/JirakJ/copilot-cost-lens.git"
+  },
+  "bugs": {
+    "url": "https://github.com/JirakJ/copilot-cost-lens/issues"
+  },
+  "homepage": "https://github.com/JirakJ/copilot-cost-lens#readme",
+  "main": "./dist/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "copilotCostLens",
+          "title": "Copilot Cost Lens",
+          "icon": "media/view-icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "copilotCostLens": [
+        {
+          "id": "copilotCostLens.byRepo",
+          "name": "Cost by Repository",
+          "icon": "media/view-icon.svg"
+        }
+      ]
+    },
+    "viewsWelcome": [
+      {
+        "view": "copilotCostLens.byRepo",
+        "contents": "No Copilot usage data found yet.\nUse Copilot Chat in any workspace and data will appear here automatically.\n[Open Dashboard](command:copilotCostLens.openDashboard)\n[Refresh](command:copilotCostLens.refresh)"
+      }
+    ],
+    "commands": [
+      {
+        "command": "copilotCostLens.openDashboard",
+        "title": "Open Dashboard",
+        "category": "Copilot Cost Lens",
+        "icon": "$(graph)"
+      },
+      {
+        "command": "copilotCostLens.refresh",
+        "title": "Refresh Usage Data",
+        "category": "Copilot Cost Lens",
+        "icon": "$(refresh)"
+      },
+      {
+        "command": "copilotCostLens.exportCsv",
+        "title": "Export Usage as CSV",
+        "category": "Copilot Cost Lens"
+      },
+      {
+        "command": "copilotCostLens.exportJson",
+        "title": "Export Usage as JSON",
+        "category": "Copilot Cost Lens"
+      },
+      {
+        "command": "copilotCostLens.openSettings",
+        "title": "Open Settings",
+        "category": "Copilot Cost Lens"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "copilotCostLens.refresh",
+          "when": "view == copilotCostLens.byRepo",
+          "group": "navigation@1"
+        },
+        {
+          "command": "copilotCostLens.openDashboard",
+          "when": "view == copilotCostLens.byRepo",
+          "group": "navigation@0"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Copilot Cost Lens",
+      "properties": {
+        "copilotCostLens.plan": {
+          "type": "string",
+          "enum": [
+            "business",
+            "businessPromo",
+            "enterprise",
+            "enterprisePromo",
+            "custom"
+          ],
+          "enumDescriptions": [
+            "Copilot Business — 1,900 AI Credits per user per month",
+            "Copilot Business promotional period (Jun–Aug 2026) — 3,000 AI Credits per user per month",
+            "Copilot Enterprise — 3,900 AI Credits per user per month",
+            "Copilot Enterprise promotional period (Jun–Aug 2026) — 7,000 AI Credits per user per month",
+            "Custom — use copilotCostLens.includedCreditsPerMonth"
+          ],
+          "default": "business",
+          "description": "Your GitHub Copilot plan. Determines the included monthly AI Credits allowance used for budget gauges."
+        },
+        "copilotCostLens.includedCreditsPerMonth": {
+          "type": "number",
+          "default": 1900,
+          "minimum": 0,
+          "description": "Included AI Credits per month (only used when plan is 'custom')."
+        },
+        "copilotCostLens.monthlyBudgetUsd": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "description": "Optional personal monthly budget in USD (0 = disabled). You get a warning when the month-to-date spend crosses the warning threshold."
+        },
+        "copilotCostLens.warnAtPercent": {
+          "type": "number",
+          "default": 80,
+          "minimum": 1,
+          "maximum": 100,
+          "description": "Warn when month-to-date usage exceeds this percentage of the included credits (or monthly budget, if set)."
+        },
+        "copilotCostLens.statusBar.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show month-to-date Copilot spend in the status bar."
+        },
+        "copilotCostLens.extraStorageRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Additional VS Code 'workspaceStorage' roots to scan (absolute paths). Standard locations of VS Code, Insiders and VSCodium are detected automatically."
+        },
+        "copilotCostLens.estimation.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "When exact token usage is not available in logs, estimate token usage from chat session content. Estimated entries are clearly marked."
+        },
+        "copilotCostLens.estimation.charsPerToken": {
+          "type": "number",
+          "default": 4,
+          "minimum": 1,
+          "description": "Characters-per-token ratio used for estimates."
+        },
+        "copilotCostLens.priceOverrides": {
+          "type": "object",
+          "default": {},
+          "markdownDescription": "Override model pricing (USD per 1M tokens). Example: `{ \"gpt-5.5\": { \"input\": 5, \"cachedInput\": 0.5, \"output\": 30 } }`",
+          "additionalProperties": {
+            "type": "object",
+            "properties": {
+              "input": {
+                "type": "number"
+              },
+              "cachedInput": {
+                "type": "number"
+              },
+              "cacheWrite": {
+                "type": "number"
+              },
+              "output": {
+                "type": "number"
+              }
+            }
+          }
+        },
+        "copilotCostLens.refreshIntervalSeconds": {
+          "type": "number",
+          "default": 120,
+          "minimum": 10,
+          "description": "How often to rescan usage logs in the background. File watchers trigger immediate refreshes on top of this."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "node esbuild.mjs",
+    "watch": "node esbuild.mjs --watch",
+    "package": "node esbuild.mjs --production",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint src",
+    "test": "vitest run",
+    "icon": "node scripts/gen-icon.mjs",
+    "vscode:prepublish": "npm run package",
+    "vsix": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^20.14.0",
+    "@types/vscode": "^1.96.0",
+    "@typescript-eslint/eslint-plugin": "^8.18.0",
+    "@typescript-eslint/parser": "^8.18.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.0",
+    "eslint": "^9.17.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}
