@@ -1,0 +1,39 @@
+name: Release
+
+# Pushing a v* tag verifies the build, publishes to the VS Code Marketplace
+# and creates a GitHub release with the VSIX attached.
+# Requires the VSCE_PAT repository secret (Azure DevOps PAT, Marketplace → Manage).
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm test
+      - run: npx @vscode/vsce package --no-dependencies
+      - name: Publish to VS Code Marketplace
+        run: npx @vscode/vsce publish --no-dependencies -p "$VSCE_PAT"
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release create "$GITHUB_REF_NAME" *.vsix \
+            --title "$GITHUB_REF_NAME" \
+            --notes "See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)." \
+            --verify-tag
