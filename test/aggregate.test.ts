@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   ALL_TIME,
   availableMonths,
+  buildGroupDetail,
   buildMonthReport,
   buildRepoDetail,
   dayKey,
@@ -145,6 +146,57 @@ describe('buildMonthReport', () => {
     expect(report.totalCredits).toBe(30);
     expect(report.includedCredits).toBe(0);
     expect(report.forecastCredits).toBe(30); // no extrapolation for all-time
+  });
+});
+
+describe('project groups', () => {
+  const now = new Date(2026, 5, 10);
+  const groupEvents = [
+    event({ repo: { name: 'acme/frontend' }, credits: 10, model: 'gpt-5.5' }),
+    event({ repo: { name: 'acme/backend' }, credits: 20, model: 'gpt-5.5', sessionId: 's2' }),
+    event({
+      repo: { name: 'e2e-tests', folderPath: '/Users/dev/work/e2e-tests' },
+      credits: 5,
+      model: 'claude-sonnet-4.6',
+      sessionId: 's3',
+      provider: 'claude-code',
+    }),
+    event({ repo: { name: 'acme/unrelated' }, credits: 99, sessionId: 's4' }),
+  ];
+  const groups = { MyProduct: ['acme/frontend', 'ACME/backend', 'e2e-tests'] };
+
+  it('aggregates member repos into a group, case-insensitively', () => {
+    const report = buildMonthReport(groupEvents, { month: '2026-06', includedCredits: 0, groups, now });
+    expect(report.groups).toHaveLength(1);
+    const group = report.groups[0]!;
+    expect(group.credits).toBe(35);
+    expect(group.repos.map((r) => r.repo.name).sort()).toEqual([
+      'acme/backend',
+      'acme/frontend',
+      'e2e-tests',
+    ]);
+    expect(group.models.map((m) => m.model)).toEqual(['gpt-5.5', 'claude-sonnet-4.6']);
+  });
+
+  it('omits groups with no usage in the period', () => {
+    const report = buildMonthReport(groupEvents, {
+      month: '2025-01',
+      includedCredits: 0,
+      groups,
+      now,
+    });
+    expect(report.groups).toHaveLength(0);
+  });
+
+  it('builds a drill-down detail with per-provider split', () => {
+    const detail = buildGroupDetail(groupEvents, {
+      name: 'MyProduct',
+      members: groups.MyProduct,
+      month: ALL_TIME,
+    })!;
+    expect(detail.group.credits).toBe(35);
+    expect(detail.providers.map((p) => p.provider)).toEqual(['copilot', 'claude-code']);
+    expect(detail.days).toHaveLength(1);
   });
 });
 

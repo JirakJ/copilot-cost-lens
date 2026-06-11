@@ -58,5 +58,13 @@
   "Spend: **${0}** ({1} credits)": "支出: **${0}** ({1} クレジット)",
   "Copilot allowance: {0}% of {1} credits": "Copilot クレジット枠: {1} クレジット中 {0}%",
   "Forecast: ${0} by end of month": "予測: 月末までに ${0}",
-  "Includes estimated entries": "推定エントリを含む"
+  "Includes estimated entries": "推定エントリを含む",
+  "Projects": "プロジェクト",
+  "Invoice (PDF)": "請求書 (PDF)",
+  "Repositories in this project": "このプロジェクトのリポジトリ",
+  "Loaded events": "読み込んだイベント",
+  "newest data:": "最新データ:",
+  "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: 請求書を {0} に保存しました",
+  "Export invoice for which project?": "どのプロジェクトの請求書をエクスポートしますか?",
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: 今月の Copilot 使用量が {0} AI クレジットを超えました (使用済み {1}、${2})。"
 }

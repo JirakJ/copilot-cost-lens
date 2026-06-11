@@ -1,8 +1,13 @@
 import * as zlib from 'node:zlib';
 import { describe, expect, it } from 'vitest';
-import { RepoDetail } from '../src/core/aggregate';
-import { buildReceiptPdf, toWinAnsi } from '../src/core/receiptPdf';
-import { receiptStrings } from '../src/core/receiptStrings';
+import { GroupDetail, RepoDetail } from '../src/core/aggregate';
+import {
+  buildInvoicePdf,
+  buildReceiptPdf,
+  invoiceFromGroup,
+  toWinAnsi,
+} from '../src/core/receiptPdf';
+import { invoiceStrings, receiptStrings } from '../src/core/receiptStrings';
 
 function sampleDetail(): RepoDetail {
   return {
@@ -75,3 +80,70 @@ describe('buildReceiptPdf', () => {
     expect(strings.receipt).toBe('RECEIPT');
   });
 });
+
+describe('buildInvoicePdf', () => {
+  function groupDetail(repoCount: number): GroupDetail {
+    const repos = Array.from({ length: repoCount }, (_, i) => ({
+      ...sampleDetail().summary,
+      repo: { name: `acme/repo-${i}` },
+    }));
+    return {
+      month: 'all',
+      days: [],
+      providers: [{ provider: 'copilot', credits: 1000, usd: 10, requestCount: 15 }],
+      group: {
+        name: 'MyProduct',
+        repos,
+        credits: 1000 * repoCount,
+        usd: 10 * repoCount,
+        inputTokens: 0,
+        outputTokens: 0,
+        cachedTokens: 0,
+        cacheWriteTokens: 0,
+        requestCount: 15 * repoCount,
+        sessionCount: 3 * repoCount,
+        models: [{ model: 'gpt-5.5', credits: 1000 * repoCount, usd: 10 * repoCount, requestCount: 15 * repoCount }],
+        hasEstimates: false,
+      },
+    };
+  }
+
+  it('renders a per-repo breakdown with a grand total', () => {
+    const pdf = buildInvoicePdf(invoiceFromGroup(groupDetail(2)), invoiceStrings('en'));
+    const raw = pdf.toString('latin1');
+    expect(raw.startsWith('%PDF-1.4')).toBe(true);
+    const content = inflateStreams(raw);
+    expect(content).toContain('INVOICE - AI UTILIZATION');
+    expect(content).toContain('MyProduct');
+    expect(content).toContain('acme/repo-0');
+    expect(content).toContain('acme/repo-1');
+    expect(content).toContain('GRAND TOTAL');
+    expect(content).toContain('$20.00');
+  });
+
+  it('paginates long invoices across multiple A4 pages', () => {
+    const pdf = buildInvoicePdf(invoiceFromGroup(groupDetail(20)), invoiceStrings('en'));
+    const raw = pdf.toString('latin1');
+    const pageCount = Number(/\/Count (\d+)/.exec(raw)?.[1]);
+    expect(pageCount).toBeGreaterThan(1);
+    expect(inflateStreams(raw)).toContain('acme/repo-19');
+  });
+});
+
+function inflateStreams(raw: string): string {
+  const marker = '>>\nstream\n';
+  let content = '';
+  let cursor = 0;
+  for (;;) {
+    const start = raw.indexOf(marker, cursor);
+    if (start < 0) {
+      break;
+    }
+    const end = raw.indexOf('\nendstream', start);
+    content += zlib
+      .inflateSync(Buffer.from(raw.slice(start + marker.length, end), 'latin1'))
+      .toString('latin1');
+    cursor = end;
+  }
+  return content;
+}

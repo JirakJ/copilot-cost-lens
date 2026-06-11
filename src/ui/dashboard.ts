@@ -1,7 +1,8 @@
 import * as vscode from 'vscode';
 import { renderDashboardHtml } from './dashboardHtml';
 import { webviewStrings } from './strings';
-import { RepoDetail } from '../core/aggregate';
+import { GroupDetail, RepoDetail } from '../core/aggregate';
+import { ScanStats } from '../data/usageStore';
 import { MonthReport } from '../types';
 
 export interface DashboardDelegate {
@@ -9,9 +10,12 @@ export interface DashboardDelegate {
   /** Real data months, newest first (current month always included). */
   getMonths(): string[];
   getRepoDetail(repoName: string, month: string): RepoDetail | undefined;
+  getGroupDetail(groupName: string, month: string): GroupDetail | undefined;
+  getStats(): ScanStats;
   refresh(): Promise<void>;
   exportData(format: 'csv' | 'json'): Promise<void>;
   exportReceipt(repoName: string, month: string): Promise<void>;
+  exportInvoice(target: { repo?: string; group?: string }, month: string): Promise<void>;
   setAllowance(value: number | 'custom'): Promise<void>;
 }
 
@@ -19,6 +23,7 @@ interface IncomingMessage {
   type: string;
   month?: string;
   repo?: string;
+  group?: string;
   format?: 'csv' | 'json';
   value?: number | 'custom';
 }
@@ -31,6 +36,7 @@ export class DashboardController {
   private webviews = new Set<vscode.Webview>();
   private selectedMonth?: string;
   private selectedRepo?: string;
+  private selectedGroup?: string;
 
   constructor(private delegate: DashboardDelegate) {}
 
@@ -47,10 +53,17 @@ export class DashboardController {
         case 'selectMonth':
           this.selectedMonth = message.month;
           this.selectedRepo = undefined;
+          this.selectedGroup = undefined;
           this.postAll();
           break;
         case 'selectRepo':
           this.selectedRepo = message.repo || undefined;
+          this.selectedGroup = undefined;
+          this.postAll();
+          break;
+        case 'selectGroup':
+          this.selectedGroup = message.group || undefined;
+          this.selectedRepo = undefined;
           this.postAll();
           break;
         case 'refresh':
@@ -63,6 +76,14 @@ export class DashboardController {
         case 'exportReceipt':
           if (message.repo) {
             await this.delegate.exportReceipt(message.repo, this.currentMonth());
+          }
+          break;
+        case 'exportInvoice':
+          if (message.repo || message.group) {
+            await this.delegate.exportInvoice(
+              { repo: message.repo, group: message.group },
+              this.currentMonth(),
+            );
           }
           break;
         case 'setAllowance':
@@ -112,12 +133,20 @@ export class DashboardController {
     if (this.selectedRepo && !detail) {
       this.selectedRepo = undefined;
     }
+    const groupDetail = this.selectedGroup
+      ? this.delegate.getGroupDetail(this.selectedGroup, month)
+      : undefined;
+    if (this.selectedGroup && !groupDetail) {
+      this.selectedGroup = undefined;
+    }
     void webview.postMessage({
       type: 'data',
       report: this.delegate.getReport(month),
       months: this.delegate.getMonths(),
       selectedMonth: month,
       detail,
+      groupDetail,
+      stats: this.delegate.getStats(),
     });
   }
 }

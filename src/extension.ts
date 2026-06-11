@@ -3,17 +3,24 @@ import * as vscode from 'vscode';
 import {
   ALL_TIME,
   availableMonths,
+  buildGroupDetail,
   buildMonthReport,
   buildRepoDetail,
   currentMonthKey,
+  ProjectGroups,
 } from './core/aggregate';
 import { PLAN_CREDITS } from './core/pricing';
-import { buildReceiptPdf } from './core/receiptPdf';
+import {
+  buildInvoicePdf,
+  buildReceiptPdf,
+  invoiceFromGroup,
+  invoiceFromRepo,
+} from './core/receiptPdf';
 import { exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
-import { receiptStrings } from './core/receiptStrings';
+import { invoiceStrings, receiptStrings } from './core/receiptStrings';
 import { MonthReport } from './types';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -24,24 +31,36 @@ export function activate(context: vscode.ExtensionContext): void {
     getReport: (month) => buildReport(store, month),
     getMonths: () => availableMonths(store.getEvents()),
     getRepoDetail: (repoName, month) => buildRepoDetail(store.getEvents(), { repoName, month }),
+    getGroupDetail: (groupName, month) => {
+      const members = projectGroups()[groupName];
+      return members
+        ? buildGroupDetail(store.getEvents(), { name: groupName, members, month })
+        : undefined;
+    },
+    getStats: () => store.getStats(),
     refresh: async () => {
       await store.refresh();
     },
     exportData: (format) => exportUsage(store.getEvents(), format),
     exportReceipt: (repoName, month) => exportReceipt(store, repoName, month),
+    exportInvoice: (target, month) => exportInvoice(store, target, month),
     setAllowance: (value) => setAllowance(value),
   });
   const panel = new DashboardPanel(controller);
 
+  const output = vscode.window.createOutputChannel('Copilot Cost Lens');
+
   context.subscriptions.push(
     statusBar,
     panel,
+    output,
     vscode.window.registerWebviewViewProvider(DashboardViewProvider.viewId, new DashboardViewProvider(controller)),
     vscode.commands.registerCommand('copilotCostLens.openDashboard', () => panel.show()),
     vscode.commands.registerCommand('copilotCostLens.refresh', () => store.refresh()),
     vscode.commands.registerCommand('copilotCostLens.exportCsv', () => exportUsage(store.getEvents(), 'csv')),
     vscode.commands.registerCommand('copilotCostLens.exportJson', () => exportUsage(store.getEvents(), 'json')),
     vscode.commands.registerCommand('copilotCostLens.exportReceipt', () => pickRepoAndExportReceipt(store)),
+    vscode.commands.registerCommand('copilotCostLens.exportInvoice', () => pickAndExportInvoice(store)),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
@@ -58,6 +77,21 @@ export function activate(context: vscode.ExtensionContext): void {
     statusBar.update(report, statusBarOptions());
     controller.notifyDataChanged();
     maybeWarnBudget(context, report);
+    checkCreditAlerts(context, report);
+
+    const stats = store.getStats();
+    output.appendLine(
+      `[${new Date().toISOString()}] scan ${stats.scanMs}ms, ${stats.filesParsed} files — ` +
+        Object.entries(stats.providers)
+          .map(([p, n]) => `${p}: ${n}`)
+          .join(', ') +
+        (stats.newestTimestamp > 0
+          ? ` — newest: ${new Date(stats.newestTimestamp).toISOString()}`
+          : ' — no events'),
+    );
+    for (const error of stats.errors) {
+      output.appendLine(`  ERROR ${error}`);
+    }
   });
 
   startBackgroundScanning(context, store);
@@ -123,11 +157,137 @@ function statusBarOptions(): { enabled: boolean; warnAtPercent: number } {
   };
 }
 
+function projectGroups(): ProjectGroups {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const raw = config.get<Record<string, unknown>>('projectGroups', {});
+  const groups: ProjectGroups = {};
+  for (const [name, members] of Object.entries(raw)) {
+    if (Array.isArray(members)) {
+      groups[name] = members.filter((m): m is string => typeof m === 'string');
+    }
+  }
+  return groups;
+}
+
 function buildReport(store: UsageStore, month: string): MonthReport {
   return buildMonthReport(store.getEvents(), {
     month,
     includedCredits: includedCredits(),
+    groups: projectGroups(),
   });
+}
+
+async function exportInvoice(
+  store: UsageStore,
+  target: { repo?: string; group?: string },
+  month: string,
+): Promise<void> {
+  let data;
+  if (target.group) {
+    const members = projectGroups()[target.group];
+    const detail = members
+      ? buildGroupDetail(store.getEvents(), { name: target.group, members, month })
+      : undefined;
+    data = detail ? invoiceFromGroup(detail) : undefined;
+  } else if (target.repo) {
+    const detail = buildRepoDetail(store.getEvents(), { repoName: target.repo, month });
+    data = detail ? invoiceFromRepo(detail) : undefined;
+  }
+  const name = target.group ?? target.repo ?? '';
+  if (!data) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('Copilot Cost Lens: no usage data for {0} in this period.', name),
+    );
+    return;
+  }
+
+  const pdf = buildInvoicePdf(data, invoiceStrings(vscode.env.language));
+  const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
+  const period = month === ALL_TIME ? 'all-time' : month;
+  const uri = await vscode.window.showSaveDialog({
+    defaultUri: vscode.Uri.file(`invoice-${safeName}-${period}.pdf`),
+    filters: { PDF: ['pdf'] },
+  });
+  if (!uri) {
+    return;
+  }
+  await vscode.workspace.fs.writeFile(uri, pdf);
+  void vscode.window.showInformationMessage(
+    vscode.l10n.t('Copilot Cost Lens: invoice saved to {0}', uri.fsPath),
+  );
+}
+
+/** Command-palette path: pick a project group or repository, then export. */
+async function pickAndExportInvoice(store: UsageStore): Promise<void> {
+  const groups = projectGroups();
+  const report = buildMonthReport(store.getEvents(), {
+    month: ALL_TIME,
+    includedCredits: 0,
+    groups,
+  });
+  const items: (vscode.QuickPickItem & { target: { repo?: string; group?: string } })[] = [
+    ...report.groups.map((g) => ({
+      label: `📁 ${g.name}`,
+      description: `$${g.usd.toFixed(2)} · ${g.repos.length}×`,
+      target: { group: g.name },
+    })),
+    ...report.repos.map((r) => ({
+      label: r.repo.name,
+      description: `$${r.usd.toFixed(2)}`,
+      target: { repo: r.repo.name },
+    })),
+  ];
+  if (items.length === 0) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('Copilot Cost Lens: no usage data to export yet.'),
+    );
+    return;
+  }
+  const picked = await vscode.window.showQuickPick(items, {
+    title: vscode.l10n.t('Export invoice for which project?'),
+  });
+  if (picked) {
+    await exportInvoice(store, picked.target, ALL_TIME);
+  }
+}
+
+/**
+ * Absolute AI-credit thresholds (e.g. 2,500 AIC). Each threshold fires a
+ * notification at most once per month, tracked in global state.
+ */
+function checkCreditAlerts(context: vscode.ExtensionContext, report: MonthReport): void {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const thresholds = config
+    .get<number[]>('creditAlerts', [])
+    .filter((value) => Number.isFinite(value) && value > 0);
+
+  for (const threshold of thresholds) {
+    if (report.copilotCredits < threshold) {
+      continue;
+    }
+    const key = `credit-alert-${report.month}-${threshold}`;
+    if (context.globalState.get<boolean>(key)) {
+      continue;
+    }
+    void context.globalState.update(key, true);
+
+    const openLabel = vscode.l10n.t('Open Dashboard');
+    void vscode.window
+      .showWarningMessage(
+        vscode.l10n.t(
+          'Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).',
+          threshold.toLocaleString('en-US'),
+          Math.round(report.copilotCredits).toLocaleString('en-US'),
+          report.copilotUsd.toFixed(2),
+        ),
+        openLabel,
+      )
+      .then((choice) => {
+        if (choice === openLabel) {
+          void vscode.commands.executeCommand('copilotCostLens.openDashboard');
+        }
+      });
+  }
 }
 
 async function exportReceipt(store: UsageStore, repoName: string, month: string): Promise<void> {

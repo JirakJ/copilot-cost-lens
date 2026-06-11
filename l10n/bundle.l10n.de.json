@@ -58,5 +58,13 @@
   "Spend: **${0}** ({1} credits)": "Ausgaben: **{0} $** ({1} Credits)",
   "Copilot allowance: {0}% of {1} credits": "Copilot-Kontingent: {0} % von {1} Credits",
   "Forecast: ${0} by end of month": "Prognose: {0} $ bis Monatsende",
-  "Includes estimated entries": "Enthält geschätzte Einträge"
+  "Includes estimated entries": "Enthält geschätzte Einträge",
+  "Projects": "Projekte",
+  "Invoice (PDF)": "Rechnung (PDF)",
+  "Repositories in this project": "Repositories in diesem Projekt",
+  "Loaded events": "Geladene Einträge",
+  "newest data:": "neueste Daten:",
+  "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: Rechnung gespeichert unter {0}",
+  "Export invoice for which project?": "Für welches Projekt soll die Rechnung exportiert werden?",
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: Die Copilot-Nutzung hat diesen Monat {0} AI Credits überschritten ({1} verbraucht, {2} $)."
 }

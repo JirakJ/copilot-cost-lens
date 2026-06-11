@@ -107,6 +107,23 @@ export interface ProviderSummary {
   requestCount: number;
 }
 
+/** A user-defined project: several repositories rolled into one. */
+export interface GroupSummary {
+  name: string;
+  /** Member repositories that actually have usage in the period. */
+  repos: RepoSummary[];
+  credits: number;
+  usd: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
+  requestCount: number;
+  sessionCount: number;
+  models: ModelSummary[];
+  hasEstimates: boolean;
+}
+
 export interface DayPoint {
   /** ISO date (YYYY-MM-DD), local time. */
   day: string;
@@ -129,6 +146,8 @@ export interface MonthReport {
   forecastCredits: number;
   forecastUsd: number;
   repos: RepoSummary[];
+  /** User-defined project groups with usage in the period (empty when none configured). */
+  groups: GroupSummary[];
   models: ModelSummary[];
   providers: ProviderSummary[];
   days: DayPoint[];

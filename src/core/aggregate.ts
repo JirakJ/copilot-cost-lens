@@ -1,12 +1,16 @@
 import { creditsToUsd } from './pricing';
 import {
   DayPoint,
+  GroupSummary,
   ModelSummary,
   MonthReport,
   ProviderSummary,
   RepoSummary,
   UsageEvent,
 } from '../types';
+
+/** User-defined project groups: name → member repo identifiers. */
+export type ProjectGroups = Record<string, string[]>;
 
 /** YYYY-MM in local time. */
 export function monthKey(timestamp: number): string {
@@ -40,6 +44,7 @@ export interface ReportOptions {
   /** YYYY-MM or ALL_TIME. */
   month: string;
   includedCredits: number;
+  groups?: ProjectGroups;
   now?: Date;
 }
 
@@ -121,12 +126,131 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     forecastCredits,
     forecastUsd: creditsToUsd(forecastCredits),
     repos,
+    groups: buildGroupSummaries(repos, options.groups ?? {}),
     models,
     providers,
     days,
     requestCount: inMonth.length,
     sessionCount: sessions.size,
     hasEstimates,
+  };
+}
+
+/** True when a repo summary matches a group member identifier. */
+function repoMatches(repo: RepoSummary, member: string): boolean {
+  const target = member.trim().toLowerCase();
+  if (!target) {
+    return false;
+  }
+  const candidates = [
+    repo.repo.name,
+    repo.repo.remoteSlug,
+    repo.repo.folderPath?.split('/').pop(),
+  ];
+  return candidates.some((c) => c && c.toLowerCase() === target);
+}
+
+export function buildGroupSummaries(repos: RepoSummary[], groups: ProjectGroups): GroupSummary[] {
+  const summaries: GroupSummary[] = [];
+  for (const [name, members] of Object.entries(groups)) {
+    const matched = repos.filter((repo) => members.some((m) => repoMatches(repo, m)));
+    if (matched.length === 0) {
+      continue;
+    }
+    const models = new Map<string, ModelSummary>();
+    const group: GroupSummary = {
+      name,
+      repos: matched,
+      credits: 0,
+      usd: 0,
+      inputTokens: 0,
+      outputTokens: 0,
+      cachedTokens: 0,
+      cacheWriteTokens: 0,
+      requestCount: 0,
+      sessionCount: 0,
+      models: [],
+      hasEstimates: false,
+    };
+    for (const repo of matched) {
+      group.credits += repo.credits;
+      group.inputTokens += repo.inputTokens;
+      group.outputTokens += repo.outputTokens;
+      group.cachedTokens += repo.cachedTokens;
+      group.cacheWriteTokens += repo.cacheWriteTokens;
+      group.requestCount += repo.requestCount;
+      group.sessionCount += repo.sessionCount;
+      group.hasEstimates ||= repo.hasEstimates;
+      for (const m of repo.models) {
+        const existing = models.get(m.model) ?? { model: m.model, credits: 0, usd: 0, requestCount: 0 };
+        existing.credits += m.credits;
+        existing.usd = creditsToUsd(existing.credits);
+        existing.requestCount += m.requestCount;
+        models.set(m.model, existing);
+      }
+    }
+    group.usd = creditsToUsd(group.credits);
+    group.models = [...models.values()].sort((a, b) => b.credits - a.credits);
+    summaries.push(group);
+  }
+  return summaries.sort((a, b) => b.credits - a.credits);
+}
+
+export interface GroupDetail {
+  group: GroupSummary;
+  days: DayPoint[];
+  providers: ProviderSummary[];
+  month: string;
+}
+
+/** Drill-down detail for a project group within a period. */
+export function buildGroupDetail(
+  events: UsageEvent[],
+  options: { name: string; members: string[]; month: string; groups?: ProjectGroups },
+): GroupDetail | undefined {
+  const report = buildMonthReport(events, {
+    month: options.month,
+    includedCredits: 0,
+    groups: { [options.name]: options.members },
+  });
+  const group = report.groups.find((g) => g.name === options.name);
+  if (!group) {
+    return undefined;
+  }
+
+  const memberNames = new Set(group.repos.map((r) => r.repo.name));
+  const inScope = events.filter(
+    (e) =>
+      memberNames.has(e.repo.name) &&
+      (options.month === ALL_TIME || monthKey(e.timestamp) === options.month),
+  );
+
+  const dayMap = new Map<string, DayPoint>();
+  const providerMap = new Map<string, ProviderSummary>();
+  for (const e of inScope) {
+    const day = dayKey(e.timestamp);
+    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
+    point.credits += e.credits;
+    point.usd = creditsToUsd(point.credits);
+    dayMap.set(day, point);
+
+    const provider = providerMap.get(e.provider) ?? {
+      provider: e.provider,
+      credits: 0,
+      usd: 0,
+      requestCount: 0,
+    };
+    provider.credits += e.credits;
+    provider.usd = creditsToUsd(provider.credits);
+    provider.requestCount += 1;
+    providerMap.set(e.provider, provider);
+  }
+
+  return {
+    group,
+    days: [...dayMap.values()].sort((a, b) => a.day.localeCompare(b.day)),
+    providers: [...providerMap.values()].sort((a, b) => b.credits - a.credits),
+    month: options.month,
   };
 }
 

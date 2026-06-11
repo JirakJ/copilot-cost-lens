@@ -1,5 +1,6 @@
 import * as zlib from 'node:zlib';
-import { RepoDetail } from './aggregate';
+import { GroupDetail, RepoDetail } from './aggregate';
+import { RepoSummary } from '../types';
 
 /**
  * Receipt-style PDF for one project — a classic thermal-printer "účtenka":
@@ -45,7 +46,189 @@ interface Line {
 
 export function buildReceiptPdf(detail: RepoDetail, strings: ReceiptStrings): Buffer {
   const lines = layoutReceipt(detail, strings);
-  return renderPdf(lines);
+  // receipt: one page exactly as tall as its content
+  return buildPdf([lines], PAGE_W, MARGIN * 2 + lines.length * LINE_H + 10);
+}
+
+// ---------------------------------------------------------------------------
+// invoice (A4, paginated)
+// ---------------------------------------------------------------------------
+
+const A4_W = 595;
+const A4_H = 842;
+const A4_MARGIN = 56;
+const A4_COLS = Math.floor((A4_W - 2 * A4_MARGIN) / 6); // Courier 10pt
+
+export interface InvoiceStrings extends ReceiptStrings {
+  invoice: string;
+  repository: string;
+  subtotal: string;
+  grandTotal: string;
+  generatedBy: string;
+}
+
+export interface InvoiceSection {
+  repoName: string;
+  requestCount: number;
+  sessionCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
+  credits: number;
+  usd: number;
+  models: { model: string; requestCount: number; credits: number; usd: number }[];
+  hasEstimates: boolean;
+}
+
+export interface InvoiceData {
+  /** Project (group) or repository name. */
+  title: string;
+  /** YYYY-MM or 'all'. */
+  period: string;
+  sections: InvoiceSection[];
+  providers: { provider: string; usd: number; requestCount: number }[];
+  totalCredits: number;
+  totalUsd: number;
+  hasEstimates: boolean;
+}
+
+function sectionFromRepo(summary: RepoSummary): InvoiceSection {
+  return {
+    repoName: summary.repo.name,
+    requestCount: summary.requestCount,
+    sessionCount: summary.sessionCount,
+    inputTokens: summary.inputTokens,
+    outputTokens: summary.outputTokens,
+    cachedTokens: summary.cachedTokens,
+    cacheWriteTokens: summary.cacheWriteTokens,
+    credits: summary.credits,
+    usd: summary.usd,
+    models: summary.models,
+    hasEstimates: summary.hasEstimates,
+  };
+}
+
+/** Summary invoice for a project group, one section per member repository. */
+export function invoiceFromGroup(detail: GroupDetail): InvoiceData {
+  const repos = [...detail.group.repos].sort((a, b) => b.credits - a.credits);
+  return {
+    title: detail.group.name,
+    period: detail.month,
+    sections: repos.map(sectionFromRepo),
+    providers: detail.providers,
+    totalCredits: detail.group.credits,
+    totalUsd: detail.group.usd,
+    hasEstimates: detail.group.hasEstimates,
+  };
+}
+
+/** Single-repository invoice. */
+export function invoiceFromRepo(detail: RepoDetail): InvoiceData {
+  return {
+    title: detail.summary.repo.name,
+    period: detail.month,
+    sections: [sectionFromRepo(detail.summary)],
+    providers: detail.providers,
+    totalCredits: detail.summary.credits,
+    totalUsd: detail.summary.usd,
+    hasEstimates: detail.summary.hasEstimates,
+  };
+}
+
+export function buildInvoicePdf(data: InvoiceData, t: InvoiceStrings): Buffer {
+  const lines = layoutInvoice(data, t);
+  const linesPerPage = Math.floor((A4_H - 2 * A4_MARGIN) / LINE_H);
+  const pages: Line[][] = [];
+  for (let i = 0; i < lines.length; i += linesPerPage) {
+    pages.push(lines.slice(i, i + linesPerPage));
+  }
+  return buildPdf(pages.length > 0 ? pages : [[]], A4_W, A4_H, A4_MARGIN);
+}
+
+function layoutInvoice(data: InvoiceData, t: InvoiceStrings): Line[] {
+  const out: Line[] = [];
+  const rule = () => out.push({ text: '-'.repeat(A4_COLS) });
+  const doubleRule = () => out.push({ text: '='.repeat(A4_COLS) });
+  const kv = (label: string, value: string) => out.push({ text: padBetween(label, value, A4_COLS) });
+  const blank = () => out.push({ text: '' });
+
+  out.push({ text: t.invoice, bold: true, size: 16 });
+  out.push({ text: 'Copilot Cost Lens', size: 9 });
+  blank();
+  doubleRule();
+  kv(t.project, fit(data.title, A4_COLS - t.project.length - 1));
+  kv(t.period, data.period === 'all' ? t.allTime : data.period);
+  kv(t.issued, new Date().toISOString().slice(0, 10));
+  doubleRule();
+  blank();
+
+  // column layout: model/name | requests | credits | USD
+  const wReq = 10;
+  const wCr = 14;
+  const wUsd = 12;
+  const wName = A4_COLS - wReq - wCr - wUsd;
+  const row = (name: string, req: string, credits: string, usdText: string, bold = false) =>
+    out.push({
+      text:
+        fit(name, wName).padEnd(wName) +
+        req.padStart(wReq) +
+        credits.padStart(wCr) +
+        usdText.padStart(wUsd),
+      bold,
+    });
+
+  row(t.repository, t.requests, t.credits, 'USD', true);
+  rule();
+
+  for (const section of data.sections) {
+    row(section.repoName + (section.hasEstimates ? ' ~' : ''), '', '', '', true);
+    for (const model of section.models) {
+      row('  ' + model.model, `${model.requestCount}x`, fmtNum(model.credits), usd(model.usd));
+    }
+    row(
+      '  ' + t.subtotal,
+      `${section.requestCount}x`,
+      fmtNum(section.credits),
+      usd(section.usd),
+      true,
+    );
+    kv(
+      `  ${t.tokensIn}/${t.tokensOut}`,
+      `${fmtNum(section.inputTokens)} / ${fmtNum(section.outputTokens)}`,
+    );
+    kv(
+      `  ${t.cacheRead}/${t.cacheWrite}`,
+      `${fmtNum(section.cachedTokens)} / ${fmtNum(section.cacheWriteTokens)}`,
+    );
+    blank();
+  }
+
+  rule();
+  if (data.providers.length > 1) {
+    out.push({ text: t.subtotalBySource, bold: true });
+    for (const p of data.providers) {
+      kv(`  ${t.providerNames[p.provider] ?? p.provider}`, usd(p.usd));
+    }
+    rule();
+  }
+
+  blank();
+  const totalCols = Math.floor((A4_W - 2 * A4_MARGIN) / (13 * 0.6));
+  out.push({ text: padBetween(t.grandTotal, usd(data.totalUsd), totalCols), bold: true, size: 13 });
+  kv(t.credits, fmtNum(data.totalCredits));
+  doubleRule();
+
+  if (data.hasEstimates) {
+    blank();
+    for (const wrapped of wrap(`~ ${t.estimatesNote}`, A4_COLS)) {
+      out.push({ text: wrapped, size: 8 });
+    }
+  }
+  blank();
+  out.push({ text: t.generatedBy, size: 8 });
+
+  return out;
 }
 
 // ---------------------------------------------------------------------------
@@ -188,56 +371,64 @@ function escapePdfText(text: string): string {
   return text.replace(/\\/g, '\\\\').replace(/\(/g, '\\(').replace(/\)/g, '\\)');
 }
 
-function renderPdf(lines: Line[]): Buffer {
-  const pageH = MARGIN * 2 + lines.length * LINE_H + 10;
-
-  let content = '';
-  let y = pageH - MARGIN - LINE_H;
-  for (const line of lines) {
-    const size = line.size ?? 10;
-    const font = line.bold ? '/F2' : '/F1';
-    const text = toWinAnsi(line.text);
-    if (text.trim().length > 0) {
-      const charW = size * 0.6; // Courier advance width
-      const x = line.center
-        ? Math.max(MARGIN, (PAGE_W - text.length * charW) / 2)
-        : MARGIN;
-      content += `BT ${font} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)} Tm (${escapePdfText(text)}) Tj ET\n`;
-    }
-    y -= LINE_H;
+/** Assemble a PDF from pre-paginated lines. Fonts: F1 Courier, F2 Courier-Bold. */
+function buildPdf(pages: Line[][], pageW: number, pageH: number, margin = MARGIN): Buffer {
+  interface PdfObject {
+    body: string;
+    stream?: Buffer;
   }
 
-  const stream = zlib.deflateSync(Buffer.from(content, 'latin1'));
+  // object ids: 1 catalog, 2 pages, 3 F1, 4 F2, then per page: page, contents
+  const firstPageId = 5;
+  const kids = pages.map((_, i) => `${firstPageId + i * 2} 0 R`).join(' ');
 
-  const objects: string[] = [];
-  objects.push('<< /Type /Catalog /Pages 2 0 R >>');
-  objects.push('<< /Type /Pages /Kids [3 0 R] /Count 1 >>');
-  objects.push(
-    `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${PAGE_W} ${Math.round(pageH)}] ` +
-      '/Resources << /Font << /F1 4 0 R /F2 5 0 R >> >> /Contents 6 0 R >>',
-  );
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>');
-  objects.push('<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>');
-  objects.push(`<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n__STREAM__\nendstream`);
+  const objects: PdfObject[] = [
+    { body: '<< /Type /Catalog /Pages 2 0 R >>' },
+    { body: `<< /Type /Pages /Kids [${kids}] /Count ${pages.length} >>` },
+    { body: '<< /Type /Font /Subtype /Type1 /BaseFont /Courier /Encoding /WinAnsiEncoding >>' },
+    { body: '<< /Type /Font /Subtype /Type1 /BaseFont /Courier-Bold /Encoding /WinAnsiEncoding >>' },
+  ];
+
+  for (const [index, lines] of pages.entries()) {
+    let content = '';
+    let y = pageH - margin - LINE_H;
+    for (const line of lines) {
+      const size = line.size ?? 10;
+      const font = line.bold ? '/F2' : '/F1';
+      const text = toWinAnsi(line.text);
+      if (text.trim().length > 0) {
+        const charW = size * 0.6; // Courier advance width
+        const x = line.center ? Math.max(margin, (pageW - text.length * charW) / 2) : margin;
+        content += `BT ${font} ${size} Tf 1 0 0 1 ${x.toFixed(1)} ${y.toFixed(1)} Tm (${escapePdfText(text)}) Tj ET\n`;
+      }
+      y -= LINE_H;
+    }
+    const stream = zlib.deflateSync(Buffer.from(content, 'latin1'));
+    const contentsId = firstPageId + index * 2 + 1;
+    objects.push({
+      body:
+        `<< /Type /Page /Parent 2 0 R /MediaBox [0 0 ${pageW} ${Math.round(pageH)}] ` +
+        `/Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ${contentsId} 0 R >>`,
+    });
+    objects.push({
+      body: `<< /Length ${stream.length} /Filter /FlateDecode >>\nstream\n`,
+      stream,
+    });
+  }
 
   const head = Buffer.from('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n', 'latin1');
   const chunks: Buffer[] = [head];
   const offsets: number[] = [];
   let position = head.length;
 
-  objects.forEach((body, index) => {
+  objects.forEach((object, index) => {
     offsets.push(position);
-    let chunk: Buffer;
-    if (body.includes('__STREAM__')) {
-      const [before, after] = body.split('__STREAM__');
-      chunk = Buffer.concat([
-        Buffer.from(`${index + 1} 0 obj\n${before}`, 'latin1'),
-        stream,
-        Buffer.from(`${after}\nendobj\n`, 'latin1'),
-      ]);
-    } else {
-      chunk = Buffer.from(`${index + 1} 0 obj\n${body}\nendobj\n`, 'latin1');
+    const parts: Buffer[] = [Buffer.from(`${index + 1} 0 obj\n${object.body}`, 'latin1')];
+    if (object.stream) {
+      parts.push(object.stream, Buffer.from('\nendstream', 'latin1'));
     }
+    parts.push(Buffer.from('\nendobj\n', 'latin1'));
+    const chunk = Buffer.concat(parts);
     chunks.push(chunk);
     position += chunk.length;
   });

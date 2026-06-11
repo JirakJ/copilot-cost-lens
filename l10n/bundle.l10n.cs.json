@@ -58,5 +58,13 @@
   "Spend: **${0}** ({1} credits)": "Útrata: **{0} $** ({1} kreditů)",
   "Copilot allowance: {0}% of {1} credits": "Příděl Copilot: {0} % z {1} kreditů",
   "Forecast: ${0} by end of month": "Odhad: {0} $ do konce měsíce",
-  "Includes estimated entries": "Obsahuje odhadované položky"
+  "Includes estimated entries": "Obsahuje odhadované položky",
+  "Projects": "Projekty",
+  "Invoice (PDF)": "Faktura (PDF)",
+  "Repositories in this project": "Repozitáře v projektu",
+  "Loaded events": "Načtené záznamy",
+  "newest data:": "nejnovější data:",
+  "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: faktura uložena do {0}",
+  "Export invoice for which project?": "Pro který projekt exportovat fakturu?",
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: využití Copilota tento měsíc překročilo {0} AI kreditů (spotřebováno {1}, {2} $)."
 }

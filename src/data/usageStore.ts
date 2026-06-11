@@ -17,6 +17,17 @@ export interface StoreConfig {
   pricing: PricingOptions;
 }
 
+/** Diagnostics for the last scan — surfaced in the dashboard and output channel. */
+export interface ScanStats {
+  /** Total events per provider (all time, before month filtering). */
+  providers: Record<string, number>;
+  /** Timestamp of the newest event found, 0 when none. */
+  newestTimestamp: number;
+  scanMs: number;
+  filesParsed: number;
+  errors: string[];
+}
+
 interface FileCacheEntry {
   mtimeMs: number;
   size: number;
@@ -35,8 +46,19 @@ export class UsageStore {
   private events: UsageEvent[] = [];
   private scanning?: Promise<UsageEvent[]>;
   private listeners = new Set<() => void>();
+  private stats: ScanStats = {
+    providers: {},
+    newestTimestamp: 0,
+    scanMs: 0,
+    filesParsed: 0,
+    errors: [],
+  };
 
   constructor(private config: StoreConfig) {}
+
+  getStats(): ScanStats {
+    return this.stats;
+  }
 
   onDidChange(listener: () => void): () => void {
     this.listeners.add(listener);
@@ -73,52 +95,78 @@ export class UsageStore {
   }
 
   private async scan(): Promise<UsageEvent[]> {
+    const started = Date.now();
     const exact: RawUsage[] = [];
     const estimated: RawUsage[] = [];
+    const errors: string[] = [];
+    let filesParsed = 0;
     const push = (usages: RawUsage[]) => {
+      filesParsed += 1;
       for (const usage of usages) {
         (usage.estimated ? estimated : exact).push(usage);
       }
     };
+    const guard = async (source: string, work: () => Promise<void>) => {
+      try {
+        await work();
+      } catch (error) {
+        errors.push(`${source}: ${error instanceof Error ? error.message : String(error)}`);
+      }
+    };
 
-    const roots = await detectStorageRoots(this.config.extraStorageRoots);
-    for (const root of roots) {
-      for (const wsDir of await listWorkspaceStorageDirs(root)) {
-        for (const file of await findJsonlFiles(wsDir)) {
-          push(await this.parseCached(file.filePath, () => parseJsonlUsage(file, wsDir)));
-        }
-        if (this.config.estimationEnabled) {
-          for (const sessionFile of await findChatSessionFiles(wsDir)) {
-            push(
-              await this.parseCached(sessionFile, () =>
-                parseChatSessionUsage(sessionFile, wsDir, {
-                  charsPerToken: this.config.charsPerToken,
-                }),
-              ),
-            );
+    await guard('vscode', async () => {
+      const roots = await detectStorageRoots(this.config.extraStorageRoots);
+      for (const root of roots) {
+        for (const wsDir of await listWorkspaceStorageDirs(root)) {
+          for (const file of await findJsonlFiles(wsDir)) {
+            push(await this.parseCached(file.filePath, () => parseJsonlUsage(file, wsDir)));
+          }
+          if (this.config.estimationEnabled) {
+            for (const sessionFile of await findChatSessionFiles(wsDir)) {
+              push(
+                await this.parseCached(sessionFile, () =>
+                  parseChatSessionUsage(sessionFile, wsDir, {
+                    charsPerToken: this.config.charsPerToken,
+                  }),
+                ),
+              );
+            }
           }
         }
       }
-    }
+    });
 
     if (this.config.claudeCodeEnabled) {
-      for (const file of await findClaudeCodeFiles(defaultClaudeCodeRoot())) {
-        push(await this.parseCached(file, () => parseClaudeCodeUsage(file)));
-      }
+      await guard('claude-code', async () => {
+        for (const file of await findClaudeCodeFiles(defaultClaudeCodeRoot())) {
+          push(await this.parseCached(file, () => parseClaudeCodeUsage(file)));
+        }
+      });
     }
 
     if (this.config.copilotCliEnabled) {
-      for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
-        push(
-          await this.parseCached(file.filePath, () =>
-            parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
-          ),
-        );
-      }
+      await guard('copilot-cli', async () => {
+        for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
+          push(
+            await this.parseCached(file.filePath, () =>
+              parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
+            ),
+          );
+        }
+      });
     }
 
     const merged = dedupeBySession(exact, estimated);
     this.events = await this.toEvents(merged);
+
+    const providers: Record<string, number> = {};
+    let newestTimestamp = 0;
+    for (const event of this.events) {
+      providers[event.provider] = (providers[event.provider] ?? 0) + 1;
+      newestTimestamp = Math.max(newestTimestamp, event.timestamp);
+    }
+    this.stats = { providers, newestTimestamp, scanMs: Date.now() - started, filesParsed, errors };
+
     for (const listener of this.listeners) {
       listener();
     }

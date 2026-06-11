@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.3.0] — 2026-06-11
+
+### Added
+
+- **Project groups** (`copilotCostLens.projectGroups`) — roll several repositories into one named project. Groups appear in the dashboard with aggregated cost, models and a drill-down detail.
+- **Invoice PDF export** — A4 summary invoice per project group with a per-repository breakdown (model line items, token anatomy, source subtotals, grand total), and per single repository. Paginated for large projects.
+- **Credit alerts** (`copilotCostLens.creditAlerts`) — absolute AI-credit thresholds (e.g. 2,500 AIC); each fires a notification once per month when crossed.
+- **Scan diagnostics** — a "Copilot Cost Lens" output channel logs every scan (duration, files, events per source, errors); the dashboard footer shows loaded events per source and the newest data timestamp.
+
+### Changed
+
+- Each data source is now isolated: an error in one (VS Code, Copilot CLI, Claude Code) no longer aborts the whole scan; errors surface in the dashboard and output channel.
+
 ## [1.2.0] — 2026-06-11
 
 ### Added

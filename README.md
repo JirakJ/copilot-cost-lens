@@ -17,7 +17,9 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Token anatomy** — input, output, cache read and cache write tokens per repository, plus the exact models used and how often.
 - **Project drill-down** — click any repository for a detailed view: model mix, daily trend, source split, token anatomy, first/last activity.
 - **All-time view** — switch the period selector to *All time* to see everything since your logs began, not just one month.
-- **PDF receipts** — export a classic printed-receipt PDF per project: model line items, token counts and the total you've poured into it. Great for invoicing, chargeback or framing on the wall.
+- **PDF receipts & invoices** — export a classic printed-receipt PDF per repository, or an A4 summary invoice with model line items, token counts and totals. Great for chargeback or framing on the wall.
+- **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project via `copilotCostLens.projectGroups`; the dashboard shows the aggregated project and the invoice breaks the total back down per repository.
+- **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
 - **Status bar** — month-to-date credits and dollars at a glance; turns orange when you cross your warning threshold.
@@ -71,6 +73,8 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 |---|---|---|
 | `copilotCostLens.plan` | `business` | Plan preset for the included-credits gauge (`business`, `businessPromo`, `enterprise`, `enterprisePromo`, `custom`). |
 | `copilotCostLens.includedCreditsPerMonth` | `1900` | Monthly allowance when plan is `custom`. |
+| `copilotCostLens.projectGroups` | `{}` | Named projects: `{ "MyProduct": ["acme/fe", "acme/be"] }`. |
+| `copilotCostLens.creditAlerts` | `[]` | Absolute AIC thresholds, each notifies once per month. |
 | `copilotCostLens.monthlyBudgetUsd` | `0` | Personal dollar budget (0 = off). |
 | `copilotCostLens.warnAtPercent` | `80` | Warning threshold for allowance/budget. |
 | `copilotCostLens.statusBar.enabled` | `true` | Status-bar spend ticker. |
@@ -88,6 +92,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Refresh Usage Data`
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
 - `Copilot Cost Lens: Export Project Receipt (PDF)`
+- `Copilot Cost Lens: Export Invoice (PDF)`
 - `Copilot Cost Lens: Open Settings`
 
 ## FAQ
