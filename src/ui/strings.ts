@@ -76,6 +76,8 @@ export function webviewStrings(): Record<string, string> {
     selectReposLabel: t('Repositories in this project'),
     errNameRequired: t('Enter a project name'),
     errPickRepo: t('Select at least one repository'),
+    starred: t('Starred'),
+    starToggle: t('Star / unstar repository'),
     projectsEmptyHint: t('Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.'),
     providerCopilot: 'Copilot',
     providerCopilotCli: 'Copilot CLI',

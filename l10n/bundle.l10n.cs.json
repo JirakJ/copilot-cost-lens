@@ -88,5 +88,7 @@
   "Cancel": "Zrušit",
   "Project name": "Název projektu",
   "e.g. MyProduct": "např. MujProdukt",
-  "Select at least one repository": "Vyberte alespoň jeden repozitář"
+  "Select at least one repository": "Vyberte alespoň jeden repozitář",
+  "Starred": "Oblíbené",
+  "Star / unstar repository": "Přidat / odebrat hvězdičku"
 }

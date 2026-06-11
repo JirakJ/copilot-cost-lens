@@ -88,5 +88,7 @@
   "Cancel": "Abbrechen",
   "Project name": "Projektname",
   "e.g. MyProduct": "z. B. MeinProdukt",
-  "Select at least one repository": "Wählen Sie mindestens ein Repository"
+  "Select at least one repository": "Wählen Sie mindestens ein Repository",
+  "Starred": "Favoriten",
+  "Star / unstar repository": "Repository markieren / Markierung entfernen"
 }

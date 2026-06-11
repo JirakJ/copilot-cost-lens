@@ -106,6 +106,9 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; cursor: pointer;
   }
   .pick:hover { background: rgba(128,128,128,0.08); }
+  td.starcell { width: 22px; color: var(--muted); cursor: pointer; user-select: none; }
+  td.starcell.on { color: var(--c5); }
+  td.starcell:hover { color: var(--c5); }
   .pick .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick .val { color: var(--muted); font-variant-numeric: tabular-nums; }
 </style>
@@ -230,11 +233,13 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         : '<div class="card" style="margin-bottom:12px"><div class="cardhead"><h2>' + esc(S.projects) + '</h2>' +
           '<button id="newGroup">＋ ' + esc(S.newProject) + '</button></div>' +
           '<div class="sub">' + esc(S.projectsEmptyHint) + '</div></div>') +
-      '<div class="card"><h2>' + esc(S.repositories) + '</h2>' + repoTable(r) + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
+      starredCard(r) +
+      '<div class="card"><h2>' + esc(S.repositories) + '</h2>' + repoTable(r, r.repos) + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
 
     bindAllowance();
     bindRepoRows();
     bindGroupRows();
+    bindStars();
     const newGroup = document.getElementById('newGroup');
     if (newGroup) newGroup.onclick = () => openEditor(null);
 
@@ -371,8 +376,16 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   }
 
   function renderEditor() {
-    const allRepos = (lastMsg && lastMsg.allRepos) || [];
-    const rows = allRepos.map((r, i) =>
+    // repos already claimed by another project are not offered again
+    const assignedElsewhere = new Set();
+    const groupsConfig = (lastMsg && lastMsg.groupsConfig) || {};
+    for (const [gname, members] of Object.entries(groupsConfig)) {
+      if (gname === editor.originalName) continue;
+      for (const m of members) assignedElsewhere.add(String(m).toLowerCase());
+    }
+    const allRepos = ((lastMsg && lastMsg.allRepos) || []).filter(
+      (r) => !assignedElsewhere.has(r.name.toLowerCase()) || editor.members.has(r.name));
+    const rows = allRepos.map((r) =>
       '<label class="pick"><input type="checkbox" data-repo="' + esc(r.name) + '"' +
       (editor.members.has(r.name) ? ' checked' : '') + '> <span class="name">' + esc(r.name) +
       '</span><span class="val">' + usd(r.usd) + '</span></label>').join('');
@@ -583,14 +596,40 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     return svg + '</svg>';
   }
 
-  function repoTable(r) {
+  function starredSet() {
+    return new Set(((lastMsg && lastMsg.starred) || []).map((s) => String(s).toLowerCase()));
+  }
+
+  function starredCard(r) {
+    const starred = starredSet();
+    if (starred.size === 0) return '';
+    const repos = r.repos.filter((repo) => starred.has(repo.repo.name.toLowerCase()));
+    if (repos.length === 0) return '';
+    return '<div class="card" style="margin-bottom:12px"><h2>★ ' + esc(S.starred) + '</h2>' +
+      repoTable(r, repos) + '</div>';
+  }
+
+  function bindStars() {
+    for (const cell of document.querySelectorAll('td.starcell')) {
+      cell.onclick = (event) => {
+        event.stopPropagation();
+        vscode.postMessage({ type: 'toggleStar', repo: cell.dataset.star });
+      };
+    }
+  }
+
+  function repoTable(r, repoList) {
+    const starred = starredSet();
     const total = r.totalCredits || 1;
-    const rows = r.repos.map((repo) => {
+    const rows = repoList.map((repo) => {
       const share = (repo.credits / total) * 100;
       const models = (repo.models || []);
       const shown = models.slice(0, 2).map((m) => esc(m.model)).join(', ');
       const more = models.length > 2 ? ' <span class="badge" title="' + esc(models.slice(2).map((m) => m.model).join(', ')) + '">+' + (models.length - 2) + '</span>' : '';
-      return '<tr class="clickable" data-repo="' + esc(repo.repo.name) + '"><td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') + '</td>' +
+      const isStar = starred.has(repo.repo.name.toLowerCase());
+      return '<tr class="clickable" data-repo="' + esc(repo.repo.name) + '">' +
+        '<td class="starcell' + (isStar ? ' on' : '') + '" data-star="' + esc(repo.repo.name) + '" title="' + esc(S.starToggle) + '">' + (isStar ? '★' : '☆') + '</td>' +
+        '<td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') + '</td>' +
         '<td class="models" title="' + esc(models.map((m) => m.model + ' (' + m.requestCount + '×)').join(', ')) + '">' + shown + more + '</td>' +
         '<td class="num">' + repo.requestCount + '</td>' +
         '<td class="num">' + repo.sessionCount + '</td>' +
@@ -602,7 +641,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<td class="num"><b>' + usd(repo.usd) + '</b></td>' +
         '<td><span class="sharebar" style="width:' + Math.max(3, share) + 'px"></span>' + share.toFixed(1) + '%</td></tr>';
     }).join('');
-    return '<div class="tablewrap"><table><thead><tr><th>' + esc(S.colRepository) + '</th><th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num">' + esc(S.colSessions) + '</th>' +
+    return '<div class="tablewrap"><table><thead><tr><th></th><th>' + esc(S.colRepository) + '</th><th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num">' + esc(S.colSessions) + '</th>' +
       '<th class="num">' + esc(S.colInput) + '</th><th class="num">' + esc(S.colOutput) + '</th><th class="num">' + esc(S.colCacheR) + '</th><th class="num">' + esc(S.colCacheW) + '</th>' +
       '<th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th><th>' + esc(S.colShare) + '</th></tr></thead>' +
       '<tbody>' + rows + '</tbody></table></div>';

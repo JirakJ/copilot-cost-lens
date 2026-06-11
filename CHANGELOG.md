@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.0] — 2026-06-11
+
+### Added
+
+- **Starred repositories** — click the ☆ in the repository table to pin a repo; starred repos appear in a dedicated ★ Starred section at the top for a quick overview. Stored in `copilotCostLens.starredRepos` (syncs via Settings Sync).
+
+### Changed
+
+- **Exclusive project membership** — repositories already assigned to another project are no longer offered in the project editor, and saving a project removes its members from any other project they were part of.
+
 ## [1.6.0] — 2026-06-11
 
 ### Changed

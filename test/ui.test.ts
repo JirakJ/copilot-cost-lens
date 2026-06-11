@@ -119,6 +119,7 @@ describe('renderDashboardHtml', () => {
       'setAllowance',
       'saveGroup',
       'deleteGroup',
+      'toggleStar',
       'refresh',
     ]) {
       expect(html, `missing message type ${type}`).toContain(`type: '${type}'`);
@@ -129,6 +130,7 @@ describe('renderDashboardHtml', () => {
     const html = renderDashboardHtml(strings);
     expect(html).toContain('function openEditor');
     expect(html).toContain('picklist');
+    expect(html).toContain('assignedElsewhere');
     expect(html).toContain("originalName: editor.originalName || undefined");
   });
 });

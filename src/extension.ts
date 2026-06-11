@@ -44,6 +44,9 @@ export function activate(context: vscode.ExtensionContext): void {
       const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
       return report.repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
     },
+    getGroupsConfig: () => projectGroups(),
+    getStarred: () => starredRepos(),
+    toggleStar: (repoName) => toggleStar(repoName),
     refresh: async () => {
       await store.refresh();
     },
@@ -401,7 +404,10 @@ async function saveGroup(name: string, members: string[]): Promise<void> {
   await saveGroupAs(undefined, name, members);
 }
 
-/** Persist a project group, handling renames (drop the old key). */
+/**
+ * Persist a project group, handling renames (drop the old key). Membership
+ * is exclusive: repositories assigned here are removed from other groups.
+ */
 async function saveGroupAs(
   originalName: string | undefined,
   name: string,
@@ -412,11 +418,32 @@ async function saveGroupAs(
   if (originalName && originalName !== name) {
     delete groups[originalName];
   }
+  const claimed = new Set(members.map((m) => m.toLowerCase()));
+  for (const [otherName, otherMembers] of Object.entries(groups)) {
+    if (otherName !== name) {
+      groups[otherName] = otherMembers.filter((m) => !claimed.has(m.toLowerCase()));
+    }
+  }
   groups[name] = members;
   await config.update('projectGroups', groups, vscode.ConfigurationTarget.Global);
   void vscode.window.showInformationMessage(
     vscode.l10n.t('Copilot Cost Lens: project {0} saved ({1} repositories).', name, members.length),
   );
+}
+
+function starredRepos(): string[] {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  return config.get<string[]>('starredRepos', []).filter((s) => typeof s === 'string');
+}
+
+async function toggleStar(repoName: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const current = starredRepos();
+  const exists = current.some((s) => s.toLowerCase() === repoName.toLowerCase());
+  const next = exists
+    ? current.filter((s) => s.toLowerCase() !== repoName.toLowerCase())
+    : [...current, repoName];
+  await config.update('starredRepos', next, vscode.ConfigurationTarget.Global);
 }
 
 async function createGroup(store: UsageStore): Promise<void> {

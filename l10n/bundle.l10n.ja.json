@@ -88,5 +88,7 @@
   "Cancel": "キャンセル",
   "Project name": "プロジェクト名",
   "e.g. MyProduct": "例: MyProduct",
-  "Select at least one repository": "リポジトリを 1 つ以上選択してください"
+  "Select at least one repository": "リポジトリを 1 つ以上選択してください",
+  "Starred": "スター付き",
+  "Star / unstar repository": "リポジトリにスターを付ける / 外す"
 }

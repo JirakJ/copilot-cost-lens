@@ -40,6 +40,7 @@ const S = {
   save: 'Save project', cancel: 'Cancel', projectNameLabel: 'Project name',
   projectNamePlaceholder: 'e.g. MyProduct', selectReposLabel: 'Repositories in this project',
   errNameRequired: 'Enter a project name', errPickRepo: 'Select at least one repository',
+  starred: 'Starred', starToggle: 'Star / unstar repository',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
@@ -153,13 +154,16 @@ const theme = '<style>:root{--vscode-editor-background:#1e2227;--vscode-editor-f
 const base = renderDashboardHtml(S);
 const months = ['2026-06', '2026-05', '2026-04'];
 const allRepos = repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
+const groupsConfig = { 'Acme Platform': ['acme/payments-api', 'acme/web-frontend', 'acme/infra-terraform'] };
+const starred = ['acme/payments-api', 'acme/data-pipeline'];
+const common = { type: 'data', months, selectedMonth: '2026-06', allRepos, groupsConfig, starred };
 const demos = {
-  'docs/demo.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail: null, allRepos, stats } },
-  'docs/demo-detail.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: repoDetail, groupDetail: null, allRepos, stats: null } },
-  'docs/demo-group.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail, allRepos, stats: null } },
+  'docs/demo.html': { payload: { ...common, report, detail: null, groupDetail: null, stats } },
+  'docs/demo-detail.html': { payload: { ...common, report, detail: repoDetail, groupDetail: null, stats: null } },
+  'docs/demo-group.html': { payload: { ...common, report, detail: null, groupDetail, stats: null } },
   // project editor opened over the group detail (auto-clicks the Edit button)
   'docs/demo-editor.html': {
-    payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail, allRepos, stats: null },
+    payload: { ...common, report, detail: null, groupDetail, stats: null },
     autoClick: 'editGroup',
   },
 };

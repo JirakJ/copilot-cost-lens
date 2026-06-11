@@ -14,6 +14,10 @@ export interface DashboardDelegate {
   getStats(): ScanStats;
   /** Every repository with all-time spend — feeds the project editor list. */
   getAllRepos(): { name: string; usd: number }[];
+  /** Full project-groups configuration (incl. groups without usage). */
+  getGroupsConfig(): Record<string, string[]>;
+  getStarred(): string[];
+  toggleStar(repoName: string): Promise<void>;
   refresh(): Promise<void>;
   exportData(format: 'csv' | 'json'): Promise<void>;
   exportReceipt(target: { repo?: string; group?: string }, month: string): Promise<void>;
@@ -96,6 +100,12 @@ export class DashboardController {
             );
           }
           break;
+        case 'toggleStar':
+          if (message.repo) {
+            await this.delegate.toggleStar(message.repo);
+            this.postAll();
+          }
+          break;
         case 'saveGroup':
           if (message.name && Array.isArray(message.members) && message.members.length > 0) {
             await this.delegate.saveGroup(message.originalName, message.name, message.members);
@@ -172,6 +182,8 @@ export class DashboardController {
       detail,
       groupDetail,
       allRepos: this.delegate.getAllRepos(),
+      groupsConfig: this.delegate.getGroupsConfig(),
+      starred: this.delegate.getStarred(),
       stats: this.delegate.getStats(),
     });
   }

@@ -34,7 +34,8 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Project drill-down** — click any repository for a detailed view: model mix, daily trend, source split, token anatomy, first/last activity.
 - **All-time view** — switch the period selector to *All time* to see everything since your logs began, not just one month.
 - **PDF receipts & invoices** — export a classic printed-receipt PDF per repository, or an A4 summary invoice with model line items, token counts and totals. Great for chargeback or framing on the wall.
-- **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos). The aggregated project gets its own detail, a combined receipt with per-repository breakdown, and a summary invoice.
+- **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail, a combined receipt with per-repository breakdown, and a summary invoice.
+- **Starred repositories** — pin your important repos with a ☆ and they surface in a dedicated section at the top of the dashboard.
 - **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
