@@ -80,10 +80,8 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     repoEvents.push(e);
     repoMap.set(e.repo.name, repoEvents);
 
-    const model = modelMap.get(e.model) ?? { model: e.model, credits: 0, usd: 0, requestCount: 0 };
-    model.credits += e.credits;
-    model.usd = creditsToUsd(model.credits);
-    model.requestCount += 1;
+    const model = modelMap.get(e.model) ?? emptyModelSummary(e.model);
+    addToModelSummary(model, e);
     modelMap.set(e.model, model);
 
     const provider = providerMap.get(e.provider) ?? {
@@ -154,6 +152,29 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     sessionCount: sessions.size,
     hasEstimates,
   };
+}
+
+function emptyModelSummary(model: string): ModelSummary {
+  return {
+    model,
+    credits: 0,
+    usd: 0,
+    requestCount: 0,
+    inputTokens: 0,
+    outputTokens: 0,
+    cachedTokens: 0,
+    cacheWriteTokens: 0,
+  };
+}
+
+function addToModelSummary(summary: ModelSummary, e: UsageEvent): void {
+  summary.credits += e.credits;
+  summary.usd = creditsToUsd(summary.credits);
+  summary.requestCount += 1;
+  summary.inputTokens += e.inputTokens;
+  summary.outputTokens += e.outputTokens;
+  summary.cachedTokens += e.cachedTokens;
+  summary.cacheWriteTokens += e.cacheWriteTokens;
 }
 
 export function previousMonthKey(month: string): string {
@@ -244,10 +265,14 @@ export function buildGroupSummaries(repos: RepoSummary[], groups: ProjectGroups)
       group.sessionCount += repo.sessionCount;
       group.hasEstimates ||= repo.hasEstimates;
       for (const m of repo.models) {
-        const existing = models.get(m.model) ?? { model: m.model, credits: 0, usd: 0, requestCount: 0 };
+        const existing = models.get(m.model) ?? emptyModelSummary(m.model);
         existing.credits += m.credits;
         existing.usd = creditsToUsd(existing.credits);
         existing.requestCount += m.requestCount;
+        existing.inputTokens += m.inputTokens;
+        existing.outputTokens += m.outputTokens;
+        existing.cachedTokens += m.cachedTokens;
+        existing.cacheWriteTokens += m.cacheWriteTokens;
         models.set(m.model, existing);
       }
     }
@@ -421,10 +446,8 @@ function summarizeRepo(events: UsageEvent[]): RepoSummary {
     if (e.costSource === 'estimated') {
       hasEstimates = true;
     }
-    const m = models.get(e.model) ?? { model: e.model, credits: 0, usd: 0, requestCount: 0 };
-    m.credits += e.credits;
-    m.usd = creditsToUsd(m.credits);
-    m.requestCount += 1;
+    const m = models.get(e.model) ?? emptyModelSummary(e.model);
+    addToModelSummary(m, e);
     models.set(e.model, m);
   }
 

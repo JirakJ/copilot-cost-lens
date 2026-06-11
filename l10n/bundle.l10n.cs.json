@@ -90,5 +90,7 @@
   "e.g. MyProduct": "např. MujProdukt",
   "Select at least one repository": "Vyberte alespoň jeden repozitář",
   "Starred": "Oblíbené",
-  "Star / unstar repository": "Přidat / odebrat hvězdičku"
+  "Star / unstar repository": "Přidat / odebrat hvězdičku",
+  "$ / 1M": "$ / 1M",
+  "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "Efektivní průměrná cena za 1M tokenů, kterou reálně platíte — porovnejte s oficiálním ceníkem a uvidíte úsporu díky cache."
 }

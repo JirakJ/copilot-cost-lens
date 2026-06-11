@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.1] — 2026-06-11
+
+### Added
+
+- **Effective $ / 1M tokens per model** — repository and project details show the blended price actually paid per million tokens for each model (cache effects included), with the same line on receipts (`~$/1M`). Compare it with the official list rates to see how much prompt caching saves you. Per-model token counts (input/output/cache read/cache write) are now aggregated everywhere.
+
 ## [1.8.0] — 2026-06-11
 
 ### Fixed

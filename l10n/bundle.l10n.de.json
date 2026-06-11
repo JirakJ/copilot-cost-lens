@@ -90,5 +90,7 @@
   "e.g. MyProduct": "z. B. MeinProdukt",
   "Select at least one repository": "Wählen Sie mindestens ein Repository",
   "Starred": "Favoriten",
-  "Star / unstar repository": "Repository markieren / Markierung entfernen"
+  "Star / unstar repository": "Repository markieren / Markierung entfernen",
+  "$ / 1M": "$ / 1M",
+  "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "Effektiver Mischpreis pro 1M tatsächlich bezahlter Tokens — im Vergleich zu den offiziellen Listenpreisen zeigt sich Ihre Cache-Ersparnis."
 }

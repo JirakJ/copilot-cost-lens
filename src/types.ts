@@ -106,6 +106,10 @@ export interface ModelSummary {
   credits: number;
   usd: number;
   requestCount: number;
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
 }
 
 export interface ProviderSummary {

@@ -32,8 +32,8 @@ function sampleDetail(): RepoDetail {
       requestCount: 15,
       sessionCount: 3,
       models: [
-        { model: 'claude-fable-5', credits: 900, usd: 9, requestCount: 10 },
-        { model: 'gpt-5.5', credits: 100, usd: 1, requestCount: 5 },
+        { model: 'claude-fable-5', credits: 900, usd: 9, requestCount: 10, inputTokens: 500_000, outputTokens: 40_000, cachedTokens: 300_000, cacheWriteTokens: 60_000 },
+        { model: 'gpt-5.5', credits: 100, usd: 1, requestCount: 5, inputTokens: 100_000, outputTokens: 10_000, cachedTokens: 0, cacheWriteTokens: 0 },
       ],
       providers: ['claude-code', 'copilot'],
       lastActivity: Date.UTC(2026, 5, 10),
@@ -102,7 +102,7 @@ describe('buildReceiptPdf', () => {
         cacheWriteTokens: 120_000,
         requestCount: 30,
         sessionCount: 6,
-        models: [{ model: 'gpt-5.5', credits: 1000, usd: 10, requestCount: 30 }],
+        models: [{ model: 'gpt-5.5', credits: 1000, usd: 10, requestCount: 30, inputTokens: 0, outputTokens: 0, cachedTokens: 0, cacheWriteTokens: 0 }],
         hasEstimates: false,
       },
     };
@@ -142,7 +142,7 @@ describe('buildInvoicePdf', () => {
         cacheWriteTokens: 0,
         requestCount: 15 * repoCount,
         sessionCount: 3 * repoCount,
-        models: [{ model: 'gpt-5.5', credits: 1000 * repoCount, usd: 10 * repoCount, requestCount: 15 * repoCount }],
+        models: [{ model: 'gpt-5.5', credits: 1000 * repoCount, usd: 10 * repoCount, requestCount: 15 * repoCount, inputTokens: 0, outputTokens: 0, cachedTokens: 0, cacheWriteTokens: 0 }],
         hasEstimates: false,
       },
     };

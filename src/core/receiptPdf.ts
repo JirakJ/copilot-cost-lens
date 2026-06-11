@@ -33,12 +33,23 @@ export interface ReceiptStrings {
   providerNames: Record<string, string>;
 }
 
+interface ModelLine {
+  model: string;
+  requestCount: number;
+  credits: number;
+  usd: number;
+  inputTokens?: number;
+  outputTokens?: number;
+  cachedTokens?: number;
+  cacheWriteTokens?: number;
+}
+
 /** Everything a receipt needs — built from a repo or a project group. */
 export interface ReceiptData {
   title: string;
   /** YYYY-MM or 'all'. */
   period: string;
-  models: { model: string; requestCount: number; credits: number; usd: number }[];
+  models: ModelLine[];
   /** Per-repository breakdown for project groups. */
   repoLines?: { name: string; usd: number }[];
   inputTokens: number;
@@ -317,6 +328,10 @@ function layoutReceipt(data: ReceiptData, t: ReceiptStrings): Line[] {
     kv(`  ${t.requests}`, `${model.requestCount}x`);
     kv(`  ${t.credits}`, fmtNum(model.credits));
     kv('  USD', usd(model.usd));
+    const effective = effectiveRatePerMillion(model);
+    if (effective !== undefined) {
+      kv('  ~$/1M', usd(effective));
+    }
     blank();
   }
 
@@ -371,6 +386,16 @@ function layoutReceipt(data: ReceiptData, t: ReceiptStrings): Line[] {
 
 function usd(value: number): string {
   return `$${value.toFixed(2)}`;
+}
+
+/** Blended price actually paid per 1M tokens, cache effects included. */
+function effectiveRatePerMillion(line: ModelLine): number | undefined {
+  const total =
+    (line.inputTokens ?? 0) +
+    (line.outputTokens ?? 0) +
+    (line.cachedTokens ?? 0) +
+    (line.cacheWriteTokens ?? 0);
+  return total > 0 ? (line.usd / total) * 1_000_000 : undefined;
 }
 
 function fmtNum(value: number): string {

@@ -167,6 +167,11 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   const cr = (v) => v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(1);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const tok = (v) => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'k' : String(v);
+  // effective blended price actually paid per 1M tokens (cache effects included)
+  const effRate = (m) => {
+    const total = (m.inputTokens || 0) + (m.outputTokens || 0) + (m.cachedTokens || 0) + (m.cacheWriteTokens || 0);
+    return total > 0 ? '$' + ((m.usd / total) * 1e6).toFixed(2) : '—';
+  };
   const tpl = (s, ...args) => s.replace(/\\{(\\d+)\\}/g, (_, i) => args[+i] ?? '');
 
   function render(msg) {
@@ -284,8 +289,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '</div>' +
       '<div class="grid charts">' +
         '<div class="card"><h2>' + esc(S.costByModel) + '</h2><div class="tablewrap"><table><thead><tr>' +
-          '<th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th></tr></thead><tbody>' +
-          models.map((m) => '<tr><td>' + esc(m.model) + '</td><td class="num">' + m.requestCount + '</td><td class="num">' + cr(m.credits) + '</td><td class="num"><b>' + usd(m.usd) + '</b></td></tr>').join('') +
+          '<th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num" title="' + esc(S.effRateHint) + '">' + esc(S.colPerM) + '</th><th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th></tr></thead><tbody>' +
+          models.map((m) => '<tr><td>' + esc(m.model) + '</td><td class="num">' + m.requestCount + '</td><td class="num" title="' + esc(S.effRateHint) + '">' + effRate(m) + '</td><td class="num">' + cr(m.credits) + '</td><td class="num"><b>' + usd(m.usd) + '</b></td></tr>').join('') +
         '</tbody></table></div></div>' +
         '<div class="card"><h2>' + esc(S.bySource) + '</h2><div class="legend">' + sources + '</div>' +
           '<div class="sub" style="margin-top:12px">' + esc(S.firstActivity) + ': ' + new Date(d.firstActivity).toLocaleDateString() +
@@ -321,7 +326,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '<td class="num">' + ((repo.credits / (g.credits || 1)) * 100).toFixed(1) + '%</td></tr>').join('');
 
     const modelRows = (g.models || []).map((m) =>
-      '<tr><td>' + esc(m.model) + '</td><td class="num">' + m.requestCount + '</td><td class="num">' + cr(m.credits) + '</td><td class="num"><b>' + usd(m.usd) + '</b></td></tr>').join('');
+      '<tr><td>' + esc(m.model) + '</td><td class="num">' + m.requestCount + '</td><td class="num" title="' + esc(S.effRateHint) + '">' + effRate(m) + '</td><td class="num">' + cr(m.credits) + '</td><td class="num"><b>' + usd(m.usd) + '</b></td></tr>').join('');
 
     app.innerHTML =
       '<div class="detailbar">' +
@@ -344,7 +349,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<tbody>' + repoRows + '</tbody></table></div></div>' +
       '<div class="grid charts">' +
         '<div class="card"><h2>' + esc(S.costByModel) + '</h2><div class="tablewrap"><table><thead><tr>' +
-          '<th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th></tr></thead>' +
+          '<th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num" title="' + esc(S.effRateHint) + '">' + esc(S.colPerM) + '</th><th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th></tr></thead>' +
           '<tbody>' + modelRows + '</tbody></table></div></div>' +
         '<div class="card"><h2>' + esc(S.bySource) + '</h2><div class="legend">' + sources + '</div></div>' +
       '</div>' +
@@ -561,7 +566,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       offset += frac;
     });
     const legend = top.map((m, i) =>
-      '<div class="row"><span class="dot" style="background:' + PALETTE[i % 6] + '"></span>' +
+      '<div class="row" title="' + esc(S.colPerM) + ': ' + effRate(m) + ' (' + esc(S.effRateHint) + ')"><span class="dot" style="background:' + PALETTE[i % 6] + '"></span>' +
       '<span class="name">' + esc(m.model) + '</span><span class="val">' + usd(m.usd) + ' · ' + m.requestCount + '×</span></div>').join('');
     return '<div style="display:flex;gap:18px;align-items:center;flex-wrap:wrap">' +
       '<svg viewBox="0 0 140 140" width="120" height="120">' + rings + '</svg>' +

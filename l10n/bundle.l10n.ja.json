@@ -90,5 +90,7 @@
   "e.g. MyProduct": "例: MyProduct",
   "Select at least one repository": "リポジトリを 1 つ以上選択してください",
   "Starred": "スター付き",
-  "Star / unstar repository": "リポジトリにスターを付ける / 外す"
+  "Star / unstar repository": "リポジトリにスターを付ける / 外す",
+  "$ / 1M": "$ / 1M",
+  "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "実際に支払った 100 万トークンあたりの実効価格です。公式の定価と比較すると、キャッシュによる節約が分かります。"
 }

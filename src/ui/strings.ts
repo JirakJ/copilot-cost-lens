@@ -78,6 +78,8 @@ export function webviewStrings(): Record<string, string> {
     errPickRepo: t('Select at least one repository'),
     starred: t('Starred'),
     starToggle: t('Star / unstar repository'),
+    colPerM: t('$ / 1M'),
+    effRateHint: t('Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.'),
     projectsEmptyHint: t('Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.'),
     providerCopilot: 'Copilot',
     providerCopilotCli: 'Copilot CLI',

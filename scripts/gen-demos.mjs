@@ -41,6 +41,7 @@ const S = {
   projectNamePlaceholder: 'e.g. MyProduct', selectReposLabel: 'Repositories in this project',
   errNameRequired: 'Enter a project name', errPickRepo: 'Select at least one repository',
   starred: 'Starred', starToggle: 'Star / unstar repository',
+  colPerM: '$ / 1M', effRateHint: 'Effective blended price per 1M tokens actually paid',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
@@ -53,9 +54,9 @@ const mkRepo = (name, usd, req, sess, inT, outT, cR, cW, models, est) => ({
 
 const repos = [
   mkRepo('acme/payments-api', 48.02, 459, 14, 12950000, 410000, 193000000, 7400000,
-    [{ model: 'claude-opus-4.8', credits: 3000, usd: 30, requestCount: 200 },
-     { model: 'claude-fable-5', credits: 1500, usd: 15, requestCount: 180 },
-     { model: 'gpt-5.5', credits: 302, usd: 3.02, requestCount: 79 }]),
+    [{ model: 'claude-opus-4.8', credits: 3000, usd: 30, requestCount: 200, inputTokens: 1800000, outputTokens: 210000, cachedTokens: 160000000, cacheWriteTokens: 4500000 },
+     { model: 'claude-fable-5', credits: 1500, usd: 15, requestCount: 180, inputTokens: 700000, outputTokens: 120000, cachedTokens: 30000000, cacheWriteTokens: 2400000 },
+     { model: 'gpt-5.5', credits: 302, usd: 3.02, requestCount: 79, inputTokens: 450000, outputTokens: 80000, cachedTokens: 3000000, cacheWriteTokens: 0 }]),
   mkRepo('acme/web-frontend', 31.16, 793, 21, 8100000, 350000, 135000000, 4000000,
     [{ model: 'claude-fable-5', credits: 2000, usd: 20, requestCount: 500 },
      { model: 'gpt-5.3-codex', credits: 1116, usd: 11.16, requestCount: 293 }], true),
@@ -73,10 +74,10 @@ const group = {
   credits: 10358, usd: 103.58, inputTokens: 25550000, outputTokens: 970000,
   cachedTokens: 391600000, cacheWriteTokens: 12600000, requestCount: 1589, sessionCount: 44,
   models: [
-    { model: 'claude-opus-4.8', credits: 3000, usd: 30, requestCount: 200 },
-    { model: 'claude-fable-5', credits: 3500, usd: 35, requestCount: 680 },
-    { model: 'gpt-5.5', credits: 2742, usd: 27.42, requestCount: 416 },
-    { model: 'gpt-5.3-codex', credits: 1116, usd: 11.16, requestCount: 293 },
+    { model: 'claude-opus-4.8', credits: 3000, usd: 30, requestCount: 200, inputTokens: 1800000, outputTokens: 210000, cachedTokens: 160000000, cacheWriteTokens: 4500000 },
+    { model: 'claude-fable-5', credits: 3500, usd: 35, requestCount: 680, inputTokens: 1600000, outputTokens: 260000, cachedTokens: 70000000, cacheWriteTokens: 5100000 },
+    { model: 'gpt-5.5', credits: 2742, usd: 27.42, requestCount: 416, inputTokens: 4100000, outputTokens: 720000, cachedTokens: 27000000, cacheWriteTokens: 0 },
+    { model: 'gpt-5.3-codex', credits: 1116, usd: 11.16, requestCount: 293, inputTokens: 2500000, outputTokens: 510000, cachedTokens: 16000000, cacheWriteTokens: 0 },
   ],
   hasEstimates: true,
 };
