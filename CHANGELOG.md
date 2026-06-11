@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.8.0] — 2026-06-11
+
+### Fixed
+
+- **Model price table synced with GitHub's official "Models and pricing" reference.** Claude Fable 5 was priced at the Opus tier ($5/$0.50/$6.25/$25 per 1M tokens) — the official rate is double ($10/$1/$12.50/$50), so token-computed Fable 5 costs were understated by ~2×. Billed entries (AI-credit units, premium requests) were always correct; only token-computed and estimated entries reprice.
+
+### Added
+
+- **Long-context pricing tiers** — GPT-5.4 and GPT-5.5 above 272K context and Gemini 3.1 Pro above 200K now bill at the official higher rates per request.
+- Rates for Gemini 3.5 Flash, MAI-Code-1-Flash and Claude Opus 4.8.
+
 ## [1.7.1] — 2026-06-11
 
 ### Changed

@@ -74,6 +74,14 @@ export interface ModelRate {
   cacheWrite?: number;
   /** USD per 1M output tokens. */
   output: number;
+  /** Higher rates applied when a request's context exceeds the threshold. */
+  longContext?: {
+    /** Context size (input + cache reads) in tokens that triggers the tier. */
+    threshold: number;
+    input: number;
+    cachedInput: number;
+    output: number;
+  };
 }
 
 export interface RepoSummary {

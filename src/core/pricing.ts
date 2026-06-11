@@ -8,21 +8,30 @@ export const USD_PER_PREMIUM_REQUEST = 0.04;
 
 /**
  * Built-in price table, USD per 1M tokens.
- * Source: GitHub Copilot usage-based billing model rates (June 2026).
+ * Source: GitHub Copilot "Models and pricing" reference (checked 2026-06-11):
+ * https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing
  * Keys are normalized model ids — see normalizeModelId().
  */
 export const DEFAULT_RATES: Record<string, ModelRate> = {
+  // legacy ids kept for historical data
   'gpt-4.1': { input: 2.0, cachedInput: 0.5, output: 8.0 },
   'gpt-5': { input: 1.75, cachedInput: 0.175, output: 14.0 },
-  'gpt-5-mini': { input: 0.25, cachedInput: 0.025, output: 2.0 },
   'gpt-5-codex': { input: 1.75, cachedInput: 0.175, output: 14.0 },
   'gpt-5.2': { input: 1.75, cachedInput: 0.175, output: 14.0 },
   'gpt-5.2-codex': { input: 1.75, cachedInput: 0.175, output: 14.0 },
+  // current official table
+  'gpt-5-mini': { input: 0.25, cachedInput: 0.025, output: 2.0 },
   'gpt-5.3-codex': { input: 1.75, cachedInput: 0.175, output: 14.0 },
-  'gpt-5.4': { input: 2.5, cachedInput: 0.25, output: 15.0 },
+  'gpt-5.4': {
+    input: 2.5, cachedInput: 0.25, output: 15.0,
+    longContext: { threshold: 272_000, input: 5.0, cachedInput: 0.5, output: 22.5 },
+  },
   'gpt-5.4-mini': { input: 0.75, cachedInput: 0.075, output: 4.5 },
   'gpt-5.4-nano': { input: 0.2, cachedInput: 0.02, output: 1.25 },
-  'gpt-5.5': { input: 5.0, cachedInput: 0.5, output: 30.0 },
+  'gpt-5.5': {
+    input: 5.0, cachedInput: 0.5, output: 30.0,
+    longContext: { threshold: 272_000, input: 10.0, cachedInput: 1.0, output: 45.0 },
+  },
   'claude-haiku-4': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-haiku-4.5': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-sonnet-4': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
@@ -33,14 +42,19 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'claude-opus-4.5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'claude-opus-4.6': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   'claude-opus-4.7': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
-  // assumed Opus-tier until an official rate is published; override in settings if needed
-  'claude-fable-5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'claude-opus-4.8': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'claude-fable-5': { input: 10.0, cachedInput: 1.0, cacheWrite: 12.5, output: 50.0 },
   'gemini-2.5-pro': { input: 1.25, cachedInput: 0.125, output: 10.0 },
   'gemini-3-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
   'gemini-3-flash': { input: 0.5, cachedInput: 0.05, output: 3.0 },
-  'gemini-3.1-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
+  'gemini-3.1-pro': {
+    input: 2.0, cachedInput: 0.2, output: 12.0,
+    longContext: { threshold: 200_000, input: 4.0, cachedInput: 0.4, output: 18.0 },
+  },
+  'gemini-3.5-flash': { input: 1.5, cachedInput: 0.15, output: 9.0 },
   'grok-code-fast-1': { input: 0.2, cachedInput: 0.02, output: 1.5 },
   'raptor-mini': { input: 0.25, cachedInput: 0.025, output: 2.0 },
+  'mai-code-1-flash': { input: 0.75, cachedInput: 0.075, output: 4.5 },
   goldeneye: { input: 1.25, cachedInput: 0.125, output: 10.0 },
 };
 
@@ -106,11 +120,20 @@ export function priceTokensUsd(
   const cacheWrite = usage.cacheWriteTokens ?? 0;
   // cachedTokens (cache reads) are reported as part of input; bill the rest fresh
   const freshInput = Math.max(0, usage.inputTokens - usage.cachedTokens);
+
+  // long-context tier: the whole request bills at the higher rate once the
+  // context (fresh input + cache reads) crosses the model's threshold
+  const context = freshInput + usage.cachedTokens;
+  const tier =
+    rate.longContext && context > rate.longContext.threshold
+      ? { ...rate, ...rate.longContext }
+      : rate;
+
   return (
-    (freshInput / M) * rate.input +
-    (usage.cachedTokens / M) * rate.cachedInput +
-    (cacheWrite / M) * (rate.cacheWrite ?? rate.input) +
-    (usage.outputTokens / M) * rate.output
+    (freshInput / M) * tier.input +
+    (usage.cachedTokens / M) * tier.cachedInput +
+    (cacheWrite / M) * (tier.cacheWrite ?? tier.input) +
+    (usage.outputTokens / M) * tier.output
   );
 }
 

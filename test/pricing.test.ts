@@ -93,6 +93,33 @@ describe('priceTokensUsd', () => {
     );
     expect(usd).toBeCloseTo(6.25);
   });
+
+  it('switches to long-context rates above the threshold', () => {
+    const rate = DEFAULT_RATES['gpt-5.5']!;
+    const below = priceTokensUsd(
+      { inputTokens: 272_000, outputTokens: 1_000_000, cachedTokens: 0 },
+      rate,
+    );
+    const above = priceTokensUsd(
+      { inputTokens: 272_001, outputTokens: 1_000_000, cachedTokens: 0 },
+      rate,
+    );
+    expect(below).toBeCloseTo(0.272 * 5 + 30);
+    expect(above).toBeCloseTo(0.272001 * 10 + 45);
+  });
+
+  it('prices official June 2026 rates for key models', () => {
+    // Claude Fable 5 is twice the Opus tier per the official table
+    expect(DEFAULT_RATES['claude-fable-5']).toEqual({
+      input: 10.0,
+      cachedInput: 1.0,
+      cacheWrite: 12.5,
+      output: 50.0,
+    });
+    expect(DEFAULT_RATES['gemini-3.5-flash']!.output).toBe(9.0);
+    expect(DEFAULT_RATES['mai-code-1-flash']!.input).toBe(0.75);
+    expect(DEFAULT_RATES['gemini-3.1-pro']!.longContext!.threshold).toBe(200_000);
+  });
 });
 
 describe('priceUsage', () => {
