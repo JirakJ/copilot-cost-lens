@@ -66,5 +66,13 @@
   "newest data:": "neueste Daten:",
   "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: Rechnung gespeichert unter {0}",
   "Export invoice for which project?": "Für welches Projekt soll die Rechnung exportiert werden?",
-  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: Die Copilot-Nutzung hat diesen Monat {0} AI Credits überschritten ({1} verbraucht, {2} $)."
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: Die Copilot-Nutzung hat diesen Monat {0} AI Credits überschritten ({1} verbraucht, {2} $).",
+  "vs previous month": "ggü. Vormonat",
+  "allowance runs out ~{0}": "Kontingent erschöpft ~{0}",
+  "Monthly spend": "Monatliche Ausgaben",
+  "Most expensive sessions": "Teuerste Sitzungen",
+  "Date": "Datum",
+  "Source": "Quelle",
+  "Cache read share": "Cache-Leseanteil",
+  "of context read from cache": "des Kontexts aus dem Cache gelesen"
 }

@@ -13,6 +13,7 @@ function sampleDetail(): RepoDetail {
   return {
     month: '2026-06',
     firstActivity: Date.UTC(2026, 5, 1),
+    topSessions: [],
     days: [{ day: '2026-06-01', credits: 100, usd: 1 }],
     providers: [
       { provider: 'claude-code', credits: 900, usd: 9, requestCount: 10 },

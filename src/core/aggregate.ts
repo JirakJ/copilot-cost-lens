@@ -3,9 +3,11 @@ import {
   DayPoint,
   GroupSummary,
   ModelSummary,
+  MonthPoint,
   MonthReport,
   ProviderSummary,
   RepoSummary,
+  SessionSummary,
   UsageEvent,
 } from '../types';
 
@@ -114,6 +116,20 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   // a monthly allowance is meaningless for the all-time view
   const includedCredits = options.month === ALL_TIME ? 0 : options.includedCredits;
+  const now = options.now ?? new Date();
+
+  let prevMonth: string | undefined;
+  let prevMonthUsd: number | undefined;
+  if (options.month !== ALL_TIME) {
+    prevMonth = previousMonthKey(options.month);
+    let prevCredits = 0;
+    for (const e of events) {
+      if (monthKey(e.timestamp) === prevMonth) {
+        prevCredits += e.credits;
+      }
+    }
+    prevMonthUsd = creditsToUsd(prevCredits);
+  }
 
   return {
     month: options.month,
@@ -125,6 +141,10 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     usedPercent: includedCredits > 0 ? (copilotCredits / includedCredits) * 100 : 0,
     forecastCredits,
     forecastUsd: creditsToUsd(forecastCredits),
+    prevMonth,
+    prevMonthUsd,
+    allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
+    monthsSeries: buildMonthsSeries(events),
     repos,
     groups: buildGroupSummaries(repos, options.groups ?? {}),
     models,
@@ -134,6 +154,48 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     sessionCount: sessions.size,
     hasEstimates,
   };
+}
+
+export function previousMonthKey(month: string): string {
+  const [yearStr, monthStr] = month.split('-');
+  const date = new Date(Number(yearStr), Number(monthStr) - 2, 1);
+  return monthKey(date.getTime());
+}
+
+function buildMonthsSeries(events: UsageEvent[]): MonthPoint[] {
+  const map = new Map<string, MonthPoint>();
+  for (const e of events) {
+    const month = monthKey(e.timestamp);
+    const point = map.get(month) ?? { month, credits: 0, usd: 0 };
+    point.credits += e.credits;
+    point.usd = creditsToUsd(point.credits);
+    map.set(month, point);
+  }
+  return [...map.values()].sort((a, b) => a.month.localeCompare(b.month));
+}
+
+/**
+ * Projected day the Copilot allowance runs out, extrapolating the
+ * month-to-date burn rate. Only meaningful for the current month.
+ */
+function allowanceExhaustion(
+  month: string,
+  copilotCredits: number,
+  includedCredits: number,
+  now: Date,
+): string | undefined {
+  if (month !== currentMonthKey(now) || includedCredits <= 0 || copilotCredits <= 0) {
+    return undefined;
+  }
+  const elapsed = Math.max(1, now.getDate());
+  const pace = copilotCredits / elapsed;
+  const exhaustDay = includedCredits / pace;
+  const [yearStr, monthStr] = month.split('-');
+  const daysInMonth = new Date(Number(yearStr), Number(monthStr), 0).getDate();
+  if (exhaustDay > daysInMonth) {
+    return undefined; // fits within the month at current pace
+  }
+  return dayKey(new Date(Number(yearStr), Number(monthStr) - 1, Math.max(1, Math.ceil(exhaustDay))).getTime());
 }
 
 /** True when a repo summary matches a group member identifier. */
@@ -258,6 +320,8 @@ export interface RepoDetail {
   summary: RepoSummary;
   days: DayPoint[];
   providers: ProviderSummary[];
+  /** Most expensive chat sessions in the period, descending. */
+  topSessions: SessionSummary[];
   firstActivity: number;
   /** Period the detail covers: YYYY-MM or ALL_TIME. */
   month: string;
@@ -279,6 +343,7 @@ export function buildRepoDetail(
 
   const dayMap = new Map<string, DayPoint>();
   const providerMap = new Map<string, ProviderSummary>();
+  const sessionMap = new Map<string, SessionSummary>();
   let firstActivity = Number.MAX_SAFE_INTEGER;
 
   for (const e of filtered) {
@@ -299,12 +364,33 @@ export function buildRepoDetail(
     provider.usd = creditsToUsd(provider.credits);
     provider.requestCount += 1;
     providerMap.set(e.provider, provider);
+
+    const session = sessionMap.get(e.sessionId) ?? {
+      sessionId: e.sessionId,
+      provider: e.provider,
+      credits: 0,
+      usd: 0,
+      requestCount: 0,
+      models: [],
+      lastTimestamp: 0,
+    };
+    session.credits += e.credits;
+    session.usd = creditsToUsd(session.credits);
+    session.requestCount += 1;
+    session.lastTimestamp = Math.max(session.lastTimestamp, e.timestamp);
+    if (!session.models.includes(e.model)) {
+      session.models.push(e.model);
+    }
+    sessionMap.set(e.sessionId, session);
   }
 
   return {
     summary: summarizeRepo(filtered),
     days: [...dayMap.values()].sort((a, b) => a.day.localeCompare(b.day)),
     providers: [...providerMap.values()].sort((a, b) => b.credits - a.credits),
+    topSessions: [...sessionMap.values()]
+      .sort((a, b) => b.credits - a.credits)
+      .slice(0, 5),
     firstActivity,
     month: options.month,
   };

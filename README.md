@@ -6,6 +6,16 @@ Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot C
 
 ![Dashboard](docs/dashboard.png)
 
+| Project detail | Receipt & invoice PDFs |
+|---|---|
+| ![Project detail — model mix, top sessions, cache share](docs/project-detail.png) | ![A4 invoice with per-repository breakdown](docs/invoice.png) |
+
+<details>
+<summary>Receipt PDF — the thermal-printer look</summary>
+
+![Receipt PDF](docs/receipt.png)
+</details>
+
 ## Why
 
 Since GitHub Copilot moved to usage-based billing (AI Credits), the question is no longer *"how many requests did I make?"* but *"which project is burning my credits, on which model, and will I fit into my monthly allowance?"* GitHub's billing page gives you an account-level total — Cost Lens gives you the per-repository breakdown it can't.
@@ -25,7 +35,9 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Status bar** — month-to-date credits and dollars at a glance; turns orange when you cross your warning threshold.
 - **Tree view** — repositories ranked by spend with per-model breakdown, right in the activity bar.
 - **Budgets & alerts** — pick your monthly allowance right in the dashboard (1,900 / 3,900 / 10k / 100k / 1M AIC or a custom number) and an optional dollar budget; get warned once a day when you cross the threshold.
-- **Forecast** — linear end-of-month projection based on month-to-date spend.
+- **Forecast & burn rate** — linear end-of-month projection, month-over-month trend, and a projected date your allowance runs out at the current pace.
+- **Cost detective tools** — the most expensive sessions per repository, cache read share (how much of your context comes from cache), and a per-month bar chart in the all-time view.
+- **Status-bar sparkline** — the last 7 days of spend at a glance, right next to the month-to-date total.
 - **Export** — one click to CSV or JSON for invoicing, chargeback or further analysis.
 - **Multi-installation** — scans VS Code, VS Code Insiders, VSCodium, Cursor and Windsurf storage automatically; extra locations are configurable.
 - **Zero runtime dependencies** — small, fast, auditable.

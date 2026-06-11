@@ -66,5 +66,13 @@
   "newest data:": "nejnovější data:",
   "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: faktura uložena do {0}",
   "Export invoice for which project?": "Pro který projekt exportovat fakturu?",
-  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: využití Copilota tento měsíc překročilo {0} AI kreditů (spotřebováno {1}, {2} $)."
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: využití Copilota tento měsíc překročilo {0} AI kreditů (spotřebováno {1}, {2} $).",
+  "vs previous month": "oproti minulému měsíci",
+  "allowance runs out ~{0}": "příděl dojde ~{0}",
+  "Monthly spend": "Měsíční útrata",
+  "Most expensive sessions": "Nejdražší sezení",
+  "Date": "Datum",
+  "Source": "Zdroj",
+  "Cache read share": "Podíl cache čtení",
+  "of context read from cache": "kontextu čteno z cache"
 }

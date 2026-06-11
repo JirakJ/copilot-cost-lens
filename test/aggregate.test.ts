@@ -137,6 +137,43 @@ describe('buildMonthReport', () => {
     expect(report.days.map((d) => d.day)).toEqual(['2026-06-10', '2026-06-11']);
   });
 
+  it('reports previous-month spend for trend display', () => {
+    const events = [
+      event({ credits: 200, timestamp: new Date(2026, 4, 5).getTime() }),
+      event({ credits: 100 }),
+    ];
+    const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(report.prevMonth).toBe('2026-05');
+    expect(report.prevMonthUsd).toBeCloseTo(2);
+  });
+
+  it('predicts the allowance exhaustion date at current pace', () => {
+    // 1000 credits in 10 days → 100/day → 1900 exhausted on day 19
+    const report = buildMonthReport([event({ credits: 1000 })], {
+      month: '2026-06',
+      includedCredits: 1900,
+      now,
+    });
+    expect(report.allowanceExhaustion).toBe('2026-06-19');
+    // slow pace → fits within the month → no exhaustion warning
+    const slow = buildMonthReport([event({ credits: 100 })], {
+      month: '2026-06',
+      includedCredits: 1900,
+      now,
+    });
+    expect(slow.allowanceExhaustion).toBeUndefined();
+  });
+
+  it('builds the all-time months series', () => {
+    const events = [
+      event({ credits: 5, timestamp: new Date(2026, 4, 1).getTime() }),
+      event({ credits: 10 }),
+    ];
+    const report = buildMonthReport(events, { month: ALL_TIME, includedCredits: 0, now });
+    expect(report.monthsSeries.map((m) => m.month)).toEqual(['2026-05', '2026-06']);
+    expect(report.monthsSeries[1]!.credits).toBe(10);
+  });
+
   it('covers everything in the all-time view and disables the allowance', () => {
     const events = [
       event({ credits: 10, timestamp: new Date(2025, 9, 1).getTime() }),
@@ -214,6 +251,19 @@ describe('buildRepoDetail', () => {
     expect(detail.days).toHaveLength(2);
     expect(detail.providers.map((p) => p.provider)).toEqual(['claude-code', 'copilot']);
     expect(detail.firstActivity).toBe(new Date(2026, 5, 10, 12).getTime());
+  });
+
+  it('ranks the most expensive sessions', () => {
+    const events = [
+      event({ sessionId: 'cheap', credits: 1 }),
+      event({ sessionId: 'big', credits: 50, model: 'gpt-5.5' }),
+      event({ sessionId: 'big', credits: 30, model: 'claude-sonnet-4.6' }),
+    ];
+    const detail = buildRepoDetail(events, { repoName: 'owner/alpha', month: '2026-06' })!;
+    expect(detail.topSessions[0]!.sessionId).toBe('big');
+    expect(detail.topSessions[0]!.credits).toBe(80);
+    expect(detail.topSessions[0]!.models.sort()).toEqual(['claude-sonnet-4.6', 'gpt-5.5']);
+    expect(detail.topSessions).toHaveLength(2);
   });
 
   it('supports the all-time period and unknown repos', () => {

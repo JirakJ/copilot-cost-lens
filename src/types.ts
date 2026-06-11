@@ -131,6 +131,24 @@ export interface DayPoint {
   usd: number;
 }
 
+export interface MonthPoint {
+  /** YYYY-MM, local time. */
+  month: string;
+  credits: number;
+  usd: number;
+}
+
+/** One chat session ranked inside a repository detail. */
+export interface SessionSummary {
+  sessionId: string;
+  provider: Provider;
+  credits: number;
+  usd: number;
+  requestCount: number;
+  models: string[];
+  lastTimestamp: number;
+}
+
 export interface MonthReport {
   /** YYYY-MM, local time. */
   month: string;
@@ -145,6 +163,13 @@ export interface MonthReport {
   /** Naive linear forecast of total credits at end of month. */
   forecastCredits: number;
   forecastUsd: number;
+  /** Spend of the previous calendar month (undefined for all-time). */
+  prevMonth?: string;
+  prevMonthUsd?: number;
+  /** Projected date (YYYY-MM-DD) the Copilot allowance runs out at current pace. */
+  allowanceExhaustion?: string;
+  /** Per-month series across all data — used by the all-time chart. */
+  monthsSeries: MonthPoint[];
   repos: RepoSummary[];
   /** User-defined project groups with usage in the period (empty when none configured). */
   groups: GroupSummary[];

@@ -66,5 +66,13 @@
   "newest data:": "最新データ:",
   "Copilot Cost Lens: invoice saved to {0}": "Copilot Cost Lens: 請求書を {0} に保存しました",
   "Export invoice for which project?": "どのプロジェクトの請求書をエクスポートしますか?",
-  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: 今月の Copilot 使用量が {0} AI クレジットを超えました (使用済み {1}、${2})。"
+  "Copilot Cost Lens: Copilot usage crossed {0} AI Credits this month ({1} used, ${2}).": "Copilot Cost Lens: 今月の Copilot 使用量が {0} AI クレジットを超えました (使用済み {1}、${2})。",
+  "vs previous month": "前月比",
+  "allowance runs out ~{0}": "クレジット枠は ~{0} に枯渇見込み",
+  "Monthly spend": "月別支出",
+  "Most expensive sessions": "最もコストの高いセッション",
+  "Date": "日付",
+  "Source": "ソース",
+  "Cache read share": "キャッシュ読取率",
+  "of context read from cache": "のコンテキストをキャッシュから読取"
 }

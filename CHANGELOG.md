@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.4.0] — 2026-06-11
+
+### Added
+
+- **Month-over-month trend** in the Spend card (▲/▼ % vs the previous month).
+- **Allowance burn rate** — the gauge card shows the projected date your Copilot allowance runs out at the current pace.
+- **Most expensive sessions** table in the repository detail (date, models, source, requests, cost).
+- **Cache read share** KPI in the repository detail — how much of your context is served from cache.
+- **Monthly bar chart** replaces the daily chart in the all-time view.
+- **Status-bar sparkline** — last 7 days of spend as a tiny graph.
+- Refreshed README with project-detail, invoice and receipt screenshots.
+
 ## [1.3.0] — 2026-06-11
 
 ### Added
