@@ -83,5 +83,10 @@
   "Enter a project name": "Geben Sie einen Projektnamen ein",
   "Select repositories for {0}": "Repositories für {0} auswählen",
   "Copilot Cost Lens: project {0} saved ({1} repositories).": "Copilot Cost Lens: Projekt {0} gespeichert ({1} Repositories).",
-  "Delete project {0}? Repositories and their data stay untouched.": "Projekt {0} löschen? Repositories und ihre Daten bleiben unberührt."
+  "Delete project {0}? Repositories and their data stay untouched.": "Projekt {0} löschen? Repositories und ihre Daten bleiben unberührt.",
+  "Save project": "Projekt speichern",
+  "Cancel": "Abbrechen",
+  "Project name": "Projektname",
+  "e.g. MyProduct": "z. B. MeinProdukt",
+  "Select at least one repository": "Wählen Sie mindestens ein Repository"
 }

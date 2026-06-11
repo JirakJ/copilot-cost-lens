@@ -12,13 +12,14 @@ export interface DashboardDelegate {
   getRepoDetail(repoName: string, month: string): RepoDetail | undefined;
   getGroupDetail(groupName: string, month: string): GroupDetail | undefined;
   getStats(): ScanStats;
+  /** Every repository with all-time spend — feeds the project editor list. */
+  getAllRepos(): { name: string; usd: number }[];
   refresh(): Promise<void>;
   exportData(format: 'csv' | 'json'): Promise<void>;
   exportReceipt(target: { repo?: string; group?: string }, month: string): Promise<void>;
   exportInvoice(target: { repo?: string; group?: string }, month: string): Promise<void>;
   setAllowance(value: number | 'custom'): Promise<void>;
-  createGroup(): Promise<void>;
-  editGroup(name: string): Promise<void>;
+  saveGroup(originalName: string | undefined, name: string, members: string[]): Promise<void>;
   deleteGroup(name: string): Promise<void>;
 }
 
@@ -29,6 +30,9 @@ interface IncomingMessage {
   group?: string;
   format?: 'csv' | 'json';
   value?: number | 'custom';
+  originalName?: string;
+  name?: string;
+  members?: string[];
 }
 
 /**
@@ -92,13 +96,11 @@ export class DashboardController {
             );
           }
           break;
-        case 'createGroup':
-          await this.delegate.createGroup();
-          this.postAll();
-          break;
-        case 'editGroup':
-          if (message.group) {
-            await this.delegate.editGroup(message.group);
+        case 'saveGroup':
+          if (message.name && Array.isArray(message.members) && message.members.length > 0) {
+            await this.delegate.saveGroup(message.originalName, message.name, message.members);
+            this.selectedGroup = message.name;
+            this.selectedRepo = undefined;
             this.postAll();
           }
           break;
@@ -169,6 +171,7 @@ export class DashboardController {
       selectedMonth: month,
       detail,
       groupDetail,
+      allRepos: this.delegate.getAllRepos(),
       stats: this.delegate.getStats(),
     });
   }

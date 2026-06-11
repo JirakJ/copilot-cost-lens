@@ -40,6 +40,10 @@ export function activate(context: vscode.ExtensionContext): void {
         : undefined;
     },
     getStats: () => store.getStats(),
+    getAllRepos: () => {
+      const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
+      return report.repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
+    },
     refresh: async () => {
       await store.refresh();
     },
@@ -47,8 +51,7 @@ export function activate(context: vscode.ExtensionContext): void {
     exportReceipt: (target, month) => exportReceipt(store, target, month),
     exportInvoice: (target, month) => exportInvoice(store, target, month),
     setAllowance: (value) => setAllowance(value),
-    createGroup: () => createGroup(store),
-    editGroup: (name) => editGroup(store, name),
+    saveGroup: (originalName, name, members) => saveGroupAs(originalName, name, members),
     deleteGroup: (name) => deleteGroup(name),
   });
   const panel = new DashboardPanel(controller);
@@ -395,8 +398,21 @@ async function pickMembers(
 }
 
 async function saveGroup(name: string, members: string[]): Promise<void> {
+  await saveGroupAs(undefined, name, members);
+}
+
+/** Persist a project group, handling renames (drop the old key). */
+async function saveGroupAs(
+  originalName: string | undefined,
+  name: string,
+  members: string[],
+): Promise<void> {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const groups = { ...projectGroups(), [name]: members };
+  const groups = { ...projectGroups() };
+  if (originalName && originalName !== name) {
+    delete groups[originalName];
+  }
+  groups[name] = members;
   await config.update('projectGroups', groups, vscode.ConfigurationTarget.Global);
   void vscode.window.showInformationMessage(
     vscode.l10n.t('Copilot Cost Lens: project {0} saved ({1} repositories).', name, members.length),
@@ -417,22 +433,6 @@ async function createGroup(store: UsageStore): Promise<void> {
     return;
   }
   await saveGroup(name.trim(), members);
-}
-
-async function editGroup(store: UsageStore, name: string): Promise<void> {
-  const existing = projectGroups()[name];
-  if (!existing) {
-    return;
-  }
-  const members = await pickMembers(store, name, existing);
-  if (!members) {
-    return;
-  }
-  if (members.length === 0) {
-    await deleteGroup(name);
-    return;
-  }
-  await saveGroup(name, members);
 }
 
 async function deleteGroup(name: string): Promise<void> {

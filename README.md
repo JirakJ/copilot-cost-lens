@@ -14,6 +14,8 @@ Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot C
 |---|---|
 | ![A4 invoice with per-repository breakdown](docs/invoice.png) | ![Combined project receipt with repository breakdown](docs/group-receipt.png) |
 
+![Inline project editor — pick repositories right in the dashboard](docs/project-editor.png)
+
 <details>
 <summary>Single-repository receipt — the thermal-printer look</summary>
 

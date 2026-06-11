@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.6.0] — 2026-06-11
+
+### Changed
+
+- **Project editor moved into the dashboard.** Creating and editing a project no longer uses the VS Code input/quick-pick at the top of the screen — "＋ New project" and ✏️ Edit open an inline editor right in the dashboard: project name field plus a checkbox list of all repositories with their spend, members pre-checked, with a live selection counter and rename support. Members remain visible in the project detail and stay editable at any time.
+
 ## [1.5.1] — 2026-06-11
 
 ### Changed

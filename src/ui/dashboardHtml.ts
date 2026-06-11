@@ -91,6 +91,23 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   .detailbar h2 { font-size: 16px; margin: 0; flex: 1; }
   .cardhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
   .cardhead h2 { margin: 0; }
+  button.primary { background: var(--vscode-button-background); color: var(--vscode-button-foreground); border-color: transparent; }
+  .textinput {
+    width: 100%; padding: 7px 10px; border-radius: 6px; font-family: inherit; font-size: 13px;
+    background: var(--vscode-input-background, var(--card)); color: var(--vscode-input-foreground, var(--fg));
+    border: 1px solid var(--vscode-input-border, var(--border));
+  }
+  .textinput:focus { outline: 1px solid var(--accent); }
+  .picklist {
+    max-height: 320px; overflow-y: auto; border: 1px solid var(--border); border-radius: 8px;
+    padding: 4px; margin-top: 2px;
+  }
+  .pick {
+    display: flex; align-items: center; gap: 9px; padding: 6px 8px; border-radius: 6px; cursor: pointer;
+  }
+  .pick:hover { background: rgba(128,128,128,0.08); }
+  .pick .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .pick .val { color: var(--muted); font-variant-numeric: tabular-nums; }
 </style>
 </head>
 <body>
@@ -128,9 +145,18 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   document.getElementById('settings').onclick = () => vscode.postMessage({ type: 'openSettings' });
   monthSel.onchange = () => vscode.postMessage({ type: 'selectMonth', month: monthSel.value });
 
+  let lastMsg = null;
+  let editor = null; // { originalName, name, members:Set, deletable }
+
   window.addEventListener('message', (event) => {
     const msg = event.data;
-    if (msg.type === 'data') render(msg);
+    if (msg.type === 'data') {
+      lastMsg = msg;
+      if (editor) {
+        return; // keep the project editor open; fresh data renders after save/cancel
+      }
+      render(msg);
+    }
   });
   vscode.postMessage({ type: 'ready' });
 
@@ -210,7 +236,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     bindRepoRows();
     bindGroupRows();
     const newGroup = document.getElementById('newGroup');
-    if (newGroup) newGroup.onclick = () => vscode.postMessage({ type: 'createGroup' });
+    if (newGroup) newGroup.onclick = () => openEditor(null);
 
     foot.innerHTML = esc(S.footSources) + '<br>' + esc(S.footAllowance) +
       (r.hasEstimates ? '<br>' + esc(S.footEstimates) : '');
@@ -322,10 +348,81 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     document.getElementById('back').onclick = () => vscode.postMessage({ type: 'selectGroup', group: null });
     document.getElementById('groupReceipt').onclick = () => vscode.postMessage({ type: 'exportReceipt', group: g.name });
     document.getElementById('invoice').onclick = () => vscode.postMessage({ type: 'exportInvoice', group: g.name });
-    document.getElementById('editGroup').onclick = () => vscode.postMessage({ type: 'editGroup', group: g.name });
+    document.getElementById('editGroup').onclick = () => openEditor(g);
     document.getElementById('deleteGroup').onclick = () => vscode.postMessage({ type: 'deleteGroup', group: g.name });
     bindRepoRows();
     foot.innerHTML = esc(S.footSources);
+  }
+
+  // ---- inline project editor -------------------------------------------
+
+  function openEditor(group) {
+    editor = {
+      originalName: group ? group.name : null,
+      name: group ? group.name : '',
+      members: new Set(group ? group.repos.map((r) => r.repo.name) : []),
+    };
+    renderEditor();
+  }
+
+  function closeEditor() {
+    editor = null;
+    if (lastMsg) render(lastMsg);
+  }
+
+  function renderEditor() {
+    const allRepos = (lastMsg && lastMsg.allRepos) || [];
+    const rows = allRepos.map((r, i) =>
+      '<label class="pick"><input type="checkbox" data-repo="' + esc(r.name) + '"' +
+      (editor.members.has(r.name) ? ' checked' : '') + '> <span class="name">' + esc(r.name) +
+      '</span><span class="val">' + usd(r.usd) + '</span></label>').join('');
+
+    app.innerHTML =
+      '<div class="detailbar">' +
+        '<button id="cancelTop">← ' + esc(S.cancel) + '</button>' +
+        '<h2>' + (editor.originalName ? '✏️ ' + esc(editor.originalName) : '📁 ' + esc(S.newProject)) + '</h2>' +
+      '</div>' +
+      '<div class="card" style="max-width:640px">' +
+        '<div class="label">' + esc(S.projectNameLabel) + '</div>' +
+        '<input id="gname" type="text" class="textinput" value="' + esc(editor.name) + '" placeholder="' + esc(S.projectNamePlaceholder) + '">' +
+        '<div class="label" style="margin-top:14px">' + esc(S.selectReposLabel) + ' <span id="pickCount" class="badge"></span></div>' +
+        '<div class="picklist">' + rows + '</div>' +
+        '<div id="editErr" class="sub" style="color:var(--c6);min-height:16px"></div>' +
+        '<div style="display:flex;gap:8px;margin-top:10px">' +
+          '<button id="saveGroup" class="primary">💾 ' + esc(S.save) + '</button>' +
+          '<button id="cancelGroup">' + esc(S.cancel) + '</button>' +
+        '</div>' +
+      '</div>';
+    foot.innerHTML = '';
+
+    const nameInput = document.getElementById('gname');
+    const count = document.getElementById('pickCount');
+    const updateCount = () => { count.textContent = String(editor.members.size); };
+    updateCount();
+    nameInput.oninput = () => { editor.name = nameInput.value; };
+    for (const box of document.querySelectorAll('.picklist input[type=checkbox]')) {
+      box.onchange = () => {
+        if (box.checked) editor.members.add(box.dataset.repo);
+        else editor.members.delete(box.dataset.repo);
+        updateCount();
+      };
+    }
+    document.getElementById('cancelTop').onclick = closeEditor;
+    document.getElementById('cancelGroup').onclick = closeEditor;
+    document.getElementById('saveGroup').onclick = () => {
+      const name = editor.name.trim();
+      const err = document.getElementById('editErr');
+      if (!name) { err.textContent = S.errNameRequired; return; }
+      if (editor.members.size === 0) { err.textContent = S.errPickRepo; return; }
+      vscode.postMessage({
+        type: 'saveGroup',
+        originalName: editor.originalName || undefined,
+        name,
+        members: [...editor.members],
+      });
+      editor = null;
+    };
+    nameInput.focus();
   }
 
   function bindRepoRows() {

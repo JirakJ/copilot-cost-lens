@@ -117,12 +117,18 @@ describe('renderDashboardHtml', () => {
       'exportReceipt',
       'exportInvoice',
       'setAllowance',
-      'createGroup',
-      'editGroup',
+      'saveGroup',
       'deleteGroup',
       'refresh',
     ]) {
       expect(html, `missing message type ${type}`).toContain(`type: '${type}'`);
     }
+  });
+
+  it('contains the inline project editor', () => {
+    const html = renderDashboardHtml(strings);
+    expect(html).toContain('function openEditor');
+    expect(html).toContain('picklist');
+    expect(html).toContain("originalName: editor.originalName || undefined");
   });
 });

@@ -83,5 +83,10 @@
   "Enter a project name": "プロジェクト名を入力してください",
   "Select repositories for {0}": "{0} のリポジトリを選択",
   "Copilot Cost Lens: project {0} saved ({1} repositories).": "Copilot Cost Lens: プロジェクト {0} を保存しました (リポジトリ {1} 件)。",
-  "Delete project {0}? Repositories and their data stay untouched.": "プロジェクト {0} を削除しますか? リポジトリとそのデータはそのまま残ります。"
+  "Delete project {0}? Repositories and their data stay untouched.": "プロジェクト {0} を削除しますか? リポジトリとそのデータはそのまま残ります。",
+  "Save project": "プロジェクトを保存",
+  "Cancel": "キャンセル",
+  "Project name": "プロジェクト名",
+  "e.g. MyProduct": "例: MyProduct",
+  "Select at least one repository": "リポジトリを 1 つ以上選択してください"
 }

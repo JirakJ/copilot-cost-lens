@@ -37,6 +37,9 @@ const S = {
   topSessions: 'Most expensive sessions', colDate: 'Date', colSource: 'Source',
   cacheShare: 'Cache read share', cacheShareSub: 'of context read from cache',
   newProject: 'New project', editProject: 'Edit', deleteProject: 'Delete',
+  save: 'Save project', cancel: 'Cancel', projectNameLabel: 'Project name',
+  projectNamePlaceholder: 'e.g. MyProduct', selectReposLabel: 'Repositories in this project',
+  errNameRequired: 'Enter a project name', errPickRepo: 'Select at least one repository',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
@@ -149,17 +152,26 @@ const theme = '<style>:root{--vscode-editor-background:#1e2227;--vscode-editor-f
 
 const base = renderDashboardHtml(S);
 const months = ['2026-06', '2026-05', '2026-04'];
+const allRepos = repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
 const demos = {
-  'docs/demo.html': { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail: null, stats },
-  'docs/demo-detail.html': { type: 'data', months, selectedMonth: '2026-06', report, detail: repoDetail, groupDetail: null, stats: null },
-  'docs/demo-group.html': { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail, stats: null },
+  'docs/demo.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail: null, allRepos, stats } },
+  'docs/demo-detail.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: repoDetail, groupDetail: null, allRepos, stats: null } },
+  'docs/demo-group.html': { payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail, allRepos, stats: null } },
+  // project editor opened over the group detail (auto-clicks the Edit button)
+  'docs/demo-editor.html': {
+    payload: { type: 'data', months, selectedMonth: '2026-06', report, detail: null, groupDetail, allRepos, stats: null },
+    autoClick: 'editGroup',
+  },
 };
 
-for (const [file, payload] of Object.entries(demos)) {
+for (const [file, { payload, autoClick }] of Object.entries(demos)) {
+  const click = autoClick
+    ? 'setTimeout(() => document.getElementById(' + JSON.stringify(autoClick) + ')?.click(), 400);'
+    : '';
   const stub =
     '<script>window.acquireVsCodeApi = () => ({ postMessage(){}, getState(){}, setState(){} });' +
-    'window.addEventListener("DOMContentLoaded", () => window.postMessage(' +
-    JSON.stringify(payload) + ', "*"));</' + 'script>' + theme;
+    'window.addEventListener("DOMContentLoaded", () => { window.postMessage(' +
+    JSON.stringify(payload) + ', "*"); ' + click + ' });</' + 'script>' + theme;
   let html = base.replace('</head>', stub + '</head>');
   html = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/s, '');
   await writeFile(file, html);
