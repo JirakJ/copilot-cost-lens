@@ -25,11 +25,70 @@ export interface ReceiptStrings {
   cacheWrite: string;
   sessions: string;
   subtotalBySource: string;
+  byRepository: string;
   total: string;
   credits: string;
   estimatesNote: string;
   footer: string;
   providerNames: Record<string, string>;
+}
+
+/** Everything a receipt needs — built from a repo or a project group. */
+export interface ReceiptData {
+  title: string;
+  /** YYYY-MM or 'all'. */
+  period: string;
+  models: { model: string; requestCount: number; credits: number; usd: number }[];
+  /** Per-repository breakdown for project groups. */
+  repoLines?: { name: string; usd: number }[];
+  inputTokens: number;
+  outputTokens: number;
+  cachedTokens: number;
+  cacheWriteTokens: number;
+  sessionCount: number;
+  providers: { provider: string; usd: number }[];
+  totalCredits: number;
+  totalUsd: number;
+  hasEstimates: boolean;
+}
+
+export function receiptFromRepo(detail: RepoDetail): ReceiptData {
+  const s = detail.summary;
+  return {
+    title: s.repo.name,
+    period: detail.month,
+    models: s.models,
+    inputTokens: s.inputTokens,
+    outputTokens: s.outputTokens,
+    cachedTokens: s.cachedTokens,
+    cacheWriteTokens: s.cacheWriteTokens,
+    sessionCount: s.sessionCount,
+    providers: detail.providers,
+    totalCredits: s.credits,
+    totalUsd: s.usd,
+    hasEstimates: s.hasEstimates,
+  };
+}
+
+export function receiptFromGroup(detail: GroupDetail): ReceiptData {
+  const g = detail.group;
+  return {
+    title: g.name,
+    period: detail.month,
+    models: g.models,
+    repoLines: [...g.repos]
+      .sort((a, b) => b.usd - a.usd)
+      .map((r) => ({ name: r.repo.name, usd: r.usd })),
+    inputTokens: g.inputTokens,
+    outputTokens: g.outputTokens,
+    cachedTokens: g.cachedTokens,
+    cacheWriteTokens: g.cacheWriteTokens,
+    sessionCount: g.sessionCount,
+    providers: detail.providers,
+    totalCredits: g.credits,
+    totalUsd: g.usd,
+    hasEstimates: g.hasEstimates,
+  };
 }
 
 const PAGE_W = 240; // ~85mm thermal paper
@@ -44,8 +103,8 @@ interface Line {
   center?: boolean;
 }
 
-export function buildReceiptPdf(detail: RepoDetail, strings: ReceiptStrings): Buffer {
-  const lines = layoutReceipt(detail, strings);
+export function buildReceiptPdf(data: ReceiptData, strings: ReceiptStrings): Buffer {
+  const lines = layoutReceipt(data, strings);
   // receipt: one page exactly as tall as its content
   return buildPdf([lines], PAGE_W, MARGIN * 2 + lines.length * LINE_H + 10);
 }
@@ -235,8 +294,7 @@ function layoutInvoice(data: InvoiceData, t: InvoiceStrings): Line[] {
 // layout
 // ---------------------------------------------------------------------------
 
-function layoutReceipt(detail: RepoDetail, t: ReceiptStrings): Line[] {
-  const s = detail.summary;
+function layoutReceipt(data: ReceiptData, t: ReceiptStrings): Line[] {
   const out: Line[] = [];
   const rule = () => out.push({ text: '-'.repeat(COLS) });
   const doubleRule = () => out.push({ text: '='.repeat(COLS) });
@@ -248,13 +306,13 @@ function layoutReceipt(detail: RepoDetail, t: ReceiptStrings): Line[] {
   out.push({ text: `* ${t.receipt} *`, center: true });
   blank();
   doubleRule();
-  kv(t.project, fit(s.repo.name, COLS - t.project.length - 1));
-  kv(t.period, detail.month === 'all' ? t.allTime : detail.month);
+  kv(t.project, fit(data.title, COLS - t.project.length - 1));
+  kv(t.period, data.period === 'all' ? t.allTime : data.period);
   kv(t.issued, new Date().toISOString().slice(0, 10));
   doubleRule();
   blank();
 
-  for (const model of s.models) {
+  for (const model of data.models) {
     out.push({ text: fit(model.model, COLS), bold: true });
     kv(`  ${t.requests}`, `${model.requestCount}x`);
     kv(`  ${t.credits}`, fmtNum(model.credits));
@@ -262,17 +320,26 @@ function layoutReceipt(detail: RepoDetail, t: ReceiptStrings): Line[] {
     blank();
   }
 
+  if (data.repoLines && data.repoLines.length > 0) {
+    rule();
+    out.push({ text: t.byRepository, bold: true });
+    for (const line of data.repoLines) {
+      kv(`  ${fit(line.name, COLS - 12)}`, usd(line.usd));
+    }
+    blank();
+  }
+
   rule();
-  kv(t.tokensIn, fmtNum(s.inputTokens));
-  kv(t.tokensOut, fmtNum(s.outputTokens));
-  kv(t.cacheRead, fmtNum(s.cachedTokens));
-  kv(t.cacheWrite, fmtNum(s.cacheWriteTokens));
-  kv(t.sessions, String(s.sessionCount));
+  kv(t.tokensIn, fmtNum(data.inputTokens));
+  kv(t.tokensOut, fmtNum(data.outputTokens));
+  kv(t.cacheRead, fmtNum(data.cachedTokens));
+  kv(t.cacheWrite, fmtNum(data.cacheWriteTokens));
+  kv(t.sessions, String(data.sessionCount));
   rule();
 
-  if (detail.providers.length > 1) {
+  if (data.providers.length > 1) {
     out.push({ text: t.subtotalBySource, bold: true });
-    for (const p of detail.providers) {
+    for (const p of data.providers) {
       kv(`  ${t.providerNames[p.provider] ?? p.provider}`, usd(p.usd));
     }
     rule();
@@ -282,15 +349,15 @@ function layoutReceipt(detail: RepoDetail, t: ReceiptStrings): Line[] {
   // size-12 type is wider, so the key/value spread uses fewer columns
   const totalCols = Math.floor((PAGE_W - 2 * MARGIN) / (12 * 0.6));
   out.push({
-    text: padBetween(t.total, usd(s.usd), totalCols),
+    text: padBetween(t.total, usd(data.totalUsd), totalCols),
     bold: true,
     size: 12,
   });
-  kv(t.credits, fmtNum(s.credits));
+  kv(t.credits, fmtNum(data.totalCredits));
   blank();
   doubleRule();
 
-  if (s.hasEstimates) {
+  if (data.hasEstimates) {
     blank();
     for (const wrapped of wrap(`~ ${t.estimatesNote}`, COLS)) {
       out.push({ text: wrapped, size: 8 });

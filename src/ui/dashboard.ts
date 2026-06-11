@@ -14,9 +14,12 @@ export interface DashboardDelegate {
   getStats(): ScanStats;
   refresh(): Promise<void>;
   exportData(format: 'csv' | 'json'): Promise<void>;
-  exportReceipt(repoName: string, month: string): Promise<void>;
+  exportReceipt(target: { repo?: string; group?: string }, month: string): Promise<void>;
   exportInvoice(target: { repo?: string; group?: string }, month: string): Promise<void>;
   setAllowance(value: number | 'custom'): Promise<void>;
+  createGroup(): Promise<void>;
+  editGroup(name: string): Promise<void>;
+  deleteGroup(name: string): Promise<void>;
 }
 
 interface IncomingMessage {
@@ -74,8 +77,11 @@ export class DashboardController {
           await this.delegate.exportData(message.format ?? 'csv');
           break;
         case 'exportReceipt':
-          if (message.repo) {
-            await this.delegate.exportReceipt(message.repo, this.currentMonth());
+          if (message.repo || message.group) {
+            await this.delegate.exportReceipt(
+              { repo: message.repo, group: message.group },
+              this.currentMonth(),
+            );
           }
           break;
         case 'exportInvoice':
@@ -84,6 +90,23 @@ export class DashboardController {
               { repo: message.repo, group: message.group },
               this.currentMonth(),
             );
+          }
+          break;
+        case 'createGroup':
+          await this.delegate.createGroup();
+          this.postAll();
+          break;
+        case 'editGroup':
+          if (message.group) {
+            await this.delegate.editGroup(message.group);
+            this.postAll();
+          }
+          break;
+        case 'deleteGroup':
+          if (message.group) {
+            await this.delegate.deleteGroup(message.group);
+            this.selectedGroup = undefined;
+            this.postAll();
           }
           break;
         case 'setAllowance':

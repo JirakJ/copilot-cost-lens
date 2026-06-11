@@ -25,5 +25,6 @@
   "cfg.refreshInterval": "バックグラウンドでログを再スキャンする頻度。ファイル監視により即時更新も行われます。",
   "cmd.exportInvoice": "請求書をエクスポート (PDF)",
   "cfg.projectGroups": "リポジトリを名前付きプロジェクトにまとめます。例: `{ \"MyProduct\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`。グループはダッシュボードに集計コストと共に表示され、リポジトリ別内訳付きの請求書 PDF を出力できます。",
-  "cfg.creditAlerts": "AI クレジットの絶対しきい値 (例: [2500, 5000])。月初からの Copilot 使用量がしきい値を超えると、月に 1 回通知します。"
+  "cfg.creditAlerts": "AI クレジットの絶対しきい値 (例: [2500, 5000])。月初からの Copilot 使用量がしきい値を超えると、月に 1 回通知します。",
+  "cmd.createProject": "プロジェクトを作成 (リポジトリをグループ化)"
 }

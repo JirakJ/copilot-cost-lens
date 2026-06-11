@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.0] — 2026-06-11
+
+### Added
+
+- **Project management in the dashboard** — a "＋ New project" button creates a group by picking repositories from a native multi-select list (sorted by spend); projects can be edited and deleted from their detail view. No more hand-editing settings JSON — `copilotCostLens.projectGroups` remains the storage and stays editable.
+- **Combined receipt for projects** — the receipt PDF is now available for project groups too, with a *Breakdown by repository* section, aggregated model line items and source subtotals.
+- The Projects card is always visible in the overview (with an explanatory hint when no project exists yet), so the grouping feature is discoverable.
+- `Copilot Cost Lens: Create Project (Group Repositories)` command.
+
 ## [1.4.0] — 2026-06-11
 
 ### Added

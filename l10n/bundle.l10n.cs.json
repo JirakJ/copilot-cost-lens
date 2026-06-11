@@ -74,5 +74,14 @@
   "Date": "Datum",
   "Source": "Zdroj",
   "Cache read share": "Podíl cache čtení",
-  "of context read from cache": "kontextu čteno z cache"
+  "of context read from cache": "kontextu čteno z cache",
+  "New project": "Nový projekt",
+  "Edit": "Upravit",
+  "Delete": "Smazat",
+  "Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.": "Seskupte několik repozitářů (frontend, backend, testy…) do jednoho projektu a exportujte souhrnnou účtenku nebo fakturu.",
+  "Project name (e.g. MyProduct)": "Název projektu (např. MujProdukt)",
+  "Enter a project name": "Zadejte název projektu",
+  "Select repositories for {0}": "Vyberte repozitáře pro {0}",
+  "Copilot Cost Lens: project {0} saved ({1} repositories).": "Copilot Cost Lens: projekt {0} uložen ({1} repozitářů).",
+  "Delete project {0}? Repositories and their data stay untouched.": "Smazat projekt {0}? Repozitáře a jejich data zůstanou nedotčené."
 }

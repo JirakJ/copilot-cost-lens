@@ -25,5 +25,6 @@
   "cfg.refreshInterval": "Jak často na pozadí přeskenovávat logy. Sledování souborů navíc spouští okamžité obnovy.",
   "cmd.exportInvoice": "Exportovat fakturu (PDF)",
   "cfg.projectGroups": "Seskupení repozitářů do pojmenovaných projektů. Příklad: `{ \"MujProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Skupiny se zobrazí v přehledu s agregovanými náklady a souhrnnou fakturou (PDF) s rozpadem na jednotlivé repozitáře.",
-  "cfg.creditAlerts": "Absolutní prahy AI kreditů (např. [2500, 5000]). Každý práh vyvolá notifikaci jednou měsíčně, jakmile jej měsíční využití Copilota překročí."
+  "cfg.creditAlerts": "Absolutní prahy AI kreditů (např. [2500, 5000]). Každý práh vyvolá notifikaci jednou měsíčně, jakmile jej měsíční využití Copilota překročí.",
+  "cmd.createProject": "Vytvořit projekt (seskupit repozitáře)"
 }

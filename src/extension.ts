@@ -15,6 +15,8 @@ import {
   buildReceiptPdf,
   invoiceFromGroup,
   invoiceFromRepo,
+  receiptFromGroup,
+  receiptFromRepo,
 } from './core/receiptPdf';
 import { exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
@@ -42,9 +44,12 @@ export function activate(context: vscode.ExtensionContext): void {
       await store.refresh();
     },
     exportData: (format) => exportUsage(store.getEvents(), format),
-    exportReceipt: (repoName, month) => exportReceipt(store, repoName, month),
+    exportReceipt: (target, month) => exportReceipt(store, target, month),
     exportInvoice: (target, month) => exportInvoice(store, target, month),
     setAllowance: (value) => setAllowance(value),
+    createGroup: () => createGroup(store),
+    editGroup: (name) => editGroup(store, name),
+    deleteGroup: (name) => deleteGroup(name),
   });
   const panel = new DashboardPanel(controller);
 
@@ -61,6 +66,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.exportJson', () => exportUsage(store.getEvents(), 'json')),
     vscode.commands.registerCommand('copilotCostLens.exportReceipt', () => pickRepoAndExportReceipt(store)),
     vscode.commands.registerCommand('copilotCostLens.exportInvoice', () => pickAndExportInvoice(store)),
+    vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
@@ -290,17 +296,32 @@ function checkCreditAlerts(context: vscode.ExtensionContext, report: MonthReport
   }
 }
 
-async function exportReceipt(store: UsageStore, repoName: string, month: string): Promise<void> {
-  const detail = buildRepoDetail(store.getEvents(), { repoName, month });
-  if (!detail) {
+async function exportReceipt(
+  store: UsageStore,
+  target: { repo?: string; group?: string },
+  month: string,
+): Promise<void> {
+  let data;
+  if (target.group) {
+    const members = projectGroups()[target.group];
+    const detail = members
+      ? buildGroupDetail(store.getEvents(), { name: target.group, members, month })
+      : undefined;
+    data = detail ? receiptFromGroup(detail) : undefined;
+  } else if (target.repo) {
+    const detail = buildRepoDetail(store.getEvents(), { repoName: target.repo, month });
+    data = detail ? receiptFromRepo(detail) : undefined;
+  }
+  const name = target.group ?? target.repo ?? '';
+  if (!data) {
     void vscode.window.showInformationMessage(
-      vscode.l10n.t('Copilot Cost Lens: no usage data for {0} in this period.', repoName),
+      vscode.l10n.t('Copilot Cost Lens: no usage data for {0} in this period.', name),
     );
     return;
   }
 
-  const pdf = buildReceiptPdf(detail, receiptStrings(vscode.env.language));
-  const safeName = repoName.replace(/[^a-zA-Z0-9._-]+/g, '-');
+  const pdf = buildReceiptPdf(data, receiptStrings(vscode.env.language));
+  const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
   const period = month === ALL_TIME ? 'all-time' : month;
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file(`receipt-${safeName}-${period}.pdf`),
@@ -315,25 +336,119 @@ async function exportReceipt(store: UsageStore, repoName: string, month: string)
   );
 }
 
-/** Command-palette path: pick a repository first, then export its receipt. */
+/** Command-palette path: pick a project group or repository, then export. */
 async function pickRepoAndExportReceipt(store: UsageStore): Promise<void> {
-  const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
-  if (report.repos.length === 0) {
+  const report = buildMonthReport(store.getEvents(), {
+    month: ALL_TIME,
+    includedCredits: 0,
+    groups: projectGroups(),
+  });
+  const items: (vscode.QuickPickItem & { target: { repo?: string; group?: string } })[] = [
+    ...report.groups.map((g) => ({
+      label: `📁 ${g.name}`,
+      description: `$${g.usd.toFixed(2)} · ${g.repos.length}×`,
+      target: { group: g.name },
+    })),
+    ...report.repos.map((r) => ({
+      label: r.repo.name,
+      description: `$${r.usd.toFixed(2)}`,
+      target: { repo: r.repo.name },
+    })),
+  ];
+  if (items.length === 0) {
     void vscode.window.showInformationMessage(
       vscode.l10n.t('Copilot Cost Lens: no usage data to export yet.'),
     );
     return;
   }
-  const picked = await vscode.window.showQuickPick(
-    report.repos.map((r) => ({
-      label: r.repo.name,
-      description: `$${r.usd.toFixed(2)}`,
-    })),
-    { title: vscode.l10n.t('Export receipt for which project?') },
-  );
+  const picked = await vscode.window.showQuickPick(items, {
+    title: vscode.l10n.t('Export receipt for which project?'),
+  });
   if (picked) {
-    await exportReceipt(store, picked.label, ALL_TIME);
+    await exportReceipt(store, picked.target, ALL_TIME);
   }
+}
+
+// ---------------------------------------------------------------------------
+// project group management (dashboard + command palette)
+// ---------------------------------------------------------------------------
+
+async function pickMembers(
+  store: UsageStore,
+  groupName: string,
+  preselected: string[],
+): Promise<string[] | undefined> {
+  const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
+  const current = new Set(preselected.map((m) => m.toLowerCase()));
+  const items = report.repos.map((r) => ({
+    label: r.repo.name,
+    description: `$${r.usd.toFixed(2)} · ${r.requestCount}×`,
+    picked:
+      current.has(r.repo.name.toLowerCase()) ||
+      (r.repo.remoteSlug ? current.has(r.repo.remoteSlug.toLowerCase()) : false),
+  }));
+  const picked = await vscode.window.showQuickPick(items, {
+    title: vscode.l10n.t('Select repositories for {0}', groupName),
+    canPickMany: true,
+  });
+  return picked?.map((p) => p.label);
+}
+
+async function saveGroup(name: string, members: string[]): Promise<void> {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const groups = { ...projectGroups(), [name]: members };
+  await config.update('projectGroups', groups, vscode.ConfigurationTarget.Global);
+  void vscode.window.showInformationMessage(
+    vscode.l10n.t('Copilot Cost Lens: project {0} saved ({1} repositories).', name, members.length),
+  );
+}
+
+async function createGroup(store: UsageStore): Promise<void> {
+  const name = await vscode.window.showInputBox({
+    title: vscode.l10n.t('New project'),
+    prompt: vscode.l10n.t('Project name (e.g. MyProduct)'),
+    validateInput: (text) => (text.trim() ? undefined : vscode.l10n.t('Enter a project name')),
+  });
+  if (!name) {
+    return;
+  }
+  const members = await pickMembers(store, name.trim(), []);
+  if (!members || members.length === 0) {
+    return;
+  }
+  await saveGroup(name.trim(), members);
+}
+
+async function editGroup(store: UsageStore, name: string): Promise<void> {
+  const existing = projectGroups()[name];
+  if (!existing) {
+    return;
+  }
+  const members = await pickMembers(store, name, existing);
+  if (!members) {
+    return;
+  }
+  if (members.length === 0) {
+    await deleteGroup(name);
+    return;
+  }
+  await saveGroup(name, members);
+}
+
+async function deleteGroup(name: string): Promise<void> {
+  const remove = vscode.l10n.t('Delete');
+  const choice = await vscode.window.showWarningMessage(
+    vscode.l10n.t('Delete project {0}? Repositories and their data stay untouched.', name),
+    { modal: true },
+    remove,
+  );
+  if (choice !== remove) {
+    return;
+  }
+  const groups = { ...projectGroups() };
+  delete groups[name];
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  await config.update('projectGroups', groups, vscode.ConfigurationTarget.Global);
 }
 
 /**

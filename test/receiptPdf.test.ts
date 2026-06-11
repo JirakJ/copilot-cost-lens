@@ -5,6 +5,8 @@ import {
   buildInvoicePdf,
   buildReceiptPdf,
   invoiceFromGroup,
+  receiptFromGroup,
+  receiptFromRepo,
   toWinAnsi,
 } from '../src/core/receiptPdf';
 import { invoiceStrings, receiptStrings } from '../src/core/receiptStrings';
@@ -52,7 +54,7 @@ describe('toWinAnsi', () => {
 
 describe('buildReceiptPdf', () => {
   it('produces a structurally valid single-page PDF', () => {
-    const pdf = buildReceiptPdf(sampleDetail(), receiptStrings('en'));
+    const pdf = buildReceiptPdf(receiptFromRepo(sampleDetail()), receiptStrings('en'));
     const text = pdf.toString('latin1');
     expect(text.startsWith('%PDF-1.4')).toBe(true);
     expect(text).toContain('/Type /Page');
@@ -61,7 +63,7 @@ describe('buildReceiptPdf', () => {
   });
 
   it('contains the project, totals and models in the content stream', () => {
-    const pdf = buildReceiptPdf(sampleDetail(), receiptStrings('cs'));
+    const pdf = buildReceiptPdf(receiptFromRepo(sampleDetail()), receiptStrings('cs'));
     const raw = pdf.toString('latin1');
     const streamStart = raw.indexOf('stream\n') + 'stream\n'.length;
     const streamEnd = raw.indexOf('\nendstream');
@@ -79,6 +81,43 @@ describe('buildReceiptPdf', () => {
   it('falls back to English labels for CJK locales', () => {
     const strings = receiptStrings('ja');
     expect(strings.receipt).toBe('RECEIPT');
+  });
+
+  it('renders a per-repository breakdown for project groups', () => {
+    const detail: GroupDetail = {
+      month: 'all',
+      days: [],
+      providers: [{ provider: 'copilot', credits: 1000, usd: 10, requestCount: 15 }],
+      group: {
+        name: 'MyProduct',
+        repos: [
+          { ...sampleDetail().summary, repo: { name: 'acme/frontend' }, usd: 6 },
+          { ...sampleDetail().summary, repo: { name: 'acme/backend' }, usd: 4 },
+        ],
+        credits: 1000,
+        usd: 10,
+        inputTokens: 2_000_000,
+        outputTokens: 100_000,
+        cachedTokens: 1_600_000,
+        cacheWriteTokens: 120_000,
+        requestCount: 30,
+        sessionCount: 6,
+        models: [{ model: 'gpt-5.5', credits: 1000, usd: 10, requestCount: 30 }],
+        hasEstimates: false,
+      },
+    };
+    const pdf = buildReceiptPdf(receiptFromGroup(detail), receiptStrings('cs'));
+    const raw = pdf.toString('latin1');
+    const streamStart = raw.indexOf('>>\nstream\n') + '>>\nstream\n'.length;
+    const streamEnd = raw.indexOf('\nendstream');
+    const content = zlib
+      .inflateSync(Buffer.from(raw.slice(streamStart, streamEnd), 'latin1'))
+      .toString('latin1');
+    expect(content).toContain('MyProduct');
+    expect(content).toContain('Rozpad dle repozitaru');
+    expect(content).toContain('acme/frontend');
+    expect(content).toContain('acme/backend');
+    expect(content).toContain('$10.00');
   });
 });
 

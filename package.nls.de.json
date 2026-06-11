@@ -25,5 +25,6 @@
   "cfg.refreshInterval": "Wie oft Logs im Hintergrund erneut gescannt werden. Dateiüberwachung löst zusätzlich sofortige Aktualisierungen aus.",
   "cmd.exportInvoice": "Rechnung exportieren (PDF)",
   "cfg.projectGroups": "Repositories zu benannten Projekten gruppieren. Beispiel: `{ \"MeinProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Gruppen erscheinen im Dashboard mit aggregierten Kosten und einer Sammelrechnung (PDF) mit Aufschlüsselung pro Repository.",
-  "cfg.creditAlerts": "Absolute AI-Credit-Schwellen (z. B. [2500, 5000]). Jede löst einmal pro Monat eine Benachrichtigung aus, sobald die Copilot-Nutzung sie überschreitet."
+  "cfg.creditAlerts": "Absolute AI-Credit-Schwellen (z. B. [2500, 5000]). Jede löst einmal pro Monat eine Benachrichtigung aus, sobald die Copilot-Nutzung sie überschreitet.",
+  "cmd.createProject": "Projekt erstellen (Repositories gruppieren)"
 }

@@ -74,5 +74,14 @@
   "Date": "Datum",
   "Source": "Quelle",
   "Cache read share": "Cache-Leseanteil",
-  "of context read from cache": "des Kontexts aus dem Cache gelesen"
+  "of context read from cache": "des Kontexts aus dem Cache gelesen",
+  "New project": "Neues Projekt",
+  "Edit": "Bearbeiten",
+  "Delete": "Löschen",
+  "Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.": "Fassen Sie mehrere Repositories (Frontend, Backend, Tests…) zu einem Projekt zusammen und exportieren Sie eine Sammelquittung oder -rechnung.",
+  "Project name (e.g. MyProduct)": "Projektname (z. B. MeinProdukt)",
+  "Enter a project name": "Geben Sie einen Projektnamen ein",
+  "Select repositories for {0}": "Repositories für {0} auswählen",
+  "Copilot Cost Lens: project {0} saved ({1} repositories).": "Copilot Cost Lens: Projekt {0} gespeichert ({1} Repositories).",
+  "Delete project {0}? Repositories and their data stay untouched.": "Projekt {0} löschen? Repositories und ihre Daten bleiben unberührt."
 }

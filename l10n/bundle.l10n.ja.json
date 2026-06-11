@@ -74,5 +74,14 @@
   "Date": "日付",
   "Source": "ソース",
   "Cache read share": "キャッシュ読取率",
-  "of context read from cache": "のコンテキストをキャッシュから読取"
+  "of context read from cache": "のコンテキストをキャッシュから読取",
+  "New project": "新しいプロジェクト",
+  "Edit": "編集",
+  "Delete": "削除",
+  "Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.": "複数のリポジトリ (フロントエンド、バックエンド、テストなど) を 1 つのプロジェクトにまとめ、合算レシートや請求書をエクスポートできます。",
+  "Project name (e.g. MyProduct)": "プロジェクト名 (例: MyProduct)",
+  "Enter a project name": "プロジェクト名を入力してください",
+  "Select repositories for {0}": "{0} のリポジトリを選択",
+  "Copilot Cost Lens: project {0} saved ({1} repositories).": "Copilot Cost Lens: プロジェクト {0} を保存しました (リポジトリ {1} 件)。",
+  "Delete project {0}? Repositories and their data stay untouched.": "プロジェクト {0} を削除しますか? リポジトリとそのデータはそのまま残ります。"
 }

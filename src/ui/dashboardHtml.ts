@@ -89,6 +89,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   footer { color: var(--muted); font-size: 11.5px; margin-top: 16px; line-height: 1.6; }
   .detailbar { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; flex-wrap: wrap; }
   .detailbar h2 { font-size: 16px; margin: 0; flex: 1; }
+  .cardhead { display: flex; align-items: center; justify-content: space-between; gap: 10px; margin-bottom: 12px; }
+  .cardhead h2 { margin: 0; }
 </style>
 </head>
 <body>
@@ -197,13 +199,18 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '</div>' +
       trendChart +
       ((r.groups || []).length > 0
-        ? '<div class="card" style="margin-bottom:12px"><h2>' + esc(S.projects) + '</h2>' + groupTable(r) + '</div>'
-        : '') +
+        ? '<div class="card" style="margin-bottom:12px"><div class="cardhead"><h2>' + esc(S.projects) + '</h2>' +
+          '<button id="newGroup">＋ ' + esc(S.newProject) + '</button></div>' + groupTable(r) + '</div>'
+        : '<div class="card" style="margin-bottom:12px"><div class="cardhead"><h2>' + esc(S.projects) + '</h2>' +
+          '<button id="newGroup">＋ ' + esc(S.newProject) + '</button></div>' +
+          '<div class="sub">' + esc(S.projectsEmptyHint) + '</div></div>') +
       '<div class="card"><h2>' + esc(S.repositories) + '</h2>' + repoTable(r) + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
 
     bindAllowance();
     bindRepoRows();
     bindGroupRows();
+    const newGroup = document.getElementById('newGroup');
+    if (newGroup) newGroup.onclick = () => vscode.postMessage({ type: 'createGroup' });
 
     foot.innerHTML = esc(S.footSources) + '<br>' + esc(S.footAllowance) +
       (r.hasEstimates ? '<br>' + esc(S.footEstimates) : '');
@@ -289,7 +296,10 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '<div class="detailbar">' +
         '<button id="back">← ' + esc(S.back) + '</button>' +
         '<h2>📁 ' + esc(g.name) + (g.hasEstimates ? '<span class="badge">~est</span>' : '') + '</h2>' +
-        '<button id="invoice">🧾 ' + esc(S.invoicePdf) + '</button>' +
+        '<button id="groupReceipt">🧾 ' + esc(S.receiptPdf) + '</button>' +
+        '<button id="invoice">📄 ' + esc(S.invoicePdf) + '</button>' +
+        '<button id="editGroup">✏️ ' + esc(S.editProject) + '</button>' +
+        '<button id="deleteGroup">🗑 ' + esc(S.deleteProject) + '</button>' +
       '</div>' +
       '<div class="grid kpis">' +
         kpi(S.spend + ' · ' + periodLabel, usd(g.usd), cr(g.credits) + ' ' + S.aiCredits) +
@@ -310,7 +320,10 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '<div class="card"><h2>' + esc(S.dailySpend) + '</h2>' + dailyArea(d.days) + '</div>';
 
     document.getElementById('back').onclick = () => vscode.postMessage({ type: 'selectGroup', group: null });
+    document.getElementById('groupReceipt').onclick = () => vscode.postMessage({ type: 'exportReceipt', group: g.name });
     document.getElementById('invoice').onclick = () => vscode.postMessage({ type: 'exportInvoice', group: g.name });
+    document.getElementById('editGroup').onclick = () => vscode.postMessage({ type: 'editGroup', group: g.name });
+    document.getElementById('deleteGroup').onclick = () => vscode.postMessage({ type: 'deleteGroup', group: g.name });
     bindRepoRows();
     foot.innerHTML = esc(S.footSources);
   }
