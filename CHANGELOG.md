@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.5.1] — 2026-06-11
+
+### Changed
+
+- README screenshots for project groups: group detail view (per-repo breakdown, receipt/invoice/edit/delete) and the combined project receipt; reproducible demo generator in `scripts/gen-demos.mjs`.
+- Test coverage extended to the status-bar sparkline, CSV export and the dashboard document (CSP nonce, string-catalog injection, message-handler wiring) — pure helpers moved into `src/core` to be testable without the VS Code API.
+
 ## [1.5.0] — 2026-06-11
 
 ### Added
