@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.7.1] — 2026-06-11
+
+### Changed
+
+- **PDF documents default to English.** Receipts and invoices previously followed the VS Code display language; business documents now export in English unless `copilotCostLens.documentLanguage` says otherwise (`auto` = follow VS Code, or `cs`/`de` explicitly).
+- README screenshots of the invoice and receipts regenerated in English.
+
 ## [1.7.0] — 2026-06-11
 
 ### Added

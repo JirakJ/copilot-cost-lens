@@ -27,5 +27,10 @@
   "cfg.projectGroups": "Seskupení repozitářů do pojmenovaných projektů. Příklad: `{ \"MujProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Skupiny se zobrazí v přehledu s agregovanými náklady a souhrnnou fakturou (PDF) s rozpadem na jednotlivé repozitáře.",
   "cfg.creditAlerts": "Absolutní prahy AI kreditů (např. [2500, 5000]). Každý práh vyvolá notifikaci jednou měsíčně, jakmile jej měsíční využití Copilota překročí.",
   "cmd.createProject": "Vytvořit projekt (seskupit repozitáře)",
-  "cfg.starredRepos": "Oblíbené repozitáře — zobrazují se v samostatné sekci nahoře v přehledu pro rychlou orientaci. Hvězdičku přepnete přímo v tabulce repozitářů."
+  "cfg.starredRepos": "Oblíbené repozitáře — zobrazují se v samostatné sekci nahoře v přehledu pro rychlou orientaci. Hvězdičku přepnete přímo v tabulce repozitářů.",
+  "cfg.documentLanguage": "Jazyk exportovaných PDF dokumentů (účtenky a faktury). Výchozí je angličtina; „auto\" se řídí jazykem VS Code.",
+  "cfg.docLang.en": "Angličtina (výchozí)",
+  "cfg.docLang.auto": "Podle jazyka VS Code",
+  "cfg.docLang.cs": "Čeština (bez diakritiky — PDF core fonty ji nenesou)",
+  "cfg.docLang.de": "Němčina (transliterovaná)"
 }

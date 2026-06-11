@@ -27,5 +27,10 @@
   "cfg.projectGroups": "Repositories zu benannten Projekten gruppieren. Beispiel: `{ \"MeinProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Gruppen erscheinen im Dashboard mit aggregierten Kosten und einer Sammelrechnung (PDF) mit Aufschlüsselung pro Repository.",
   "cfg.creditAlerts": "Absolute AI-Credit-Schwellen (z. B. [2500, 5000]). Jede löst einmal pro Monat eine Benachrichtigung aus, sobald die Copilot-Nutzung sie überschreitet.",
   "cmd.createProject": "Projekt erstellen (Repositories gruppieren)",
-  "cfg.starredRepos": "Favorisierte Repositories — werden für den schnellen Überblick in einem eigenen Abschnitt oben im Dashboard angezeigt. Der Stern lässt sich direkt in der Repository-Tabelle umschalten."
+  "cfg.starredRepos": "Favorisierte Repositories — werden für den schnellen Überblick in einem eigenen Abschnitt oben im Dashboard angezeigt. Der Stern lässt sich direkt in der Repository-Tabelle umschalten.",
+  "cfg.documentLanguage": "Sprache exportierter PDF-Dokumente (Quittungen und Rechnungen). Standard ist Englisch; „auto\" folgt der VS-Code-Anzeigesprache.",
+  "cfg.docLang.en": "Englisch (Standard)",
+  "cfg.docLang.auto": "Der VS-Code-Anzeigesprache folgen",
+  "cfg.docLang.cs": "Tschechisch (transliteriert)",
+  "cfg.docLang.de": "Deutsch (transliteriert)"
 }

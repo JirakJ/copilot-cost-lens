@@ -213,7 +213,7 @@ async function exportInvoice(
     return;
   }
 
-  const pdf = buildInvoicePdf(data, invoiceStrings(vscode.env.language));
+  const pdf = buildInvoicePdf(data, invoiceStrings(documentLocale()));
   const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
   const period = month === ALL_TIME ? 'all-time' : month;
   const uri = await vscode.window.showSaveDialog({
@@ -326,7 +326,7 @@ async function exportReceipt(
     return;
   }
 
-  const pdf = buildReceiptPdf(data, receiptStrings(vscode.env.language));
+  const pdf = buildReceiptPdf(data, receiptStrings(documentLocale()));
   const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
   const period = month === ALL_TIME ? 'all-time' : month;
   const uri = await vscode.window.showSaveDialog({
@@ -429,6 +429,16 @@ async function saveGroupAs(
   void vscode.window.showInformationMessage(
     vscode.l10n.t('Copilot Cost Lens: project {0} saved ({1} repositories).', name, members.length),
   );
+}
+
+/**
+ * Language for exported PDF documents (receipts, invoices). Defaults to
+ * English — business documents usually travel further than the editor UI.
+ */
+function documentLocale(): string {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const value = config.get<string>('documentLanguage', 'en');
+  return value === 'auto' ? vscode.env.language : value;
 }
 
 function starredRepos(): string[] {

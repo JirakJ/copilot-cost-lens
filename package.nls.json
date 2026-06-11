@@ -27,5 +27,10 @@
   "cfg.projectGroups": "Group repositories into named projects. Example: `{ \"MyProduct\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Groups appear in the dashboard with aggregated costs and a summary invoice PDF with a per-repository breakdown.",
   "cfg.creditAlerts": "Absolute AI-credit thresholds (e.g. [2500, 5000]). Each fires a notification once per month when month-to-date Copilot usage crosses it.",
   "cmd.createProject": "Create Project (Group Repositories)",
-  "cfg.starredRepos": "Starred repositories — shown in a dedicated section at the top of the dashboard for a quick overview. Toggle the star directly in the repository table."
+  "cfg.starredRepos": "Starred repositories — shown in a dedicated section at the top of the dashboard for a quick overview. Toggle the star directly in the repository table.",
+  "cfg.documentLanguage": "Language of exported PDF documents (receipts and invoices). English by default; \"auto\" follows the VS Code display language.",
+  "cfg.docLang.en": "English (default)",
+  "cfg.docLang.auto": "Follow the VS Code display language",
+  "cfg.docLang.cs": "Czech (transliterated — PDF core fonts carry no diacritics)",
+  "cfg.docLang.de": "German (transliterated)"
 }
