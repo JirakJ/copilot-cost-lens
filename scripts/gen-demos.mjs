@@ -31,7 +31,7 @@ const S = {
   back: 'Back', receiptPdf: 'Receipt (PDF)', firstActivity: 'First activity',
   lastActivity: 'Last activity', tokenAnatomy: 'Token anatomy', bySource: 'By source',
   custom: 'Custom…', noData: 'no data', detailHint: 'Click a repository row for a detailed breakdown.',
-  projects: 'Projects', invoicePdf: 'Invoice (PDF)', reposInProject: 'Repositories in this project',
+  projects: 'Projects', reposInProject: 'Repositories in this project',
   footStats: 'Loaded events', footNewest: 'newest data:', vsPrevMonth: 'vs previous month',
   runsOut: 'allowance runs out ~{0}', monthlySpend: 'Monthly spend',
   topSessions: 'Most expensive sessions', colDate: 'Date', colSource: 'Source',
@@ -42,6 +42,7 @@ const S = {
   errNameRequired: 'Enter a project name', errPickRepo: 'Select at least one repository',
   starred: 'Starred', starToggle: 'Star / unstar repository',
   colPerM: '$ / 1M', effRateHint: 'Effective blended price per 1M tokens actually paid',
+  filterRepos: 'Filter repositories…', openFolder: 'Open in VS Code',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
@@ -116,7 +117,8 @@ const report = {
 };
 
 const repoDetail = {
-  month: '2026-06', firstActivity: Date.parse('2026-06-01'), summary: repos[0],
+  month: '2026-06', firstActivity: Date.parse('2026-06-01'),
+  summary: { ...repos[0], repo: { name: 'acme/payments-api', folderPath: '/Users/dev/work/payments-api' } },
   days: days.map((d) => ({ ...d, usd: d.usd * 0.34, credits: d.credits * 0.34 })),
   providers: [
     { provider: 'claude-code', usd: 31.10, credits: 3110, requestCount: 300 },

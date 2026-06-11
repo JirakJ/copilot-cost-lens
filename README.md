@@ -8,13 +8,15 @@ Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot C
 
 | Repository detail | Project (group) detail |
 |---|---|
-| ![Repository detail — model mix, top sessions, cache share](docs/project-detail.png) | ![Project group — per-repo breakdown, receipt/invoice/edit/delete](docs/group-detail.png) |
-
-| Summary invoice (A4) | Project receipt |
-|---|---|
-| ![A4 invoice with per-repository breakdown](docs/invoice.png) | ![Combined project receipt with repository breakdown](docs/group-receipt.png) |
+| ![Repository detail — model mix, top sessions, cache share](docs/project-detail.png) | ![Project group — per-repo breakdown, receipt/edit/delete](docs/group-detail.png) |
 
 ![Inline project editor — pick repositories right in the dashboard](docs/project-editor.png)
+
+<details>
+<summary>Project receipt — combined, with per-repository breakdown</summary>
+
+![Combined project receipt with repository breakdown](docs/group-receipt.png)
+</details>
 
 <details>
 <summary>Single-repository receipt — the thermal-printer look</summary>
@@ -33,18 +35,18 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Token anatomy** — input, output, cache read and cache write tokens per repository, plus the exact models used and how often.
 - **Project drill-down** — click any repository for a detailed view: model mix, daily trend, source split, token anatomy, first/last activity.
 - **All-time view** — switch the period selector to *All time* to see everything since your logs began, not just one month.
-- **PDF receipts & invoices** — export a classic printed-receipt PDF per repository, or an A4 summary invoice with model line items, token counts and totals. Great for chargeback or framing on the wall.
-- **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail, a combined receipt with per-repository breakdown, and a summary invoice.
+- **PDF receipts** — export a classic printed-receipt PDF per repository or per project (with a per-repository breakdown), including model line items, token counts, effective $/1M rates and totals. Great for chargeback or framing on the wall.
+- **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail and a combined receipt with per-repository breakdown.
 - **Starred repositories** — pin your important repos with a ☆ and they surface in a dedicated section at the top of the dashboard.
 - **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
 - **Status bar** — month-to-date credits and dollars at a glance; turns orange when you cross your warning threshold.
-- **Tree view** — repositories ranked by spend with per-model breakdown, right in the activity bar.
 - **Budgets & alerts** — pick your monthly allowance right in the dashboard (1,900 / 3,900 / 10k / 100k / 1M AIC or a custom number) and an optional dollar budget; get warned once a day when you cross the threshold.
 - **Forecast & burn rate** — linear end-of-month projection, month-over-month trend, and a projected date your allowance runs out at the current pace.
 - **Cost detective tools** — the most expensive sessions per repository, cache read share (how much of your context comes from cache), and a per-month bar chart in the all-time view.
 - **Status-bar sparkline** — the last 7 days of spend at a glance, right next to the month-to-date total.
+- **Built for 100+ repositories** — instant text filter and sortable columns in the repository table, starred repos pinned on top, and "Open in VS Code" straight from a repository detail.
 - **Export** — one click to CSV or JSON for invoicing, chargeback or further analysis.
 - **Multi-installation** — scans VS Code, VS Code Insiders, VSCodium, Cursor and Windsurf storage automatically; extra locations are configurable.
 - **Zero runtime dependencies** — small, fast, auditable.
@@ -111,7 +113,6 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Refresh Usage Data`
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
 - `Copilot Cost Lens: Export Project Receipt (PDF)`
-- `Copilot Cost Lens: Export Invoice (PDF)`
 - `Copilot Cost Lens: Open Settings`
 
 ## FAQ

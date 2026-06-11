@@ -150,6 +150,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
   let lastMsg = null;
   let editor = null; // { originalName, name, members:Set, deletable }
+  let repoFilter = '';
+  let repoSort = { key: 'credits', dir: -1 };
 
   window.addEventListener('message', (event) => {
     const msg = event.data;
@@ -239,14 +241,29 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
           '<button id="newGroup">＋ ' + esc(S.newProject) + '</button></div>' +
           '<div class="sub">' + esc(S.projectsEmptyHint) + '</div></div>') +
       starredCard(r) +
-      '<div class="card"><h2>' + esc(S.repositories) + '</h2>' + repoTable(r, r.repos) + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
+      '<div class="card"><div class="cardhead"><h2>' + esc(S.repositories) + '</h2>' +
+        '<input id="repoFilter" class="textinput" style="max-width:230px" placeholder="' + esc(S.filterRepos) + '"></div>' +
+        repoTableDynamic() + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
 
     bindAllowance();
-    bindRepoRows();
     bindGroupRows();
-    bindStars();
     const newGroup = document.getElementById('newGroup');
     if (newGroup) newGroup.onclick = () => openEditor(null);
+
+    const filterInput = document.getElementById('repoFilter');
+    filterInput.value = repoFilter;
+    filterInput.oninput = () => { repoFilter = filterInput.value; refreshRepoTbody(); };
+    for (const th of document.querySelectorAll('th[data-sort]')) {
+      th.onclick = () => {
+        const key = th.dataset.sort;
+        if (repoSort.key === key) repoSort.dir = -repoSort.dir;
+        else repoSort = { key, dir: key === 'name' ? 1 : -1 };
+        renderOverview(lastMsg.report, lastMsg.selectedMonth);
+      };
+    }
+    refreshRepoTbody();
+    bindRepoRows();
+    bindStars();
 
     foot.innerHTML = esc(S.footSources) + '<br>' + esc(S.footAllowance) +
       (r.hasEstimates ? '<br>' + esc(S.footEstimates) : '');
@@ -278,7 +295,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<button id="back">← ' + esc(S.back) + '</button>' +
         '<h2>' + esc(s.repo.name) + (s.hasEstimates ? '<span class="badge">~est</span>' : '') + '</h2>' +
         '<button id="receipt">🧾 ' + esc(S.receiptPdf) + '</button>' +
-        '<button id="invoice">📄 ' + esc(S.invoicePdf) + '</button>' +
+        (s.repo.folderPath ? '<button id="openRepo">📂 ' + esc(S.openFolder) + '</button>' : '') +
       '</div>' +
       '<div class="grid kpis">' +
         kpi(S.spend + ' · ' + periodLabel, usd(s.usd), cr(s.credits) + ' ' + S.aiCredits) +
@@ -306,7 +323,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
     document.getElementById('back').onclick = () => vscode.postMessage({ type: 'selectRepo', repo: null });
     document.getElementById('receipt').onclick = () => vscode.postMessage({ type: 'exportReceipt', repo: s.repo.name });
-    document.getElementById('invoice').onclick = () => vscode.postMessage({ type: 'exportInvoice', repo: s.repo.name });
+    const openBtn = document.getElementById('openRepo');
+    if (openBtn) openBtn.onclick = () => vscode.postMessage({ type: 'openRepo', path: s.repo.folderPath });
     foot.innerHTML = esc(S.footSources);
   }
 
@@ -333,7 +351,6 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<button id="back">← ' + esc(S.back) + '</button>' +
         '<h2>📁 ' + esc(g.name) + (g.hasEstimates ? '<span class="badge">~est</span>' : '') + '</h2>' +
         '<button id="groupReceipt">🧾 ' + esc(S.receiptPdf) + '</button>' +
-        '<button id="invoice">📄 ' + esc(S.invoicePdf) + '</button>' +
         '<button id="editGroup">✏️ ' + esc(S.editProject) + '</button>' +
         '<button id="deleteGroup">🗑 ' + esc(S.deleteProject) + '</button>' +
       '</div>' +
@@ -357,7 +374,6 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
     document.getElementById('back').onclick = () => vscode.postMessage({ type: 'selectGroup', group: null });
     document.getElementById('groupReceipt').onclick = () => vscode.postMessage({ type: 'exportReceipt', group: g.name });
-    document.getElementById('invoice').onclick = () => vscode.postMessage({ type: 'exportInvoice', group: g.name });
     document.getElementById('editGroup').onclick = () => openEditor(g);
     document.getElementById('deleteGroup').onclick = () => vscode.postMessage({ type: 'deleteGroup', group: g.name });
     bindRepoRows();
@@ -623,10 +639,10 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     }
   }
 
-  function repoTable(r, repoList) {
+  function buildRepoRows(r, repoList) {
     const starred = starredSet();
     const total = r.totalCredits || 1;
-    const rows = repoList.map((repo) => {
+    return repoList.map((repo) => {
       const share = (repo.credits / total) * 100;
       const models = (repo.models || []);
       const shown = models.slice(0, 2).map((m) => esc(m.model)).join(', ');
@@ -646,13 +662,67 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<td class="num"><b>' + usd(repo.usd) + '</b></td>' +
         '<td><span class="sharebar" style="width:' + Math.max(3, share) + 'px"></span>' + share.toFixed(1) + '%</td></tr>';
     }).join('');
-    return '<div class="tablewrap"><table><thead><tr><th></th><th>' + esc(S.colRepository) + '</th><th>' + esc(S.colModels) + '</th><th class="num">' + esc(S.colReq) + '</th><th class="num">' + esc(S.colSessions) + '</th>' +
-      '<th class="num">' + esc(S.colInput) + '</th><th class="num">' + esc(S.colOutput) + '</th><th class="num">' + esc(S.colCacheR) + '</th><th class="num">' + esc(S.colCacheW) + '</th>' +
-      '<th class="num">' + esc(S.colCredits) + '</th><th class="num">' + esc(S.colSpend) + '</th><th>' + esc(S.colShare) + '</th></tr></thead>' +
-      '<tbody>' + rows + '</tbody></table></div>';
   }
 
-  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  const SORT_GETTERS = {
+    name: (x) => x.repo.name.toLowerCase(),
+    req: (x) => x.requestCount,
+    sessions: (x) => x.sessionCount,
+    input: (x) => x.inputTokens,
+    output: (x) => x.outputTokens,
+    cacher: (x) => x.cachedTokens,
+    cachew: (x) => x.cacheWriteTokens,
+    credits: (x) => x.credits,
+    spend: (x) => x.usd,
+  };
+
+  function repoHeaders(sortable) {
+    const cols = [
+      ['', null], [S.colRepository, 'name'], [S.colModels, null], [S.colReq, 'req'],
+      [S.colSessions, 'sessions'], [S.colInput, 'input'], [S.colOutput, 'output'],
+      [S.colCacheR, 'cacher'], [S.colCacheW, 'cachew'], [S.colCredits, 'credits'],
+      [S.colSpend, 'spend'], [S.colShare, null],
+    ];
+    return cols.map(([label, key], i) => {
+      const num = i >= 3 && i <= 10 ? ' class="num"' : '';
+      if (!sortable || !key) return '<th' + num + '>' + esc(label) + '</th>';
+      const marker = repoSort.key === key ? (repoSort.dir < 0 ? ' ▼' : ' ▲') : '';
+      return '<th' + num + ' data-sort="' + key + '" style="cursor:pointer">' + esc(label) + marker + '</th>';
+    }).join('');
+  }
+
+  function repoTable(r, repoList) {
+    return '<div class="tablewrap"><table><thead><tr>' + repoHeaders(false) + '</tr></thead>' +
+      '<tbody>' + buildRepoRows(r, repoList) + '</tbody></table></div>';
+  }
+
+  function repoTableDynamic() {
+    return '<div class="tablewrap"><table><thead><tr>' + repoHeaders(true) + '</tr></thead>' +
+      '<tbody id="repoTbody"></tbody></table></div>';
+  }
+
+  function refreshRepoTbody() {
+    const tbody = document.getElementById('repoTbody');
+    if (!tbody || !lastMsg) return;
+    const r = lastMsg.report;
+    const needle = repoFilter.trim().toLowerCase();
+    let list = r.repos;
+    if (needle) {
+      list = list.filter((repo) =>
+        repo.repo.name.toLowerCase().includes(needle) ||
+        (repo.models || []).some((m) => m.model.toLowerCase().includes(needle)));
+    }
+    const getter = SORT_GETTERS[repoSort.key] || SORT_GETTERS.credits;
+    list = [...list].sort((a, b) => {
+      const va = getter(a), vb = getter(b);
+      return (va < vb ? -1 : va > vb ? 1 : 0) * repoSort.dir;
+    });
+    tbody.innerHTML = buildRepoRows(r, list);
+    bindRepoRows();
+    bindStars();
+  }
+
+  function trunc(s, n)  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 </script>
 </body>
 </html>`;

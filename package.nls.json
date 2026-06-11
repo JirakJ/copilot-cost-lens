@@ -23,7 +23,6 @@
   "cfg.charsPerToken": "Characters-per-token ratio used **only for `~est` estimated entries** (sessions whose logs carry no exact token counts).\n\nLLM tokenizers average about **4 characters per token for English text and code** — that is the industry rule of thumb and the default here. Languages with diacritics tend to ~3–4, CJK languages to ~1–2 characters per token.\n\nEstimates derived this way are typically within **±20–30 %** of the real token count — good enough to compare repositories and spot trends, not good enough for invoicing. Whenever exact counts exist in the logs, they are used instead and this setting has no effect.",
   "cfg.priceOverrides": "Override model pricing (USD per 1M tokens). Example: `{ \"gpt-5.5\": { \"input\": 5, \"cachedInput\": 0.5, \"output\": 30 } }`",
   "cfg.refreshInterval": "How often to rescan usage logs in the background. File watchers trigger immediate refreshes on top of this.",
-  "cmd.exportInvoice": "Export Invoice (PDF)",
   "cfg.projectGroups": "Group repositories into named projects. Example: `{ \"MyProduct\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Groups appear in the dashboard with aggregated costs and a summary invoice PDF with a per-repository breakdown.",
   "cfg.creditAlerts": "Absolute AI-credit thresholds (e.g. [2500, 5000]). Each fires a notification once per month when month-to-date Copilot usage crosses it.",
   "cmd.createProject": "Create Project (Group Repositories)",

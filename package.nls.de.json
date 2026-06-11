@@ -23,7 +23,6 @@
   "cfg.charsPerToken": "Zeichen-pro-Token-Verhältnis, das **nur für geschätzte `~est`-Einträge** verwendet wird (Sitzungen ohne exakte Tokenzahlen in den Logs).\n\nLLM-Tokenizer erreichen im Schnitt etwa **4 Zeichen pro Token für englischen Text und Code** — die übliche Faustregel und der Standardwert. Sprachen mit Diakritika liegen bei ~3–4, CJK-Sprachen bei ~1–2 Zeichen pro Token.\n\nSo abgeleitete Schätzungen weichen typischerweise **±20–30 %** vom realen Wert ab — gut genug, um Projekte zu vergleichen und Trends zu erkennen, nicht für die Abrechnung. Sobald exakte Zahlen vorliegen, werden diese verwendet und diese Einstellung hat keine Wirkung.",
   "cfg.priceOverrides": "Modellpreise überschreiben (USD pro 1M Tokens). Beispiel: `{ \"gpt-5.5\": { \"input\": 5, \"cachedInput\": 0.5, \"output\": 30 } }`",
   "cfg.refreshInterval": "Wie oft Logs im Hintergrund erneut gescannt werden. Dateiüberwachung löst zusätzlich sofortige Aktualisierungen aus.",
-  "cmd.exportInvoice": "Rechnung exportieren (PDF)",
   "cfg.projectGroups": "Repositories zu benannten Projekten gruppieren. Beispiel: `{ \"MeinProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Gruppen erscheinen im Dashboard mit aggregierten Kosten und einer Sammelrechnung (PDF) mit Aufschlüsselung pro Repository.",
   "cfg.creditAlerts": "Absolute AI-Credit-Schwellen (z. B. [2500, 5000]). Jede löst einmal pro Monat eine Benachrichtigung aus, sobald die Copilot-Nutzung sie überschreitet.",
   "cmd.createProject": "Projekt erstellen (Repositories gruppieren)",

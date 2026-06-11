@@ -19,9 +19,11 @@ export interface DashboardDelegate {
   getStarred(): string[];
   toggleStar(repoName: string): Promise<void>;
   refresh(): Promise<void>;
-  exportData(format: 'csv' | 'json'): Promise<void>;
+  /** Export usage records for the given period ('all' or YYYY-MM). */
+  exportData(format: 'csv' | 'json', month: string): Promise<void>;
   exportReceipt(target: { repo?: string; group?: string }, month: string): Promise<void>;
-  exportInvoice(target: { repo?: string; group?: string }, month: string): Promise<void>;
+  /** Open a repository folder in a new VS Code window. */
+  openRepo(folderPath: string): Promise<void>;
   setAllowance(value: number | 'custom'): Promise<void>;
   saveGroup(originalName: string | undefined, name: string, members: string[]): Promise<void>;
   deleteGroup(name: string): Promise<void>;
@@ -37,6 +39,7 @@ interface IncomingMessage {
   originalName?: string;
   name?: string;
   members?: string[];
+  path?: string;
 }
 
 /**
@@ -82,7 +85,7 @@ export class DashboardController {
           this.postAll();
           break;
         case 'export':
-          await this.delegate.exportData(message.format ?? 'csv');
+          await this.delegate.exportData(message.format ?? 'csv', this.currentMonth());
           break;
         case 'exportReceipt':
           if (message.repo || message.group) {
@@ -92,12 +95,9 @@ export class DashboardController {
             );
           }
           break;
-        case 'exportInvoice':
-          if (message.repo || message.group) {
-            await this.delegate.exportInvoice(
-              { repo: message.repo, group: message.group },
-              this.currentMonth(),
-            );
+        case 'openRepo':
+          if (message.path) {
+            await this.delegate.openRepo(message.path);
           }
           break;
         case 'toggleStar':

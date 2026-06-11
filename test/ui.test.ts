@@ -115,7 +115,7 @@ describe('renderDashboardHtml', () => {
       'selectRepo',
       'selectGroup',
       'exportReceipt',
-      'exportInvoice',
+      'openRepo',
       'setAllowance',
       'saveGroup',
       'deleteGroup',
@@ -124,6 +124,13 @@ describe('renderDashboardHtml', () => {
     ]) {
       expect(html, `missing message type ${type}`).toContain(`type: '${type}'`);
     }
+  });
+
+  it('contains the repository filter and sortable headers', () => {
+    const html = renderDashboardHtml(strings);
+    expect(html).toContain('repoFilter');
+    expect(html).toContain('data-sort=');
+    expect(html).toContain('SORT_GETTERS');
   });
 
   it('contains the inline project editor', () => {

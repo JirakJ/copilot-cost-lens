@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.9.0] — 2026-06-11
+
+### Added
+
+- **Repository filter & sortable columns** — instant text filter (matches repo names and models) and click-to-sort headers in the repository table; built for workspaces with 100+ repositories.
+- **"Open in VS Code"** button in the repository detail opens the project folder in a new window.
+- **Period-scoped exports** — the dashboard CSV/JSON buttons now export the selected period (month or all time) instead of always everything.
+
+### Removed
+
+- **Invoice PDF export.** The receipt covers the same need — the project receipt includes the per-repository breakdown and per-model effective rates. One document type, less confusion. (`copilotCostLens.exportInvoice` command removed.)
+
 ## [1.8.1] — 2026-06-11
 
 ### Added

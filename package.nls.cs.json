@@ -23,7 +23,6 @@
   "cfg.charsPerToken": "Poměr znaků na token používaný **pouze pro odhadované položky `~est`** (sezení, jejichž logy nenesou přesné počty tokenů).\n\nTokenizéry LLM průměrují zhruba **4 znaky na token pro angličtinu a kód** — to je zažité pravidlo a výchozí hodnota. Jazyky s diakritikou mívají ~3–4, CJK jazyky ~1–2 znaky na token.\n\nTakto odvozené odhady se od reality typicky liší o **±20–30 %** — stačí to na porovnání repozitářů a sledování trendů, ne na fakturaci. Kdykoli logy obsahují přesné počty, použijí se ty a toto nastavení nemá žádný vliv.",
   "cfg.priceOverrides": "Přepsání cen modelů (USD za 1M tokenů). Příklad: `{ \"gpt-5.5\": { \"input\": 5, \"cachedInput\": 0.5, \"output\": 30 } }`",
   "cfg.refreshInterval": "Jak často na pozadí přeskenovávat logy. Sledování souborů navíc spouští okamžité obnovy.",
-  "cmd.exportInvoice": "Exportovat fakturu (PDF)",
   "cfg.projectGroups": "Seskupení repozitářů do pojmenovaných projektů. Příklad: `{ \"MujProdukt\": [\"acme/frontend\", \"acme/backend\", \"acme/e2e-tests\"] }`. Skupiny se zobrazí v přehledu s agregovanými náklady a souhrnnou fakturou (PDF) s rozpadem na jednotlivé repozitáře.",
   "cfg.creditAlerts": "Absolutní prahy AI kreditů (např. [2500, 5000]). Každý práh vyvolá notifikaci jednou měsíčně, jakmile jej měsíční využití Copilota překročí.",
   "cmd.createProject": "Vytvořit projekt (seskupit repozitáře)",

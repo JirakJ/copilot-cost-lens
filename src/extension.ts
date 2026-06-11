@@ -7,22 +7,16 @@ import {
   buildMonthReport,
   buildRepoDetail,
   currentMonthKey,
+  monthKey,
   ProjectGroups,
 } from './core/aggregate';
 import { PLAN_CREDITS } from './core/pricing';
-import {
-  buildInvoicePdf,
-  buildReceiptPdf,
-  invoiceFromGroup,
-  invoiceFromRepo,
-  receiptFromGroup,
-  receiptFromRepo,
-} from './core/receiptPdf';
+import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
 import { exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
-import { invoiceStrings, receiptStrings } from './core/receiptStrings';
+import { receiptStrings } from './core/receiptStrings';
 import { MonthReport } from './types';
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -50,10 +44,10 @@ export function activate(context: vscode.ExtensionContext): void {
     refresh: async () => {
       await store.refresh();
     },
-    exportData: (format) => exportUsage(store.getEvents(), format),
+    exportData: (format, month) => exportUsage(eventsInPeriod(store, month), format),
     exportReceipt: (target, month) => exportReceipt(store, target, month),
-    exportInvoice: (target, month) => exportInvoice(store, target, month),
     setAllowance: (value) => setAllowance(value),
+    openRepo: (folderPath) => openRepoFolder(folderPath),
     saveGroup: (originalName, name, members) => saveGroupAs(originalName, name, members),
     deleteGroup: (name) => deleteGroup(name),
   });
@@ -71,7 +65,6 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.exportCsv', () => exportUsage(store.getEvents(), 'csv')),
     vscode.commands.registerCommand('copilotCostLens.exportJson', () => exportUsage(store.getEvents(), 'json')),
     vscode.commands.registerCommand('copilotCostLens.exportReceipt', () => pickRepoAndExportReceipt(store)),
-    vscode.commands.registerCommand('copilotCostLens.exportInvoice', () => pickAndExportInvoice(store)),
     vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
@@ -189,80 +182,6 @@ function buildReport(store: UsageStore, month: string): MonthReport {
   });
 }
 
-async function exportInvoice(
-  store: UsageStore,
-  target: { repo?: string; group?: string },
-  month: string,
-): Promise<void> {
-  let data;
-  if (target.group) {
-    const members = projectGroups()[target.group];
-    const detail = members
-      ? buildGroupDetail(store.getEvents(), { name: target.group, members, month })
-      : undefined;
-    data = detail ? invoiceFromGroup(detail) : undefined;
-  } else if (target.repo) {
-    const detail = buildRepoDetail(store.getEvents(), { repoName: target.repo, month });
-    data = detail ? invoiceFromRepo(detail) : undefined;
-  }
-  const name = target.group ?? target.repo ?? '';
-  if (!data) {
-    void vscode.window.showInformationMessage(
-      vscode.l10n.t('Copilot Cost Lens: no usage data for {0} in this period.', name),
-    );
-    return;
-  }
-
-  const pdf = buildInvoicePdf(data, invoiceStrings(documentLocale()));
-  const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
-  const period = month === ALL_TIME ? 'all-time' : month;
-  const uri = await vscode.window.showSaveDialog({
-    defaultUri: vscode.Uri.file(`invoice-${safeName}-${period}.pdf`),
-    filters: { PDF: ['pdf'] },
-  });
-  if (!uri) {
-    return;
-  }
-  await vscode.workspace.fs.writeFile(uri, pdf);
-  void vscode.window.showInformationMessage(
-    vscode.l10n.t('Copilot Cost Lens: invoice saved to {0}', uri.fsPath),
-  );
-}
-
-/** Command-palette path: pick a project group or repository, then export. */
-async function pickAndExportInvoice(store: UsageStore): Promise<void> {
-  const groups = projectGroups();
-  const report = buildMonthReport(store.getEvents(), {
-    month: ALL_TIME,
-    includedCredits: 0,
-    groups,
-  });
-  const items: (vscode.QuickPickItem & { target: { repo?: string; group?: string } })[] = [
-    ...report.groups.map((g) => ({
-      label: `📁 ${g.name}`,
-      description: `$${g.usd.toFixed(2)} · ${g.repos.length}×`,
-      target: { group: g.name },
-    })),
-    ...report.repos.map((r) => ({
-      label: r.repo.name,
-      description: `$${r.usd.toFixed(2)}`,
-      target: { repo: r.repo.name },
-    })),
-  ];
-  if (items.length === 0) {
-    void vscode.window.showInformationMessage(
-      vscode.l10n.t('Copilot Cost Lens: no usage data to export yet.'),
-    );
-    return;
-  }
-  const picked = await vscode.window.showQuickPick(items, {
-    title: vscode.l10n.t('Export invoice for which project?'),
-  });
-  if (picked) {
-    await exportInvoice(store, picked.target, ALL_TIME);
-  }
-}
-
 /**
  * Absolute AI-credit thresholds (e.g. 2,500 AIC). Each threshold fires a
  * notification at most once per month, tracked in global state.
@@ -300,6 +219,20 @@ function checkCreditAlerts(context: vscode.ExtensionContext, report: MonthReport
         }
       });
   }
+}
+
+function eventsInPeriod(store: UsageStore, month: string) {
+  const events = store.getEvents();
+  if (month === ALL_TIME) {
+    return events;
+  }
+  return events.filter((e) => monthKey(e.timestamp) === month);
+}
+
+async function openRepoFolder(folderPath: string): Promise<void> {
+  await vscode.commands.executeCommand('vscode.openFolder', vscode.Uri.file(folderPath), {
+    forceNewWindow: true,
+  });
 }
 
 async function exportReceipt(
