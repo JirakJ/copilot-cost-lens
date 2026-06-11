@@ -15,10 +15,14 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Cost per repository** — every chat request is attributed to the workspace it ran in, resolved to a `owner/repo` slug via the project's git remote when available.
 - **All your AI tools in one ledger** — VS Code Copilot Chat, GitHub Copilot CLI agent sessions and Claude Code transcripts, with a per-provider spend split. Claude Code never counts against your Copilot allowance — it's shown so you see the *total* AI cost of a project.
 - **Token anatomy** — input, output, cache read and cache write tokens per repository, plus the exact models used and how often.
+- **Project drill-down** — click any repository for a detailed view: model mix, daily trend, source split, token anatomy, first/last activity.
+- **All-time view** — switch the period selector to *All time* to see everything since your logs began, not just one month.
+- **PDF receipts** — export a classic printed-receipt PDF per project: model line items, token counts and the total you've poured into it. Great for invoicing, chargeback or framing on the wall.
+- **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
 - **Status bar** — month-to-date credits and dollars at a glance; turns orange when you cross your warning threshold.
 - **Tree view** — repositories ranked by spend with per-model breakdown, right in the activity bar.
-- **Budgets & alerts** — set your plan (Business, Enterprise, promo periods or custom allowance) and an optional dollar budget; get warned once a day when you cross the threshold.
+- **Budgets & alerts** — pick your monthly allowance right in the dashboard (1,900 / 3,900 / 10k / 100k / 1M AIC or a custom number) and an optional dollar budget; get warned once a day when you cross the threshold.
 - **Forecast** — linear end-of-month projection based on month-to-date spend.
 - **Export** — one click to CSV or JSON for invoicing, chargeback or further analysis.
 - **Multi-installation** — scans VS Code, VS Code Insiders, VSCodium, Cursor and Windsurf storage automatically; extra locations are configurable.
@@ -74,7 +78,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
 | `copilotCostLens.estimation.enabled` | `true` | Estimate sessions that have no exact token data. |
-| `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator. |
+| `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator — only affects `~est` entries. ~4 chars/token is the rule of thumb for English text and code (CJK ≈ 1–2); estimates land within roughly ±20–30 % of real counts. |
 | `copilotCostLens.priceOverrides` | `{}` | Per-model rate overrides (USD per 1M tokens). |
 | `copilotCostLens.refreshIntervalSeconds` | `120` | Background rescan interval. |
 
@@ -83,6 +87,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Open Dashboard`
 - `Copilot Cost Lens: Refresh Usage Data`
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
+- `Copilot Cost Lens: Export Project Receipt (PDF)`
 - `Copilot Cost Lens: Open Settings`
 
 ## FAQ

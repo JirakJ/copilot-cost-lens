@@ -1,0 +1,60 @@
+import * as vscode from 'vscode';
+
+/**
+ * All user-visible strings flow through vscode.l10n so the extension follows
+ * the VS Code display language. Webviews can't call l10n directly, so the
+ * full catalog is resolved host-side and injected into the document.
+ */
+export function webviewStrings(): Record<string, string> {
+  const t = vscode.l10n.t;
+  return {
+    refresh: t('Refresh'),
+    refreshTitle: t('Rescan usage logs'),
+    exportCsv: t('Export CSV'),
+    exportJson: t('Export JSON'),
+    settingsTitle: t('Open settings'),
+    allTime: t('All time'),
+    spend: t('Spend'),
+    allowance: t('Copilot allowance'),
+    forecast: t('Forecast (end of month)'),
+    activity: t('Activity'),
+    aiCredits: t('AI Credits'),
+    includesEstimates: t('includes estimates'),
+    creditsAtPace: t('credits at current pace'),
+    creditsCopilotOnly: t('credits (Copilot only)'),
+    sessionsRepos: t('{0} sessions · {1} repos'),
+    req: t('req'),
+    costByRepo: t('Cost by repository'),
+    costByModel: t('Cost by model'),
+    dailySpend: t('Daily spend'),
+    repositories: t('Repositories'),
+    colRepository: t('Repository'),
+    colModels: t('Models'),
+    colReq: t('Req'),
+    colSessions: t('Sessions'),
+    colInput: t('Input'),
+    colOutput: t('Output'),
+    colCacheR: t('Cache R'),
+    colCacheW: t('Cache W'),
+    colCredits: t('Credits'),
+    colSpend: t('Spend'),
+    colShare: t('Share'),
+    emptyTitle: t('No usage found for this period.'),
+    emptyHint: t('Use Copilot Chat, Copilot CLI or Claude Code and data appears here automatically.'),
+    footSources: t('Data sources: VS Code Copilot Chat, GitHub Copilot CLI and Claude Code local logs · all processing happens on this machine, nothing leaves it.'),
+    footAllowance: t('The allowance gauge counts Copilot usage only; Claude Code is billed separately and is shown for total AI spend per project.'),
+    footEstimates: t('Entries marked ~est are estimated from chat content length because exact token counts were not present in the logs.'),
+    back: t('Back'),
+    receiptPdf: t('Receipt (PDF)'),
+    firstActivity: t('First activity'),
+    lastActivity: t('Last activity'),
+    tokenAnatomy: t('Token anatomy'),
+    bySource: t('By source'),
+    custom: t('Custom…'),
+    noData: t('no data'),
+    detailHint: t('Click a repository row for a detailed breakdown.'),
+    providerCopilot: 'Copilot',
+    providerCopilotCli: 'Copilot CLI',
+    providerClaudeCode: 'Claude Code',
+  };
+}

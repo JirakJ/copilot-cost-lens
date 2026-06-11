@@ -3,7 +3,9 @@ import { UsageEvent } from '../types';
 
 export async function exportUsage(events: UsageEvent[], format: 'csv' | 'json'): Promise<void> {
   if (events.length === 0) {
-    void vscode.window.showInformationMessage('Copilot Cost Lens: no usage data to export yet.');
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('Copilot Cost Lens: no usage data to export yet.'),
+    );
     return;
   }
 
@@ -19,7 +21,7 @@ export async function exportUsage(events: UsageEvent[], format: 'csv' | 'json'):
   const content = format === 'csv' ? toCsv(events) : JSON.stringify(events, null, 2);
   await vscode.workspace.fs.writeFile(uri, Buffer.from(content, 'utf8'));
   void vscode.window.showInformationMessage(
-    `Copilot Cost Lens: exported ${events.length} records to ${uri.fsPath}`,
+    vscode.l10n.t('Copilot Cost Lens: exported {0} records to {1}', events.length, uri.fsPath),
   );
 }
 

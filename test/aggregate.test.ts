@@ -1,5 +1,12 @@
 import { describe, expect, it } from 'vitest';
-import { availableMonths, buildMonthReport, dayKey, monthKey } from '../src/core/aggregate';
+import {
+  ALL_TIME,
+  availableMonths,
+  buildMonthReport,
+  buildRepoDetail,
+  dayKey,
+  monthKey,
+} from '../src/core/aggregate';
 import { UsageEvent } from '../src/types';
 
 function event(partial: Partial<UsageEvent>): UsageEvent {
@@ -127,5 +134,43 @@ describe('buildMonthReport', () => {
     const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
     expect(report.models[0]!.model).toBe('claude-sonnet-4.6');
     expect(report.days.map((d) => d.day)).toEqual(['2026-06-10', '2026-06-11']);
+  });
+
+  it('covers everything in the all-time view and disables the allowance', () => {
+    const events = [
+      event({ credits: 10, timestamp: new Date(2025, 9, 1).getTime() }),
+      event({ credits: 20 }),
+    ];
+    const report = buildMonthReport(events, { month: ALL_TIME, includedCredits: 1900, now });
+    expect(report.totalCredits).toBe(30);
+    expect(report.includedCredits).toBe(0);
+    expect(report.forecastCredits).toBe(30); // no extrapolation for all-time
+  });
+});
+
+describe('buildRepoDetail', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('returns per-repo days, providers and summary', () => {
+    const events = [
+      event({ credits: 5, provider: 'copilot' }),
+      event({ credits: 7, provider: 'claude-code', timestamp: new Date(2026, 5, 11).getTime() }),
+      event({ repo: { name: 'owner/other' }, credits: 99 }),
+    ];
+    const detail = buildRepoDetail(events, { repoName: 'owner/alpha', month: '2026-06' })!;
+    expect(detail.summary.credits).toBe(12);
+    expect(detail.days).toHaveLength(2);
+    expect(detail.providers.map((p) => p.provider)).toEqual(['claude-code', 'copilot']);
+    expect(detail.firstActivity).toBe(new Date(2026, 5, 10, 12).getTime());
+  });
+
+  it('supports the all-time period and unknown repos', () => {
+    const events = [
+      event({ credits: 5, timestamp: new Date(2025, 0, 1).getTime() }),
+      event({ credits: 5 }),
+    ];
+    const detail = buildRepoDetail(events, { repoName: 'owner/alpha', month: ALL_TIME })!;
+    expect(detail.summary.credits).toBe(10);
+    expect(buildRepoDetail(events, { repoName: 'nope', month: ALL_TIME })).toBeUndefined();
   });
 });

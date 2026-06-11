@@ -26,9 +26,10 @@ export class CostStatusBar implements vscode.Disposable {
       ? new vscode.ThemeColor('statusBarItem.warningBackground')
       : undefined;
 
+    const t = vscode.l10n.t;
     const md = new vscode.MarkdownString(undefined, true);
     md.appendMarkdown(`**Copilot Cost Lens — ${report.month}**\n\n`);
-    md.appendMarkdown(`Spend: **$${usd}** (${credits} credits)\n\n`);
+    md.appendMarkdown(t('Spend: **${0}** ({1} credits)', usd, credits) + '\n\n');
     if (report.providers.length > 1) {
       const names: Record<string, string> = {
         copilot: 'Copilot',
@@ -43,10 +44,14 @@ export class CostStatusBar implements vscode.Disposable {
     }
     if (report.includedCredits > 0) {
       md.appendMarkdown(
-        `Copilot allowance: ${report.usedPercent.toFixed(0)}% of ${report.includedCredits.toLocaleString('en-US')} credits\n\n`,
+        t(
+          'Copilot allowance: {0}% of {1} credits',
+          report.usedPercent.toFixed(0),
+          report.includedCredits.toLocaleString('en-US'),
+        ) + '\n\n',
       );
     }
-    md.appendMarkdown(`Forecast: $${report.forecastUsd.toFixed(2)} by end of month\n\n`);
+    md.appendMarkdown(t('Forecast: ${0} by end of month', report.forecastUsd.toFixed(2)) + '\n\n');
     if (report.repos.length > 0) {
       md.appendMarkdown(`---\n\n`);
       for (const repo of report.repos.slice(0, 3)) {
@@ -54,7 +59,7 @@ export class CostStatusBar implements vscode.Disposable {
       }
     }
     if (report.hasEstimates) {
-      md.appendMarkdown(`---\n\n$(info) Includes estimated entries\n`);
+      md.appendMarkdown(`---\n\n$(info) ` + t('Includes estimated entries') + '\n');
     }
     this.item.tooltip = md;
     this.item.show();

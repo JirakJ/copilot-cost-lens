@@ -33,14 +33,21 @@ export function availableMonths(events: UsageEvent[], now = new Date()): string[
   return [...months].sort().reverse();
 }
 
+/** Sentinel period covering everything since the first recorded event. */
+export const ALL_TIME = 'all';
+
 export interface ReportOptions {
+  /** YYYY-MM or ALL_TIME. */
   month: string;
   includedCredits: number;
   now?: Date;
 }
 
 export function buildMonthReport(events: UsageEvent[], options: ReportOptions): MonthReport {
-  const inMonth = events.filter((e) => monthKey(e.timestamp) === options.month);
+  const inMonth =
+    options.month === ALL_TIME
+      ? events
+      : events.filter((e) => monthKey(e.timestamp) === options.month);
 
   const repoMap = new Map<string, UsageEvent[]>();
   const modelMap = new Map<string, ModelSummary>();
@@ -100,14 +107,17 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   const { forecastCredits } = forecast(options.month, totalCredits, days, options.now ?? new Date());
 
+  // a monthly allowance is meaningless for the all-time view
+  const includedCredits = options.month === ALL_TIME ? 0 : options.includedCredits;
+
   return {
     month: options.month,
     totalCredits,
     totalUsd: creditsToUsd(totalCredits),
     copilotCredits,
     copilotUsd: creditsToUsd(copilotCredits),
-    includedCredits: options.includedCredits,
-    usedPercent: options.includedCredits > 0 ? (copilotCredits / options.includedCredits) * 100 : 0,
+    includedCredits,
+    usedPercent: includedCredits > 0 ? (copilotCredits / includedCredits) * 100 : 0,
     forecastCredits,
     forecastUsd: creditsToUsd(forecastCredits),
     repos,
@@ -117,6 +127,62 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     requestCount: inMonth.length,
     sessionCount: sessions.size,
     hasEstimates,
+  };
+}
+
+export interface RepoDetail {
+  summary: RepoSummary;
+  days: DayPoint[];
+  providers: ProviderSummary[];
+  firstActivity: number;
+  /** Period the detail covers: YYYY-MM or ALL_TIME. */
+  month: string;
+}
+
+/** Drill-down detail for one repository within a period. */
+export function buildRepoDetail(
+  events: UsageEvent[],
+  options: { repoName: string; month: string },
+): RepoDetail | undefined {
+  const filtered = events.filter(
+    (e) =>
+      e.repo.name === options.repoName &&
+      (options.month === ALL_TIME || monthKey(e.timestamp) === options.month),
+  );
+  if (filtered.length === 0) {
+    return undefined;
+  }
+
+  const dayMap = new Map<string, DayPoint>();
+  const providerMap = new Map<string, ProviderSummary>();
+  let firstActivity = Number.MAX_SAFE_INTEGER;
+
+  for (const e of filtered) {
+    firstActivity = Math.min(firstActivity, e.timestamp);
+    const day = dayKey(e.timestamp);
+    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
+    point.credits += e.credits;
+    point.usd = creditsToUsd(point.credits);
+    dayMap.set(day, point);
+
+    const provider = providerMap.get(e.provider) ?? {
+      provider: e.provider,
+      credits: 0,
+      usd: 0,
+      requestCount: 0,
+    };
+    provider.credits += e.credits;
+    provider.usd = creditsToUsd(provider.credits);
+    provider.requestCount += 1;
+    providerMap.set(e.provider, provider);
+  }
+
+  return {
+    summary: summarizeRepo(filtered),
+    days: [...dayMap.values()].sort((a, b) => a.day.localeCompare(b.day)),
+    providers: [...providerMap.values()].sort((a, b) => b.credits - a.credits),
+    firstActivity,
+    month: options.month,
   };
 }
 
@@ -180,7 +246,7 @@ function forecast(
   days: DayPoint[],
   now: Date,
 ): { forecastCredits: number } {
-  if (month !== currentMonthKey(now) || days.length === 0) {
+  if (month === ALL_TIME || month !== currentMonthKey(now) || days.length === 0) {
     return { forecastCredits: totalCredits };
   }
   const [yearStr, monthStr] = month.split('-');
