@@ -126,6 +126,14 @@ describe('renderDashboardHtml', () => {
     }
   });
 
+  it('ships a syntactically valid webview script', () => {
+    const html = renderDashboardHtml(strings);
+    const script = /<script[^>]*>([\s\S]*?)<\/script>/.exec(html)?.[1];
+    expect(script).toBeTruthy();
+    // new Function parses without executing — throws SyntaxError on broken JS
+    expect(() => new Function(script!)).not.toThrow();
+  });
+
   it('contains the repository filter and sortable headers', () => {
     const html = renderDashboardHtml(strings);
     expect(html).toContain('repoFilter');

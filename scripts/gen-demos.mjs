@@ -116,6 +116,21 @@ const report = {
   days,
 };
 
+const reportAll = {
+  ...report,
+  month: 'all',
+  totalCredits: 52340, totalUsd: 523.40, copilotCredits: 21210, copilotUsd: 212.10,
+  includedCredits: 0, usedPercent: 0,
+  forecastCredits: 52340, forecastUsd: 523.40,
+  prevMonth: undefined, prevMonthUsd: undefined, allowanceExhaustion: undefined,
+  requestCount: 9214, sessionCount: 402,
+  providers: [
+    { provider: 'claude-code', usd: 311.20, credits: 31120, requestCount: 6010 },
+    { provider: 'copilot-cli', usd: 162.87, credits: 16287, requestCount: 2240 },
+    { provider: 'copilot', usd: 49.33, credits: 4933, requestCount: 964 },
+  ],
+};
+
 const repoDetail = {
   month: '2026-06', firstActivity: Date.parse('2026-06-01'),
   summary: { ...repos[0], repo: { name: 'acme/payments-api', folderPath: '/Users/dev/work/payments-api' } },
@@ -160,8 +175,27 @@ const allRepos = repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
 const groupsConfig = { 'Acme Platform': ['acme/payments-api', 'acme/web-frontend', 'acme/infra-terraform'] };
 const starred = ['acme/payments-api', 'acme/data-pipeline'];
 const common = { type: 'data', months, selectedMonth: '2026-06', allRepos, groupsConfig, starred };
+// VS Code-style warning notification + status bar, overlaid on the dashboard
+const notificationOverlay = `
+<div style="position:fixed;right:16px;bottom:46px;width:440px;background:#252526;border:1px solid #454545;
+  box-shadow:0 8px 24px rgba(0,0,0,.55);color:#ccc;font-size:12.5px;z-index:99;border-radius:4px">
+  <div style="display:flex;gap:10px;padding:12px 14px;align-items:flex-start">
+    <span style="color:#d18616;font-size:15px">⚠</span>
+    <div style="flex:1;line-height:1.5">Copilot Cost Lens: Copilot usage crossed 2,500 AI Credits this month (3,412 used, $34.12).</div>
+    <span style="color:#8a8a8a">⚙ ✕</span>
+  </div>
+  <div style="display:flex;justify-content:flex-end;gap:8px;padding:0 14px 12px">
+    <button style="background:#0e639c;color:#fff;border:none;padding:5px 12px;font-size:12.5px;border-radius:2px;cursor:pointer">Open Dashboard</button>
+  </div>
+</div>
+<div style="position:fixed;left:0;right:0;bottom:0;height:24px;background:#007acc;color:#fff;display:flex;
+  align-items:center;justify-content:flex-end;gap:16px;padding:0 14px;font-size:12px;z-index:98">
+  <span>⤢ 3,412 cr · $34.12 ▂▄▆█▅▃▁</span><span>⚠ 0</span><span>UTF-8</span><span>TypeScript</span>
+</div>`;
+
 const demos = {
   'docs/demo.html': { payload: { ...common, report, detail: null, groupDetail: null, stats } },
+  'docs/demo-alltime.html': { payload: { ...common, selectedMonth: 'all', report: reportAll, detail: null, groupDetail: null, stats } },
   'docs/demo-detail.html': { payload: { ...common, report, detail: repoDetail, groupDetail: null, stats: null } },
   'docs/demo-group.html': { payload: { ...common, report, detail: null, groupDetail, stats: null } },
   // project editor opened over the group detail (auto-clicks the Edit button)
@@ -169,9 +203,13 @@ const demos = {
     payload: { ...common, report, detail: null, groupDetail, stats: null },
     autoClick: 'editGroup',
   },
+  'docs/demo-notification.html': {
+    payload: { ...common, report, detail: null, groupDetail: null, stats },
+    extraBody: notificationOverlay,
+  },
 };
 
-for (const [file, { payload, autoClick }] of Object.entries(demos)) {
+for (const [file, { payload, autoClick, extraBody }] of Object.entries(demos)) {
   const click = autoClick
     ? 'setTimeout(() => document.getElementById(' + JSON.stringify(autoClick) + ')?.click(), 400);'
     : '';
@@ -181,6 +219,9 @@ for (const [file, { payload, autoClick }] of Object.entries(demos)) {
     JSON.stringify(payload) + ', "*"); ' + click + ' });</' + 'script>' + theme;
   let html = base.replace('</head>', stub + '</head>');
   html = html.replace(/<meta http-equiv="Content-Security-Policy"[^>]*>/s, '');
+  if (extraBody) {
+    html = html.replace('</body>', extraBody + '</body>');
+  }
   await writeFile(file, html);
   console.log('written', file);
 }

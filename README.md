@@ -8,7 +8,11 @@ Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot C
 
 | Repository detail | Project (group) detail |
 |---|---|
-| ![Repository detail — model mix, top sessions, cache share](docs/project-detail.png) | ![Project group — per-repo breakdown, receipt/edit/delete](docs/group-detail.png) |
+| ![Repository detail — model mix, top sessions, cache share, effective $/1M](docs/project-detail.png) | ![Project group — per-repo breakdown, receipt/edit/delete](docs/group-detail.png) |
+
+| All-time view | Alerts & status bar |
+|---|---|
+| ![All-time view with monthly spend bars](docs/alltime.png) | ![Credit alert notification and the status-bar sparkline](docs/notification.png) |
 
 ![Inline project editor — pick repositories right in the dashboard](docs/project-editor.png)
 

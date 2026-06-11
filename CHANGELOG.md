@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.9.1] — 2026-06-11
+
+### Fixed
+
+- **Dashboard failed to render in 1.9.0** — a syntax error slipped into the webview script during the table rework, leaving the dashboard blank. A new unit test now parses the entire generated webview script, so a broken script can never pass CI again.
+
+### Changed
+
+- Complete screenshot gallery with mock data: overview, all-time view, repository and project details, inline project editor, credit-alert notification with the status-bar sparkline.
+
 ## [1.9.0] — 2026-06-11
 
 ### Added

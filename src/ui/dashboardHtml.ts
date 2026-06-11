@@ -722,7 +722,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     bindStars();
   }
 
-  function trunc(s, n)  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
 </script>
 </body>
 </html>`;
