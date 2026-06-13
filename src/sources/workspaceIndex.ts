@@ -29,7 +29,7 @@ export class WorkspaceIndex {
     }
     const remoteSlug = await readGitRemoteSlug(folderPath);
     const ref: RepoRef = {
-      name: remoteSlug ?? path.basename(folderPath),
+      name: remoteSlug ?? folderName(folderPath),
       folderPath,
       remoteSlug,
     };
@@ -44,7 +44,7 @@ export class WorkspaceIndex {
     }
     const remoteSlug = await readGitRemoteSlug(folderPath);
     return {
-      name: remoteSlug ?? path.basename(folderPath),
+      name: remoteSlug ?? folderName(folderPath),
       folderPath,
       remoteSlug,
     };
@@ -70,16 +70,67 @@ export async function readWorkspaceFolder(workspaceStorageDir: string): Promise<
 }
 
 /**
- * Extract an "owner/repo" slug from .git/config of the workspace folder.
- * Pure file read — no git binary involved.
+ * Extract an "owner/repo" slug from the git config of the workspace folder.
+ * Pure file read — no git binary involved. Handles git worktrees, where
+ * `<folder>/.git` is a file ("gitdir: …/.git/worktrees/<name>") rather than a
+ * directory, so the remote lives in the main repo's config.
  */
 export async function readGitRemoteSlug(folderPath: string): Promise<string | undefined> {
+  const configPath = await resolveGitConfigPath(folderPath);
+  if (!configPath) {
+    return undefined;
+  }
   try {
-    const raw = await fs.readFile(path.join(folderPath, '.git', 'config'), 'utf8');
-    return parseRemoteSlug(raw);
+    return parseRemoteSlug(await fs.readFile(configPath, 'utf8'));
   } catch {
     return undefined;
   }
+}
+
+/** Locate the git config that holds the remotes, following a worktree pointer. */
+async function resolveGitConfigPath(folderPath: string): Promise<string | undefined> {
+  const dotGit = path.join(folderPath, '.git');
+  try {
+    const stat = await fs.stat(dotGit);
+    if (stat.isDirectory()) {
+      return path.join(dotGit, 'config');
+    }
+    // worktree / submodule: .git is a file → "gitdir: <path-to-real-gitdir>"
+    const pointer = await fs.readFile(dotGit, 'utf8');
+    const gitdir = /gitdir:\s*(.+)/.exec(pointer)?.[1]?.trim();
+    if (!gitdir) {
+      return undefined;
+    }
+    const absGitdir = path.isAbsolute(gitdir) ? gitdir : path.resolve(folderPath, gitdir);
+    // a worktree gitdir is "<main>/.git/worktrees/<name>"; remotes live in
+    // "<main>/.git/config" — the commondir two levels up
+    const wtIndex = absGitdir.lastIndexOf(`${path.sep}worktrees${path.sep}`);
+    const commonDir = wtIndex >= 0 ? absGitdir.slice(0, wtIndex) : absGitdir;
+    return path.join(commonDir, 'config');
+  } catch {
+    return undefined;
+  }
+}
+
+/**
+ * A human-readable folder name when there's no git remote. Skips meaningless
+ * basenames (".git", a worktree dir, empty) by walking up to a real name.
+ */
+export function folderName(folderPath: string): string {
+  const parts = folderPath.split(/[\\/]/).filter(Boolean);
+  for (let i = parts.length - 1; i >= 0; i--) {
+    const part = parts[i]!;
+    // skip ".git" and the throwaway "<repo>/.claude/worktrees/<slug>" segments
+    if (part === '.git' || part === 'worktrees' || part === '.claude') {
+      continue;
+    }
+    // a worktree slug sits directly under ".../.claude/worktrees/"
+    if (parts[i - 1] === 'worktrees') {
+      continue;
+    }
+    return part;
+  }
+  return parts[parts.length - 1] ?? folderPath;
 }
 
 /** Parse the first remote URL out of git config text and reduce it to owner/repo. */

@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.12.1] — 2026-06-13
+
+### Fixed
+
+- **Wrong repository names for git worktrees.** Work done in a git worktree (e.g. Claude Code's `<repo>/.claude/worktrees/<slug>`) was attributed to the random worktree slug instead of the real repository, because a worktree's `.git` is a file (`gitdir: …`) not a directory, so the remote couldn't be read. The resolver now follows the worktree pointer to the main repo's config and reads the `owner/repo` remote. Folders that fall back to a name also skip meaningless segments like `.git` and worktree scaffolding.
+
 ## [1.12.0] — 2026-06-13
 
 ### Added
