@@ -31,5 +31,6 @@
   "cfg.docLang.en": "Englisch (Standard)",
   "cfg.docLang.auto": "Der VS-Code-Anzeigesprache folgen",
   "cfg.docLang.cs": "Tschechisch (transliteriert)",
-  "cfg.docLang.de": "Deutsch (transliteriert)"
+  "cfg.docLang.de": "Deutsch (transliteriert)",
+  "cmd.showDiagnostics": "Diagnose anzeigen"
 }

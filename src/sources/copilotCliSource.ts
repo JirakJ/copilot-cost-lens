@@ -114,6 +114,10 @@ export async function parseCopilotCliUsage(
         for (const [model, value] of Object.entries(metrics)) {
           const usage = asRecord(asRecord(value).usage);
           const requests = asRecord(asRecord(value).requests);
+          const cacheRead = num(usage.cacheReadTokens);
+          // Copilot reports inputTokens inclusive of cache reads; normalize to
+          // the disjoint convention (fresh input only) used across all sources.
+          const freshInput = Math.max(0, num(usage.inputTokens) - cacheRead);
           shutdownUsages.push({
             sessionId: file.sessionId,
             provider: 'copilot-cli',
@@ -121,9 +125,9 @@ export async function parseCopilotCliUsage(
             repoSlug,
             timestamp: Number.isNaN(ts) ? lastTimestamp || Date.now() : ts,
             model,
-            inputTokens: num(usage.inputTokens),
+            inputTokens: freshInput,
             outputTokens: num(usage.outputTokens),
-            cachedTokens: num(usage.cacheReadTokens),
+            cachedTokens: cacheRead,
             cacheWriteTokens: num(usage.cacheWriteTokens),
             nanoCredits: positiveOrUndefined(num(asRecord(value).totalNanoAiu)),
             premiumRequests: positiveOrUndefined(num(requests.cost)),

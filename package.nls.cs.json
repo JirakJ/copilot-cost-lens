@@ -31,5 +31,6 @@
   "cfg.docLang.en": "Angličtina (výchozí)",
   "cfg.docLang.auto": "Podle jazyka VS Code",
   "cfg.docLang.cs": "Čeština (bez diakritiky — PDF core fonty ji nenesou)",
-  "cfg.docLang.de": "Němčina (transliterovaná)"
+  "cfg.docLang.de": "Němčina (transliterovaná)",
+  "cmd.showDiagnostics": "Zobrazit diagnostiku"
 }

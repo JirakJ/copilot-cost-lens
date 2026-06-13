@@ -69,21 +69,23 @@ describe('rateFor', () => {
 });
 
 describe('priceTokensUsd', () => {
-  it('bills cached tokens at the cached rate', () => {
+  // token buckets are disjoint: inputTokens is fresh (non-cached) input
+  it('bills each disjoint bucket at its own rate', () => {
     const usd = priceTokensUsd(
       { inputTokens: 1_000_000, outputTokens: 0, cachedTokens: 1_000_000 },
       { input: 2, cachedInput: 0.5, output: 8 },
     );
-    expect(usd).toBeCloseTo(0.5);
+    // 1M fresh × $2 + 1M cached × $0.5
+    expect(usd).toBeCloseTo(2.5);
   });
 
-  it('prices a mixed request', () => {
+  it('does not subtract cached from input (disjoint convention)', () => {
     const usd = priceTokensUsd(
       { inputTokens: 2_000_000, outputTokens: 500_000, cachedTokens: 1_000_000 },
       { input: 2, cachedInput: 0.5, output: 8 },
     );
-    // 1M fresh input × $2 + 1M cached × $0.5 + 0.5M out × $8
-    expect(usd).toBeCloseTo(2 + 0.5 + 4);
+    // 2M fresh × $2 + 1M cached × $0.5 + 0.5M out × $8
+    expect(usd).toBeCloseTo(4 + 0.5 + 4);
   });
 
   it('bills cache writes at the cache-write rate', () => {

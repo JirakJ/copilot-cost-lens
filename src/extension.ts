@@ -11,6 +11,13 @@ import {
   ProjectGroups,
 } from './core/aggregate';
 import { PLAN_CREDITS } from './core/pricing';
+import {
+  clampCharsPerToken,
+  sanitizeNumberArray,
+  sanitizePriceOverrides,
+  sanitizeProjectGroups,
+  sanitizeStringArray,
+} from './core/config';
 import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
 import { exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
@@ -69,6 +76,39 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
+    vscode.commands.registerCommand('copilotCostLens.showDiagnostics', async () => {
+      await store.refresh();
+      const s = store.getStats();
+      output.appendLine('');
+      output.appendLine('=== Diagnostics ' + new Date().toISOString() + ' ===');
+      output.appendLine(`Scanned roots (${s.scannedRoots.length}):`);
+      for (const root of s.scannedRoots) {
+        output.appendLine(`  ${root}`);
+      }
+      output.appendLine(`Files parsed: ${s.filesParsed}`);
+      output.appendLine(
+        'Events by source: ' +
+          (Object.entries(s.providers).map(([p, n]) => `${p}=${n}`).join(', ') || 'none'),
+      );
+      output.appendLine(
+        s.newestTimestamp > 0
+          ? `Newest event: ${new Date(s.newestTimestamp).toISOString()}`
+          : 'No events found.',
+      );
+      output.appendLine(`Scan took ${s.scanMs} ms.`);
+      if (s.errors.length > 0) {
+        output.appendLine('Errors:');
+        for (const error of s.errors) {
+          output.appendLine(`  ${error}`);
+        }
+      }
+      if (Object.keys(s.providers).length === 0) {
+        output.appendLine(
+          'No usage found. If you use Copilot/Claude Code elsewhere, add the storage root via copilotCostLens.extraStorageRoots.',
+        );
+      }
+      output.show(true);
+    }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('copilotCostLens')) {
         store.updateConfig(readStoreConfig());
@@ -110,13 +150,14 @@ export function deactivate(): void {
 function readStoreConfig(): StoreConfig {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return {
-    extraStorageRoots: config.get<string[]>('extraStorageRoots', []),
+    // tolerate malformed user config — never let a bad value break the scan
+    extraStorageRoots: sanitizeStringArray(config.get('extraStorageRoots', [])),
     claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
     copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),
     estimationEnabled: config.get<boolean>('estimation.enabled', true),
-    charsPerToken: config.get<number>('estimation.charsPerToken', 4),
+    charsPerToken: clampCharsPerToken(config.get('estimation.charsPerToken', 4)),
     pricing: {
-      overrides: config.get('priceOverrides', {}),
+      overrides: sanitizePriceOverrides(config.get('priceOverrides', {})),
     },
   };
 }
@@ -164,14 +205,7 @@ function statusBarOptions(): { enabled: boolean; warnAtPercent: number } {
 
 function projectGroups(): ProjectGroups {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const raw = config.get<Record<string, unknown>>('projectGroups', {});
-  const groups: ProjectGroups = {};
-  for (const [name, members] of Object.entries(raw)) {
-    if (Array.isArray(members)) {
-      groups[name] = members.filter((m): m is string => typeof m === 'string');
-    }
-  }
-  return groups;
+  return sanitizeProjectGroups(config.get('projectGroups', {}));
 }
 
 function buildReport(store: UsageStore, month: string): MonthReport {
@@ -188,9 +222,7 @@ function buildReport(store: UsageStore, month: string): MonthReport {
  */
 function checkCreditAlerts(context: vscode.ExtensionContext, report: MonthReport): void {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const thresholds = config
-    .get<number[]>('creditAlerts', [])
-    .filter((value) => Number.isFinite(value) && value > 0);
+  const thresholds = sanitizeNumberArray(config.get('creditAlerts', []));
 
   for (const threshold of thresholds) {
     if (report.copilotCredits < threshold) {
@@ -376,7 +408,7 @@ function documentLocale(): string {
 
 function starredRepos(): string[] {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  return config.get<string[]>('starredRepos', []).filter((s) => typeof s === 'string');
+  return sanitizeStringArray(config.get('starredRepos', []));
 }
 
 async function toggleStar(repoName: string): Promise<void> {

@@ -68,15 +68,20 @@ export async function parseJsonlUsage(
       return;
     }
 
+    // OpenAI-style usage reports prompt/input tokens inclusive of cached;
+    // normalize to the disjoint convention (fresh input only).
+    const cached = cachedTokens ?? 0;
+    const freshInput = Math.max(0, (inputTokens ?? 0) - cached);
+
     usages.push({
       sessionId: file.sessionId,
       provider: 'copilot',
       workspaceStorageDir,
       timestamp: readTimestamp(fields) ?? Date.now(),
       model: model ?? 'unknown',
-      inputTokens: inputTokens ?? 0,
+      inputTokens: freshInput,
       outputTokens: outputTokens ?? 0,
-      cachedTokens: cachedTokens ?? 0,
+      cachedTokens: cached,
       cacheWriteTokens: cacheWriteTokens ?? 0,
       nanoCredits,
       estimated: false,

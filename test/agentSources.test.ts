@@ -159,7 +159,9 @@ describe('copilotCliSource', () => {
     expect(usages).toHaveLength(3); // 2 models in run 1 + 1 model in run 2
     const opusRun1 = usages.find((u) => u.model === 'claude-opus-4.6' && u.premiumRequests === 39)!;
     expect(opusRun1.repoSlug).toBe('acme/widgets');
-    expect(opusRun1.inputTokens).toBe(13811348);
+    // inputTokens normalized to fresh input: 13811348 total − 13194526 cache reads
+    expect(opusRun1.inputTokens).toBe(13811348 - 13194526);
+    expect(opusRun1.cachedTokens).toBe(13194526);
     expect(opusRun1.cacheWriteTokens).toBe(596103);
     expect(opusRun1.estimated).toBe(false);
     // gpt-5.5 had requests.cost 0 → priced from tokens, not premium requests

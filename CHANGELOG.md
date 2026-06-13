@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.10.0] — 2026-06-11
+
+### Fixed
+
+- **Token pricing accuracy across providers.** Token buckets are now disjoint and consistent everywhere (fresh input / cache read / cache write / output). Previously Claude Code's fresh `input_tokens` (which excludes cache reads, per the Anthropic API) was incorrectly reduced by the cache-read count, zeroing it out; Copilot's cache-inclusive `inputTokens` is normalized at the source. Billed entries (AI-credit units, premium requests) were always correct — only token-computed costs are affected, and the per-model **effective $/1M** figures are now exact.
+
+### Added
+
+- **Smart empty state** — when the selected month has no data but other periods do, the dashboard says so and offers a one-click **View all time** instead of a generic "no usage" message. The footer always shows loaded events per source, so it's obvious data exists and where.
+- **`Copilot Cost Lens: Show Diagnostics`** command — prints scanned storage roots, files parsed, events per source, newest timestamp and any scan errors to the output channel. Makes "no data" reports self-diagnosable.
+- **Hardened configuration parsing** — malformed `projectGroups`, `priceOverrides`, `creditAlerts`, `starredRepos`, `extraStorageRoots` and `charsPerToken` values are sanitized instead of breaking a scan; covered by unit tests.
+
 ## [1.9.1] — 2026-06-11
 
 ### Fixed

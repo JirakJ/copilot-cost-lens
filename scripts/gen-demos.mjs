@@ -43,6 +43,7 @@ const S = {
   starred: 'Starred', starToggle: 'Star / unstar repository',
   colPerM: '$ / 1M', effRateHint: 'Effective blended price per 1M tokens actually paid',
   filterRepos: 'Filter repositories…', openFolder: 'Open in VS Code',
+  emptyOtherPeriod: 'No usage in {0}, but you have data in other periods.', viewAllTime: 'View all time',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
@@ -160,7 +161,14 @@ const groupDetail = {
 
 const stats = {
   providers: { copilot: 563, 'copilot-cli': 592, 'claude-code': 3199 },
-  newestTimestamp: Date.now(), scanMs: 1200, filesParsed: 380, errors: [],
+  newestTimestamp: Date.now(), scanMs: 1200, filesParsed: 380, errors: [], scannedRoots: [],
+};
+
+// empty report for a period with no data (other periods do have data)
+const emptyReport = {
+  ...report, month: '2026-04', totalCredits: 0, totalUsd: 0, copilotCredits: 0, copilotUsd: 0,
+  requestCount: 0, sessionCount: 0, repos: [], groups: [], models: [], providers: [], days: [],
+  monthsSeries: report.monthsSeries,
 };
 
 const theme = '<style>:root{--vscode-editor-background:#1e2227;--vscode-editor-foreground:#d6dbe2;' +
@@ -203,6 +211,7 @@ const demos = {
     payload: { ...common, report, detail: null, groupDetail, stats: null },
     autoClick: 'editGroup',
   },
+  'docs/demo-empty.html': { payload: { ...common, selectedMonth: '2026-04', report: emptyReport, detail: null, groupDetail: null, stats } },
   'docs/demo-notification.html': {
     payload: { ...common, report, detail: null, groupDetail: null, stats },
     extraBody: notificationOverlay,

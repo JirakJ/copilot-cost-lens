@@ -2,7 +2,7 @@
 
 **Know exactly what your AI coding tools cost you — per repository, per model, per day. 100% local and private.**
 
-Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI) and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard, a tree view and a status-bar ticker.
+Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI) and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard and a status-bar ticker.
 
 ![Dashboard](docs/dashboard.png)
 
@@ -118,8 +118,12 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
 - `Copilot Cost Lens: Export Project Receipt (PDF)`
 - `Copilot Cost Lens: Open Settings`
+- `Copilot Cost Lens: Show Diagnostics` — scanned roots, file counts, events per source
 
 ## FAQ
+
+**I see no data / the dashboard is empty.**
+Switch the period to *All time* (the empty state offers a one-click button), or run `Copilot Cost Lens: Show Diagnostics` to see which storage roots were scanned and how many events were found per source. Most often the current month simply has no usage yet.
 
 **Numbers don't match my GitHub bill exactly.**
 Expected. Sessions without exact token logs are estimated from content length, code completions are not in chat logs (they're included in paid plans anyway), and Copilot usage outside this machine (web, CLI, other devices) is invisible locally. Treat Cost Lens as a relative lens on *where* your usage goes.

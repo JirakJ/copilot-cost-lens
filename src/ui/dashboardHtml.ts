@@ -207,8 +207,18 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
   function renderOverview(r, selectedMonth) {
     if (!r || r.requestCount === 0) {
+      // distinguish "no data anywhere" from "no data in this period"
+      const totalEvents = lastMsg && lastMsg.stats
+        ? Object.values(lastMsg.stats.providers || {}).reduce((a, b) => a + b, 0) : 0;
+      const dataElsewhere = totalEvents > 0 && selectedMonth !== 'all';
       app.innerHTML = '<div class="card empty"><div class="icon">📊</div>' +
-        '<p>' + esc(S.emptyTitle) + '</p><p>' + esc(S.emptyHint) + '</p></div>';
+        (dataElsewhere
+          ? '<p>' + esc(tpl(S.emptyOtherPeriod, periodName(selectedMonth))) + '</p>' +
+            '<button id="viewAll" class="primary">' + esc(S.viewAllTime) + '</button>'
+          : '<p>' + esc(S.emptyTitle) + '</p><p>' + esc(S.emptyHint) + '</p>') +
+        '</div>';
+      const viewAll = document.getElementById('viewAll');
+      if (viewAll) viewAll.onclick = () => vscode.postMessage({ type: 'selectMonth', month: 'all' });
       foot.innerHTML = '';
       return;
     }
@@ -723,6 +733,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   }
 
   function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }
+  function periodName(month) { return month === 'all' ? S.allTime : month; }
 </script>
 </body>
 </html>`;

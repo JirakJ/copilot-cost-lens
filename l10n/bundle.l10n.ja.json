@@ -94,5 +94,7 @@
   "$ / 1M": "$ / 1M",
   "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "実際に支払った 100 万トークンあたりの実効価格です。公式の定価と比較すると、キャッシュによる節約が分かります。",
   "Filter repositories…": "リポジトリを絞り込む…",
-  "Open in VS Code": "VS Code で開く"
+  "Open in VS Code": "VS Code で開く",
+  "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
+  "View all time": "全期間を表示"
 }

@@ -31,5 +31,6 @@
   "cfg.docLang.en": "English (default)",
   "cfg.docLang.auto": "Follow the VS Code display language",
   "cfg.docLang.cs": "Czech (transliterated — PDF core fonts carry no diacritics)",
-  "cfg.docLang.de": "German (transliterated)"
+  "cfg.docLang.de": "German (transliterated)",
+  "cmd.showDiagnostics": "Show Diagnostics"
 }

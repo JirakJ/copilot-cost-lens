@@ -95,7 +95,9 @@ describe('jsonlSource', () => {
     expect(usages).toHaveLength(1);
     const usage = usages[0]!;
     expect(usage.model).toBe('copilot/gpt-5.3-codex');
-    expect(usage.inputTokens).toBe(12000);
+    // inputTokens normalized to fresh: 12000 total − 8000 cache reads
+    expect(usage.inputTokens).toBe(4000);
+    expect(usage.cachedTokens).toBe(8000);
     expect(usage.nanoCredits).toBe(1_200_000_000);
     expect(usage.timestamp).toBe(1750000010000); // seconds → ms
     expect(usage.estimated).toBe(false);

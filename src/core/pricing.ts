@@ -111,19 +111,27 @@ function bestPrefixMatch(id: string): ModelRate | undefined {
   return best?.rate;
 }
 
-/** Price exact or estimated token counts, in USD. */
+/**
+ * Price exact or estimated token counts, in USD.
+ *
+ * Token buckets are **disjoint** by convention (normalized at each source):
+ * `inputTokens` is fresh (non-cached) input, `cachedTokens` is cache reads,
+ * `cacheWriteTokens` is cache creation, `outputTokens` is generation. Each is
+ * billed at its own rate; nothing is subtracted here.
+ */
 export function priceTokensUsd(
   usage: { inputTokens: number; outputTokens: number; cachedTokens: number; cacheWriteTokens?: number },
   rate: ModelRate,
 ): number {
   const M = 1_000_000;
-  const cacheWrite = usage.cacheWriteTokens ?? 0;
-  // cachedTokens (cache reads) are reported as part of input; bill the rest fresh
-  const freshInput = Math.max(0, usage.inputTokens - usage.cachedTokens);
+  const freshInput = Math.max(0, usage.inputTokens);
+  const cached = Math.max(0, usage.cachedTokens);
+  const cacheWrite = Math.max(0, usage.cacheWriteTokens ?? 0);
+  const output = Math.max(0, usage.outputTokens);
 
   // long-context tier: the whole request bills at the higher rate once the
   // context (fresh input + cache reads) crosses the model's threshold
-  const context = freshInput + usage.cachedTokens;
+  const context = freshInput + cached;
   const tier =
     rate.longContext && context > rate.longContext.threshold
       ? { ...rate, ...rate.longContext }
@@ -131,9 +139,9 @@ export function priceTokensUsd(
 
   return (
     (freshInput / M) * tier.input +
-    (usage.cachedTokens / M) * tier.cachedInput +
+    (cached / M) * tier.cachedInput +
     (cacheWrite / M) * (tier.cacheWrite ?? tier.input) +
-    (usage.outputTokens / M) * tier.output
+    (output / M) * tier.output
   );
 }
 

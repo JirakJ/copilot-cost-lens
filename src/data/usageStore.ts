@@ -26,6 +26,8 @@ export interface ScanStats {
   scanMs: number;
   filesParsed: number;
   errors: string[];
+  /** Storage roots that were scanned this run (for diagnostics). */
+  scannedRoots: string[];
 }
 
 interface FileCacheEntry {
@@ -52,6 +54,7 @@ export class UsageStore {
     scanMs: 0,
     filesParsed: 0,
     errors: [],
+    scannedRoots: [],
   };
 
   constructor(private config: StoreConfig) {}
@@ -99,6 +102,7 @@ export class UsageStore {
     const exact: RawUsage[] = [];
     const estimated: RawUsage[] = [];
     const errors: string[] = [];
+    const scannedRoots: string[] = [];
     let filesParsed = 0;
     const push = (usages: RawUsage[]) => {
       filesParsed += 1;
@@ -116,6 +120,7 @@ export class UsageStore {
 
     await guard('vscode', async () => {
       const roots = await detectStorageRoots(this.config.extraStorageRoots);
+      scannedRoots.push(...roots);
       for (const root of roots) {
         for (const wsDir of await listWorkspaceStorageDirs(root)) {
           for (const file of await findJsonlFiles(wsDir)) {
@@ -138,6 +143,7 @@ export class UsageStore {
 
     if (this.config.claudeCodeEnabled) {
       await guard('claude-code', async () => {
+        scannedRoots.push(defaultClaudeCodeRoot());
         for (const file of await findClaudeCodeFiles(defaultClaudeCodeRoot())) {
           push(await this.parseCached(file, () => parseClaudeCodeUsage(file)));
         }
@@ -146,6 +152,7 @@ export class UsageStore {
 
     if (this.config.copilotCliEnabled) {
       await guard('copilot-cli', async () => {
+        scannedRoots.push(defaultCopilotCliRoot());
         for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
           push(
             await this.parseCached(file.filePath, () =>
@@ -165,7 +172,14 @@ export class UsageStore {
       providers[event.provider] = (providers[event.provider] ?? 0) + 1;
       newestTimestamp = Math.max(newestTimestamp, event.timestamp);
     }
-    this.stats = { providers, newestTimestamp, scanMs: Date.now() - started, filesParsed, errors };
+    this.stats = {
+      providers,
+      newestTimestamp,
+      scanMs: Date.now() - started,
+      filesParsed,
+      errors,
+      scannedRoots,
+    };
 
     for (const listener of this.listeners) {
       listener();

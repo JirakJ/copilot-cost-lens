@@ -31,5 +31,6 @@
   "cfg.docLang.en": "英語 (既定)",
   "cfg.docLang.auto": "VS Code の表示言語に従う",
   "cfg.docLang.cs": "チェコ語 (音訳)",
-  "cfg.docLang.de": "ドイツ語 (音訳)"
+  "cfg.docLang.de": "ドイツ語 (音訳)",
+  "cmd.showDiagnostics": "診断を表示"
 }
