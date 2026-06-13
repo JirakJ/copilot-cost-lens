@@ -32,5 +32,6 @@
   "cfg.docLang.auto": "Follow the VS Code display language",
   "cfg.docLang.cs": "Czech (transliterated — PDF core fonts carry no diacritics)",
   "cfg.docLang.de": "German (transliterated)",
-  "cmd.showDiagnostics": "Show Diagnostics"
+  "cmd.showDiagnostics": "Show Diagnostics",
+  "cfg.jetbrainsCopilot": "Include GitHub Copilot usage from the JetBrains IDE plugin (~/.config/github-copilot). The JetBrains plugin does not store token counts locally, so cost is estimated from chat content and always marked ~est. Off by default."
 }

@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.12.0] — 2026-06-13
+
+### Added
+
+- **JetBrains Copilot usage (estimated, opt-in).** Enable `copilotCostLens.jetbrainsCopilot.enabled` to include GitHub Copilot activity from the JetBrains IDE plugin (`~/.config/github-copilot/<ide>/`). It attributes usage to the right repository (from the project path) and identifies the models used; since the JetBrains plugin stores no token counts locally, cost is **estimated** from chat content and every entry is marked `~est`. Off by default; the reader is capped/scaled for speed and degrades to nothing if the undocumented store format changes.
+
 ## [1.11.0] — 2026-06-13
 
 ### Added

@@ -3,6 +3,7 @@ import { normalizeModelId, priceUsage, PricingOptions } from '../core/pricing';
 import { findChatSessionFiles, parseChatSessionUsage } from '../sources/chatSessionSource';
 import { defaultClaudeCodeRoot, findClaudeCodeFiles, parseClaudeCodeUsage } from '../sources/claudeCodeSource';
 import { defaultCopilotCliRoot, findCopilotCliFiles, parseCopilotCliUsage } from '../sources/copilotCliSource';
+import { defaultJetBrainsCopilotRoot, findJetBrainsCopilotDbs, parseJetBrainsUsage } from '../sources/jetbrainsSource';
 import { findJsonlFiles, parseJsonlUsage } from '../sources/jsonlSource';
 import { detectStorageRoots, listWorkspaceStorageDirs } from '../sources/storageRoots';
 import { WorkspaceIndex } from '../sources/workspaceIndex';
@@ -12,6 +13,7 @@ export interface StoreConfig {
   extraStorageRoots: string[];
   claudeCodeEnabled: boolean;
   copilotCliEnabled: boolean;
+  jetbrainsCopilotEnabled: boolean;
   estimationEnabled: boolean;
   charsPerToken: number;
   pricing: PricingOptions;
@@ -84,6 +86,9 @@ export class UsageStore {
     }
     if (this.config.copilotCliEnabled) {
       dirs.push(defaultCopilotCliRoot());
+    }
+    if (this.config.jetbrainsCopilotEnabled) {
+      dirs.push(defaultJetBrainsCopilotRoot());
     }
     return dirs;
   }
@@ -159,6 +164,15 @@ export class UsageStore {
               parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
             ),
           );
+        }
+      });
+    }
+
+    if (this.config.jetbrainsCopilotEnabled) {
+      await guard('copilot-jetbrains', async () => {
+        scannedRoots.push(defaultJetBrainsCopilotRoot());
+        for (const db of await findJetBrainsCopilotDbs(defaultJetBrainsCopilotRoot())) {
+          push(await this.parseCached(db, () => parseJetBrainsUsage(db, { charsPerToken: this.config.charsPerToken })));
         }
       });
     }

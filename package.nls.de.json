@@ -32,5 +32,6 @@
   "cfg.docLang.auto": "Der VS-Code-Anzeigesprache folgen",
   "cfg.docLang.cs": "Tschechisch (transliteriert)",
   "cfg.docLang.de": "Deutsch (transliteriert)",
-  "cmd.showDiagnostics": "Diagnose anzeigen"
+  "cmd.showDiagnostics": "Diagnose anzeigen",
+  "cfg.jetbrainsCopilot": "GitHub-Copilot-Nutzung aus dem JetBrains-IDE-Plugin einbeziehen (~/.config/github-copilot). Das JetBrains-Plugin speichert keine Tokenzahlen lokal; die Kosten werden aus dem Chat-Inhalt geschätzt und stets mit ~est markiert. Standardmäßig aus."
 }
