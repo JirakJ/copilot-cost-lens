@@ -143,6 +143,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     prevMonthUsd,
     allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
     monthsSeries: buildMonthsSeries(events),
+    heatmap: buildHeatmap(events, now),
     repos,
     groups: buildGroupSummaries(repos, options.groups ?? {}),
     models,
@@ -181,6 +182,27 @@ export function previousMonthKey(month: string): string {
   const [yearStr, monthStr] = month.split('-');
   const date = new Date(Number(yearStr), Number(monthStr) - 2, 1);
   return monthKey(date.getTime());
+}
+
+/** Daily spend for the last `weeks` weeks (aligned to whole days), all sources. */
+export function buildHeatmap(events: UsageEvent[], now = new Date(), weeks = 26): DayPoint[] {
+  const days = weeks * 7;
+  const totals = new Map<string, number>();
+  const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)).getTime();
+  for (const e of events) {
+    if (e.timestamp >= start) {
+      const key = dayKey(e.timestamp);
+      totals.set(key, (totals.get(key) ?? 0) + e.credits);
+    }
+  }
+  const out: DayPoint[] = [];
+  for (let i = 0; i < days; i++) {
+    const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1) + i);
+    const key = dayKey(d.getTime());
+    const credits = totals.get(key) ?? 0;
+    out.push({ day: key, credits, usd: creditsToUsd(credits) });
+  }
+  return out;
 }
 
 function buildMonthsSeries(events: UsageEvent[]): MonthPoint[] {

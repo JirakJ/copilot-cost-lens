@@ -42,16 +42,17 @@ const S = {
   errNameRequired: 'Enter a project name', errPickRepo: 'Select at least one repository',
   starred: 'Starred', starToggle: 'Star / unstar repository',
   colPerM: '$ / 1M', effRateHint: 'Effective blended price per 1M tokens actually paid',
-  filterRepos: 'Filter repositories…', openFolder: 'Open in VS Code',
+  filterRepos: 'Filter repositories…', openFolder: 'Open in VS Code', activityHeatmap: 'Activity (last 26 weeks)',
   emptyOtherPeriod: 'No usage in {0}, but you have data in other periods.', viewAllTime: 'View all time',
   projectsEmptyHint: 'Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.',
   providerCopilot: 'Copilot', providerCopilotCli: 'Copilot CLI', providerClaudeCode: 'Claude Code',
 };
 
+const providersFor = (n) => n.includes('payments') ? ['copilot','copilot-cli','claude-code'] : n.includes('frontend') ? ['claude-code'] : n.includes('terraform') ? ['copilot-cli'] : n.includes('mobile') ? ['copilot'] : ['claude-code','copilot'];
 const mkRepo = (name, usd, req, sess, inT, outT, cR, cW, models, est) => ({
   repo: { name }, credits: usd * 100, usd, inputTokens: inT, outputTokens: outT,
   cachedTokens: cR, cacheWriteTokens: cW, requestCount: req, sessionCount: sess,
-  lastActivity: Date.now(), hasEstimates: !!est, providers: ['copilot'], models,
+  lastActivity: Date.now(), hasEstimates: !!est, providers: providersFor(name), models,
 });
 
 const repos = [
@@ -89,6 +90,14 @@ const days = Array.from({ length: 11 }, (_, i) => {
   return { day: '2026-06-' + String(i + 1).padStart(2, '0'), credits: c, usd: c / 100 };
 });
 
+const heatmap = Array.from({ length: 26 * 7 }, (_, i) => {
+  const d = new Date(2026, 5, 10); d.setDate(d.getDate() - (26 * 7 - 1) + i);
+  const key = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  const dow = d.getDay();
+  const usd = (dow === 0 || dow === 6) ? Math.random() * 1.5 : Math.random() * 9;
+  return { day: key, credits: usd * 100, usd };
+});
+
 const report = {
   month: '2026-06', totalCredits: 14182, totalUsd: 141.82, copilotCredits: 1287, copilotUsd: 12.87,
   includedCredits: 1900, usedPercent: 67.8, forecastCredits: 42546, forecastUsd: 425.46,
@@ -98,6 +107,7 @@ const report = {
     { month: '2026-03', credits: 6100, usd: 61 }, { month: '2026-04', credits: 9800, usd: 98 },
     { month: '2026-05', credits: 9640, usd: 96.4 }, { month: '2026-06', credits: 14182, usd: 141.82 },
   ],
+  heatmap,
   requestCount: 2412, sessionCount: 86, hasEstimates: true,
   providers: [
     { provider: 'claude-code', usd: 96.20, credits: 9620, requestCount: 1610 },

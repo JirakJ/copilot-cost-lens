@@ -16,6 +16,7 @@ function reportWithDays(days: MonthReport['days']): MonthReport {
     forecastCredits: 0,
     forecastUsd: 0,
     monthsSeries: [],
+    heatmap: [],
     repos: [],
     groups: [],
     models: [],

@@ -50,7 +50,8 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Forecast & burn rate** — linear end-of-month projection, month-over-month trend, and a projected date your allowance runs out at the current pace.
 - **Cost detective tools** — the most expensive sessions per repository, cache read share (how much of your context comes from cache), and a per-month bar chart in the all-time view.
 - **Status-bar sparkline** — the last 7 days of spend at a glance, right next to the month-to-date total.
-- **Built for 100+ repositories** — instant text filter and sortable columns in the repository table, starred repos pinned on top, and "Open in VS Code" straight from a repository detail.
+- **Built for 100+ repositories** — instant text filter, source chips (Copilot / CLI / Claude Code) and sortable columns in the repository table, starred repos pinned on top, and "Open in VS Code" straight from a repository detail.
+- **Activity heatmap** — a calendar of daily spend over the last 26 weeks reveals your usage rhythm at a glance.
 - **Export** — one click to CSV or JSON for invoicing, chargeback or further analysis.
 - **Multi-installation** — scans VS Code, VS Code Insiders, VSCodium, Cursor and Windsurf storage automatically; extra locations are configurable.
 - **Zero runtime dependencies** — small, fast, auditable.

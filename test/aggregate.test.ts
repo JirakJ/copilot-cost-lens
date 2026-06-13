@@ -174,6 +174,21 @@ describe('buildMonthReport', () => {
     expect(report.monthsSeries[1]!.credits).toBe(10);
   });
 
+  it('builds a 26-week daily heatmap aligned to today', () => {
+    const today = new Date(2026, 5, 10, 9);
+    const events = [
+      event({ credits: 30, timestamp: new Date(2026, 5, 10, 8).getTime() }), // today
+      event({ credits: 7, timestamp: new Date(2026, 5, 9, 8).getTime() }), // yesterday
+      event({ credits: 99, timestamp: new Date(2025, 0, 1).getTime() }), // long ago — excluded
+    ];
+    const report = buildMonthReport(events, { month: ALL_TIME, includedCredits: 0, now: today });
+    expect(report.heatmap).toHaveLength(26 * 7);
+    expect(report.heatmap.at(-1)!.day).toBe('2026-06-10');
+    expect(report.heatmap.at(-1)!.credits).toBe(30);
+    expect(report.heatmap.at(-2)!.credits).toBe(7);
+    expect(report.heatmap.reduce((s, d) => s + d.credits, 0)).toBe(37); // old event excluded
+  });
+
   it('covers everything in the all-time view and disables the allowance', () => {
     const events = [
       event({ credits: 10, timestamp: new Date(2025, 9, 1).getTime() }),

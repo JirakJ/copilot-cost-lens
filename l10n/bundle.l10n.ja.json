@@ -96,5 +96,6 @@
   "Filter repositories…": "リポジトリを絞り込む…",
   "Open in VS Code": "VS Code で開く",
   "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
-  "View all time": "全期間を表示"
+  "View all time": "全期間を表示",
+  "Activity (last 26 weeks)": "アクティビティ (直近26週間)"
 }

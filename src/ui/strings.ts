@@ -43,6 +43,7 @@ export function webviewStrings(): Record<string, string> {
     emptyHint: t('Use Copilot Chat, Copilot CLI or Claude Code and data appears here automatically.'),
     emptyOtherPeriod: t('No usage in {0}, but you have data in other periods.'),
     viewAllTime: t('View all time'),
+    activityHeatmap: t('Activity (last 26 weeks)'),
     footSources: t('Data sources: VS Code Copilot Chat, GitHub Copilot CLI and Claude Code local logs · all processing happens on this machine, nothing leaves it.'),
     footAllowance: t('The allowance gauge counts Copilot usage only; Claude Code is billed separately and is shown for total AI spend per project.'),
     footEstimates: t('Entries marked ~est are estimated from chat content length because exact token counts were not present in the logs.'),

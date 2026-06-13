@@ -111,6 +111,12 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   td.starcell:hover { color: var(--c5); }
   .pick .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .chip {
+    display: inline-block; padding: 3px 10px; border-radius: 12px; font-size: 11.5px; cursor: pointer;
+    border: 1px solid var(--border); color: var(--muted); white-space: nowrap; user-select: none;
+  }
+  .chip:hover { border-color: var(--accent); }
+  .chip.on { background: var(--accent); color: var(--vscode-button-foreground, #fff); border-color: transparent; }
 </style>
 </head>
 <body>
@@ -151,6 +157,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   let lastMsg = null;
   let editor = null; // { originalName, name, members:Set, deletable }
   let repoFilter = '';
+  let repoProvider = null;
   let repoSort = { key: 'credits', dir: -1 };
 
   window.addEventListener('message', (event) => {
@@ -244,6 +251,9 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<div class="card"><h2>' + esc(S.costByModel) + '</h2>' + modelDonut(r.models) + '</div>' +
       '</div>' +
       trendChart +
+      ((r.heatmap || []).some((d) => d.credits > 0)
+        ? '<div class="card" style="margin-bottom:12px"><h2>' + esc(S.activityHeatmap) + '</h2>' + heatmapGrid(r.heatmap) + '</div>'
+        : '') +
       ((r.groups || []).length > 0
         ? '<div class="card" style="margin-bottom:12px"><div class="cardhead"><h2>' + esc(S.projects) + '</h2>' +
           '<button id="newGroup">＋ ' + esc(S.newProject) + '</button></div>' + groupTable(r) + '</div>'
@@ -252,13 +262,21 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
           '<div class="sub">' + esc(S.projectsEmptyHint) + '</div></div>') +
       starredCard(r) +
       '<div class="card"><div class="cardhead"><h2>' + esc(S.repositories) + '</h2>' +
-        '<input id="repoFilter" class="textinput" style="max-width:230px" placeholder="' + esc(S.filterRepos) + '"></div>' +
+        '<div style="display:flex;gap:8px;align-items:center">' + providerChips(r) +
+        '<input id="repoFilter" class="textinput" style="max-width:230px" placeholder="' + esc(S.filterRepos) + '"></div></div>' +
         repoTableDynamic() + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
 
     bindAllowance();
     bindGroupRows();
     const newGroup = document.getElementById('newGroup');
     if (newGroup) newGroup.onclick = () => openEditor(null);
+
+    for (const chip of document.querySelectorAll('.chip[data-provider]')) {
+      chip.onclick = () => {
+        repoProvider = repoProvider === chip.dataset.provider ? null : chip.dataset.provider;
+        renderOverview(lastMsg.report, lastMsg.selectedMonth);
+      };
+    }
 
     const filterInput = document.getElementById('repoFilter');
     filterInput.value = repoFilter;
@@ -717,6 +735,9 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     const r = lastMsg.report;
     const needle = repoFilter.trim().toLowerCase();
     let list = r.repos;
+    if (repoProvider) {
+      list = list.filter((repo) => (repo.providers || []).includes(repoProvider));
+    }
     if (needle) {
       list = list.filter((repo) =>
         repo.repo.name.toLowerCase().includes(needle) ||
@@ -730,6 +751,37 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     tbody.innerHTML = buildRepoRows(r, list);
     bindRepoRows();
     bindStars();
+  }
+
+  function providerChips(r) {
+    const present = [...new Set((r.repos || []).flatMap((x) => x.providers || []))];
+    const order = ['copilot', 'copilot-cli', 'claude-code'];
+    return present.sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((p) =>
+      '<span class="chip' + (repoProvider === p ? ' on' : '') + '" data-provider="' + p + '">' +
+      esc(PROVIDER_NAMES[p] || p) + '</span>').join('');
+  }
+
+  function heatmapGrid(days) {
+    if (!days || days.length === 0) return '<div class="sub">' + esc(S.noData) + '</div>';
+    const max = Math.max(...days.map((d) => d.usd), 1e-9);
+    const cell = 13, gap = 3, weeks = Math.ceil(days.length / 7);
+    const w = weeks * (cell + gap) + 30, h = 7 * (cell + gap) + 18;
+    // align so the last column ends today; first cell's weekday sets the row offset
+    const firstDow = (new Date(days[0].day + 'T00:00:00').getDay() + 6) % 7; // Mon=0
+    let svg = '<svg viewBox="0 0 ' + w + ' ' + h + '" width="100%" style="max-width:' + w + 'px" preserveAspectRatio="xMinYMin meet">';
+    let lastMonth = '';
+    days.forEach((d, i) => {
+      const idx = i + firstDow;
+      const col = Math.floor(idx / 7), row = idx % 7;
+      const x = col * (cell + gap), y = row * (cell + gap) + 14;
+      const t = d.usd / max;
+      const fill = d.usd <= 0 ? 'rgba(128,128,128,0.12)'
+        : 'color-mix(in srgb, var(--c1) ' + Math.round(25 + t * 75) + '%, transparent)';
+      svg += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="2.5" fill="' + fill + '"><title>' + d.day + ': $' + d.usd.toFixed(2) + '</title></rect>';
+      const mon = d.day.slice(0, 7);
+      if (row === 0 && mon !== lastMonth) { lastMonth = mon; svg += '<text x="' + x + '" y="10">' + (+d.day.slice(5, 7)) + '/' + d.day.slice(2, 4) + '</text>'; }
+    });
+    return svg + '</svg>';
   }
 
   function trunc(s, n) { return s.length > n ? s.slice(0, n - 1) + '…' : s; }

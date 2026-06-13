@@ -182,6 +182,8 @@ export interface MonthReport {
   allowanceExhaustion?: string;
   /** Per-month series across all data — used by the all-time chart. */
   monthsSeries: MonthPoint[];
+  /** Daily spend for the last ~26 weeks across all data — used by the heatmap. */
+  heatmap: DayPoint[];
   repos: RepoSummary[];
   /** User-defined project groups with usage in the period (empty when none configured). */
   groups: GroupSummary[];

@@ -96,5 +96,6 @@
   "Filter repositories…": "Filtrovat repozitáře…",
   "Open in VS Code": "Otevřít ve VS Code",
   "No usage in {0}, but you have data in other periods.": "V období {0} nejsou žádná data, ale máte data v jiných obdobích.",
-  "View all time": "Zobrazit vše od počátku"
+  "View all time": "Zobrazit vše od počátku",
+  "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)"
 }

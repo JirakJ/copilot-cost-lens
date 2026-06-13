@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.11.0] — 2026-06-13
+
+### Added
+
+- **Activity heatmap** — a GitHub-style calendar of daily spend over the last 26 weeks, so you can see your usage rhythm at a glance (weekends, crunch weeks, quiet spells).
+- **Filter the repository table by source** — one-click Copilot / Copilot CLI / Claude Code chips next to the text filter; combine with the search box and column sorting.
+
 ## [1.10.0] — 2026-06-11
 
 ### Fixed

@@ -96,5 +96,6 @@
   "Filter repositories…": "Repositories filtern…",
   "Open in VS Code": "In VS Code öffnen",
   "No usage in {0}, but you have data in other periods.": "Keine Nutzung in {0}, aber Sie haben Daten in anderen Zeiträumen.",
-  "View all time": "Gesamten Zeitraum anzeigen"
+  "View all time": "Gesamten Zeitraum anzeigen",
+  "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)"
 }
