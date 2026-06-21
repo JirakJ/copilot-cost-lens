@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.1] — 2026-06-21
+
+### Fixed
+
+- **Periodic flicker and scroll-jump on auto-refresh.** v1.13.0's progressive paint ran on *every* refresh, so each background scan briefly flashed partial data and rebuilt the view. Progressive painting now happens only on the first load; later refreshes publish once. The view also keeps your scroll position when refreshing the same screen (navigation still returns to top).
+
 ## [1.13.0] — 2026-06-13
 
 ### Changed

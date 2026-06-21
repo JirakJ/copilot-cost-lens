@@ -50,6 +50,7 @@ export class UsageStore {
   private events: UsageEvent[] = [];
   private scanning?: Promise<UsageEvent[]>;
   private listeners = new Set<() => void>();
+  private firstScanDone = false;
   private stats: ScanStats = {
     providers: {},
     newestTimestamp: 0,
@@ -130,13 +131,18 @@ export class UsageStore {
         listener();
       }
     };
+    // paint progressively only on the very first scan (empty dashboard);
+    // later refreshes publish once at the end so they don't flash partial data
+    const progressive = !this.firstScanDone;
     const guard = async (source: string, work: () => Promise<void>) => {
       try {
         await work();
       } catch (error) {
         errors.push(`${source}: ${error instanceof Error ? error.message : String(error)}`);
       }
-      await publish();
+      if (progressive) {
+        await publish();
+      }
     };
 
     await guard('vscode', async () => {
@@ -193,6 +199,8 @@ export class UsageStore {
       });
     }
 
+    await publish(); // one final publish (the only one on non-first scans)
+    this.firstScanDone = true;
     return this.events;
   }
 

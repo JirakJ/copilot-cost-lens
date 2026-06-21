@@ -167,6 +167,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   let repoSort = { key: 'credits', dir: -1 };
 
   let lastRenderKey = null;
+  let lastViewKey = null;
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (msg.type === 'data') {
@@ -178,7 +179,12 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig]);
       if (key === lastRenderKey) return;
       lastRenderKey = key;
+      // same view (just refreshed data) → keep scroll; navigation → back to top
+      const viewKey = JSON.stringify([msg.selectedMonth, msg.detail && msg.detail.summary.repo.name, msg.groupDetail && msg.groupDetail.group.name]);
+      const y = window.scrollY;
       render(msg);
+      window.scrollTo(0, viewKey === lastViewKey ? y : 0);
+      lastViewKey = viewKey;
     }
   });
   vscode.postMessage({ type: 'ready' });
