@@ -2,7 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { folderName, parseRemoteSlug, readGitRemoteSlug } from '../src/sources/workspaceIndex';
+import { findRepoRoot, folderName, parseRemoteSlug, readGitRemoteSlug, refForFolder } from '../src/sources/workspaceIndex';
 
 describe('parseRemoteSlug', () => {
   it('parses ssh remotes', () => {
@@ -69,5 +69,47 @@ describe('readGitRemoteSlug', () => {
   it('follows a worktree .git file to the main repo remote', async () => {
     const wt = path.join(root, 'repo', '.claude', 'worktrees', 'sleepy-mestorf-9e9b83');
     expect(await readGitRemoteSlug(wt)).toBe('owner/repo');
+  });
+});
+
+describe('findRepoRoot / refForFolder', () => {
+  let root: string;
+  let repo: string;
+  beforeAll(async () => {
+    root = await fs.mkdtemp(path.join(os.tmpdir(), 'wi-root-'));
+    repo = path.join(root, 'project');
+    await fs.mkdir(path.join(repo, '.git', 'info'), { recursive: true });
+    await fs.writeFile(path.join(repo, '.git', 'config'), '[remote "origin"]\n\turl = git@github.com:owner/project.git\n');
+    await fs.mkdir(path.join(repo, 'packages', 'core'), { recursive: true });
+  });
+  afterAll(async () => {
+    await fs.rm(root, { recursive: true, force: true });
+  });
+
+  it('finds the repo root from the repo itself', async () => {
+    expect(await findRepoRoot(repo)).toBe(repo);
+  });
+
+  it('finds the repo root from a sub-path inside .git', async () => {
+    expect(await findRepoRoot(path.join(repo, '.git', 'info'))).toBe(repo);
+  });
+
+  it('finds the repo root from a nested sub-folder', async () => {
+    expect(await findRepoRoot(path.join(repo, 'packages', 'core'))).toBe(repo);
+  });
+
+  it('returns undefined outside any repository', async () => {
+    expect(await findRepoRoot(root)).toBeUndefined();
+  });
+
+  it('attributes a .git/info cwd to the repo remote, not the sub-folder', async () => {
+    const ref = await refForFolder(path.join(repo, '.git', 'info'));
+    expect(ref.name).toBe('owner/project');
+    expect(ref.folderPath).toBe(repo);
+  });
+
+  it('falls back to the folder name when the path is not in a repo', async () => {
+    const ref = await refForFolder(path.join(root, 'gone', 'leaf'));
+    expect(ref.name).toBe('leaf');
   });
 });

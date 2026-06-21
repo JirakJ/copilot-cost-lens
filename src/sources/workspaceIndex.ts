@@ -27,12 +27,7 @@ export class WorkspaceIndex {
     if (cached) {
       return cached;
     }
-    const remoteSlug = await readGitRemoteSlug(folderPath);
-    const ref: RepoRef = {
-      name: remoteSlug ?? folderName(folderPath),
-      folderPath,
-      remoteSlug,
-    };
+    const ref = await refForFolder(folderPath);
     this.cache.set(key, ref);
     return ref;
   }
@@ -42,12 +37,46 @@ export class WorkspaceIndex {
     if (!folderPath) {
       return { name: `(unknown) ${path.basename(workspaceStorageDir).slice(0, 8)}` };
     }
-    const remoteSlug = await readGitRemoteSlug(folderPath);
-    return {
-      name: remoteSlug ?? folderName(folderPath),
-      folderPath,
-      remoteSlug,
-    };
+    return refForFolder(folderPath);
+  }
+}
+
+/**
+ * Build a repository identity from any path that may sit *inside* a repo.
+ * Anchors to the enclosing git repository root, so a working directory that
+ * points at a sub-path (a `.git/info` cwd, a nested package folder, …) is
+ * attributed to the repository itself instead of producing a separate bucket
+ * named after the sub-folder. Falls back to the path as given when it is not
+ * inside any repository.
+ */
+export async function refForFolder(folderPath: string): Promise<RepoRef> {
+  const root = (await findRepoRoot(folderPath)) ?? folderPath;
+  const remoteSlug = await readGitRemoteSlug(root);
+  return {
+    name: remoteSlug ?? folderName(root),
+    folderPath: root,
+    remoteSlug,
+  };
+}
+
+/** Nearest ancestor (inclusive) that holds a `.git` entry — the repo root. */
+export async function findRepoRoot(folderPath: string): Promise<string | undefined> {
+  let dir = folderPath;
+  for (let depth = 0; depth < 40 && dir && dir !== path.dirname(dir); depth++) {
+    if (await pathExists(path.join(dir, '.git'))) {
+      return dir;
+    }
+    dir = path.dirname(dir);
+  }
+  return undefined;
+}
+
+async function pathExists(p: string): Promise<boolean> {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
   }
 }
 

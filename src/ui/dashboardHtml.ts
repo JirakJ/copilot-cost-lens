@@ -83,6 +83,12 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   .legend .dot { width: 9px; height: 9px; border-radius: 50%; flex: none; }
   .legend .name { flex: 1; overflow: hidden; text-overflow: ellipsis; }
   .legend .val { color: var(--muted); font-variant-numeric: tabular-nums; }
+  .loader { display: flex; justify-content: center; padding: 90px 0; }
+  .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--border);
+    border-top-color: var(--accent); animation: spin 0.7s linear infinite; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #app, .card { animation: fade 0.25s ease; }
+  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
   .empty .icon { font-size: 32px; margin-bottom: 10px; }
   .hint { color: var(--muted); font-size: 11.5px; margin: 8px 2px 0; }
@@ -129,7 +135,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     <button id="exportJson"></button>
     <button id="settings">⚙</button>
   </header>
-  <div id="app"></div>
+  <div id="app"><div class="loader"><div class="spinner"></div></div></div>
   <footer id="foot"></footer>
 
 <script nonce="${nonce}">
@@ -160,6 +166,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   let repoProvider = null;
   let repoSort = { key: 'credits', dir: -1 };
 
+  let lastRenderKey = null;
   window.addEventListener('message', (event) => {
     const msg = event.data;
     if (msg.type === 'data') {
@@ -167,6 +174,10 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       if (editor) {
         return; // keep the project editor open; fresh data renders after save/cancel
       }
+      // skip the rebuild when nothing changed → no flicker on idle auto-refresh
+      const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig]);
+      if (key === lastRenderKey) return;
+      lastRenderKey = key;
       render(msg);
     }
   });

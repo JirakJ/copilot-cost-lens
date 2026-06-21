@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.0] — 2026-06-13
+
+### Changed
+
+- **Faster, smoother dashboard.** Results now appear as soon as the first source is scanned and fill in progressively instead of waiting for the whole (large) scan to finish, with a modern loading spinner until then. Idle background refreshes that find no changes no longer re-render, so the view never flickers.
+
 ## [1.12.1] — 2026-06-13
 
 ### Fixed

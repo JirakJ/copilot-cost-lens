@@ -115,12 +115,28 @@ export class UsageStore {
         (usage.estimated ? estimated : exact).push(usage);
       }
     };
+    // publish what we have after each source so the dashboard paints the first
+    // results immediately instead of waiting for the whole (slow) scan
+    const publish = async () => {
+      this.events = await this.toEvents(dedupeBySession(exact, estimated));
+      const providers: Record<string, number> = {};
+      let newestTimestamp = 0;
+      for (const event of this.events) {
+        providers[event.provider] = (providers[event.provider] ?? 0) + 1;
+        newestTimestamp = Math.max(newestTimestamp, event.timestamp);
+      }
+      this.stats = { providers, newestTimestamp, scanMs: Date.now() - started, filesParsed, errors, scannedRoots };
+      for (const listener of this.listeners) {
+        listener();
+      }
+    };
     const guard = async (source: string, work: () => Promise<void>) => {
       try {
         await work();
       } catch (error) {
         errors.push(`${source}: ${error instanceof Error ? error.message : String(error)}`);
       }
+      await publish();
     };
 
     await guard('vscode', async () => {
@@ -177,27 +193,6 @@ export class UsageStore {
       });
     }
 
-    const merged = dedupeBySession(exact, estimated);
-    this.events = await this.toEvents(merged);
-
-    const providers: Record<string, number> = {};
-    let newestTimestamp = 0;
-    for (const event of this.events) {
-      providers[event.provider] = (providers[event.provider] ?? 0) + 1;
-      newestTimestamp = Math.max(newestTimestamp, event.timestamp);
-    }
-    this.stats = {
-      providers,
-      newestTimestamp,
-      scanMs: Date.now() - started,
-      filesParsed,
-      errors,
-      scannedRoots,
-    };
-
-    for (const listener of this.listeners) {
-      listener();
-    }
     return this.events;
   }
 
