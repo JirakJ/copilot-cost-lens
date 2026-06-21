@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.13.2] — 2026-06-21
+
+### Fixed
+
+- **Cards flashed on every update.** A fade-in animation re-ran on each render, so the dashboard blinked whenever data changed. Removed it — updates now repaint silently (the loading spinner still covers the very first load).
+
 ## [1.13.1] — 2026-06-21
 
 ### Fixed

@@ -87,8 +87,6 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   .spinner { width: 34px; height: 34px; border-radius: 50%; border: 3px solid var(--border);
     border-top-color: var(--accent); animation: spin 0.7s linear infinite; }
   @keyframes spin { to { transform: rotate(360deg); } }
-  #app, .card { animation: fade 0.25s ease; }
-  @keyframes fade { from { opacity: 0; } to { opacity: 1; } }
   .empty { text-align: center; color: var(--muted); padding: 50px 20px; }
   .empty .icon { font-size: 32px; margin-bottom: 10px; }
   .hint { color: var(--muted); font-size: 11.5px; margin: 8px 2px 0; }
