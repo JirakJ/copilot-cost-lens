@@ -75,6 +75,56 @@ beforeAll(async () => {
       ],
     }),
   );
+
+  // Log-store fixture (.jsonl mutation log, VS Code ≥1.128): initial state,
+  // streaming patches with exact usage, a second request pushed later,
+  // a set+delete pair and a broken line.
+  await fs.writeFile(
+    path.join(chatDir, 'session-log.jsonl'),
+    [
+      JSON.stringify({
+        kind: 0,
+        v: {
+          version: 3,
+          sessionId: 'session-log',
+          creationDate: 1750200000000,
+          requests: [
+            { requestId: 'r1', modelId: 'copilot/gpt-5.3-codex', timestamp: 1750200005000, message: { text: 'question' }, response: [] },
+          ],
+        },
+      }),
+      JSON.stringify({ kind: 2, k: ['requests', 0, 'response'], v: [{ value: 'partial answer' }] }),
+      JSON.stringify({ kind: 1, k: ['requests', 0, 'promptTokens'], v: 12345 }),
+      JSON.stringify({ kind: 1, k: ['requests', 0, 'completionTokens'], v: 678 }),
+      JSON.stringify({ kind: 1, k: ['requests', 0, 'copilotCredits'], v: 1.5 }),
+      JSON.stringify({
+        kind: 2,
+        k: ['requests'],
+        v: [{ requestId: 'r2', modelId: 'gpt-5-mini', timestamp: 1750200010000, message: { text: 'x'.repeat(400) }, response: [{ value: 'y'.repeat(2000) }] }],
+      }),
+      JSON.stringify({ kind: 1, k: ['customTitle'], v: 'title' }),
+      JSON.stringify({ kind: 3, k: ['customTitle'] }),
+      '{ broken json',
+      '',
+    ].join('\n'),
+  );
+
+  // Same session in both formats → only the .jsonl must be read
+  await fs.writeFile(
+    path.join(chatDir, 'session-dup.json'),
+    JSON.stringify({ sessionId: 'session-dup', requests: [{ modelId: 'gpt-5-mini', message: { text: 'stale flat copy' }, response: [] }] }),
+  );
+  await fs.writeFile(
+    path.join(chatDir, 'session-dup.jsonl'),
+    JSON.stringify({
+      kind: 0,
+      v: {
+        sessionId: 'session-dup',
+        creationDate: 1750300000000,
+        requests: [{ requestId: 'r1', modelId: 'gpt-5-mini', timestamp: 1750300005000, promptTokens: 100, completionTokens: 50 }],
+      },
+    }) + '\n',
+  );
 });
 
 afterAll(async () => {
@@ -115,9 +165,97 @@ describe('jsonlSource', () => {
 });
 
 describe('chatSessionSource', () => {
+  it('discovers .json and .jsonl sessions, preferring .jsonl for the same id', async () => {
+    const files = await findChatSessionFiles(wsDir);
+    const names = files.map((f) => path.basename(f)).sort();
+    expect(names).toEqual(['session-abc.json', 'session-dup.jsonl', 'session-log.jsonl', 'session-xyz.json']);
+  });
+
+  it('replays the .jsonl mutation log and reads exact usage', async () => {
+    const files = await findChatSessionFiles(wsDir);
+    const log = files.find((f) => f.endsWith('session-log.jsonl'))!;
+    const usages = await parseChatSessionUsage(log, wsDir, { charsPerToken: 4 });
+    expect(usages).toHaveLength(2);
+
+    // request 1: exact usage patched in via Set operations
+    expect(usages[0]!.model).toBe('copilot/gpt-5.3-codex');
+    expect(usages[0]!.inputTokens).toBe(12345);
+    expect(usages[0]!.outputTokens).toBe(678);
+    expect(usages[0]!.nanoCredits).toBe(1_500_000_000);
+    expect(usages[0]!.timestamp).toBe(1750200005000);
+    expect(usages[0]!.estimated).toBe(true); // stays droppable vs exact extension logs
+
+    // request 2: pushed later, no usage fields → content-length estimate
+    expect(usages[1]!.model).toBe('gpt-5-mini');
+    expect(usages[1]!.inputTokens).toBe(100); // 400 chars / 4
+    expect(usages[1]!.nanoCredits).toBeUndefined();
+  });
+
+  it('falls back to the sibling .json when the .jsonl is empty or corrupt', async () => {
+    const dir = path.join(wsDir, 'chatSessions');
+    await fs.writeFile(path.join(dir, 'session-broken.jsonl'), '{ truncated first li');
+    await fs.writeFile(
+      path.join(dir, 'session-broken.json'),
+      JSON.stringify({
+        sessionId: 'session-broken',
+        creationDate: 1750400000000,
+        requests: [{ modelId: 'gpt-5-mini', timestamp: 1750400005000, message: { text: 'x'.repeat(40) }, response: [{ value: 'y'.repeat(40) }] }],
+      }),
+    );
+    try {
+      const usages = await parseChatSessionUsage(path.join(dir, 'session-broken.jsonl'), wsDir, { charsPerToken: 4 });
+      expect(usages).toHaveLength(1);
+      expect(usages[0]!.sessionId).toBe('session-broken');
+      expect(usages[0]!.inputTokens).toBe(10);
+    } finally {
+      await fs.rm(path.join(dir, 'session-broken.jsonl'));
+      await fs.rm(path.join(dir, 'session-broken.json'));
+    }
+  });
+
+  it('ignores corrupt array-growth operations instead of building huge sparse arrays', async () => {
+    const dir = path.join(wsDir, 'chatSessions');
+    const file = path.join(dir, 'session-evil.jsonl');
+    await fs.writeFile(
+      file,
+      [
+        JSON.stringify({
+          kind: 0,
+          v: {
+            sessionId: 'session-evil',
+            creationDate: 1750500000000,
+            requests: [{ requestId: 'r1', modelId: 'gpt-5-mini', timestamp: 1750500005000, promptTokens: 10, completionTokens: 5 }],
+          },
+        }),
+        JSON.stringify({ kind: 2, k: ['requests'], i: 500_000_000 }), // growth via truncate index
+        JSON.stringify({ kind: 1, k: ['requests', 'length'], v: 500_000_000 }), // growth via length set
+        '',
+      ].join('\n'),
+    );
+    try {
+      const started = Date.now();
+      const usages = await parseChatSessionUsage(file, wsDir, { charsPerToken: 4 });
+      expect(Date.now() - started).toBeLessThan(1000);
+      expect(usages).toHaveLength(1);
+      expect(usages[0]!.inputTokens).toBe(10);
+    } finally {
+      await fs.rm(file);
+    }
+  });
+
+  it('reads the .jsonl copy when a session exists in both formats', async () => {
+    const files = await findChatSessionFiles(wsDir);
+    const dup = files.find((f) => f.endsWith('session-dup.jsonl'))!;
+    const usages = await parseChatSessionUsage(dup, wsDir, { charsPerToken: 4 });
+    expect(usages).toHaveLength(1);
+    expect(usages[0]!.sessionId).toBe('session-dup');
+    expect(usages[0]!.inputTokens).toBe(100);
+    expect(usages[0]!.outputTokens).toBe(50);
+    expect(usages[0]!.nanoCredits).toBeUndefined();
+  });
+
   it('estimates tokens from content length', async () => {
     const files = await findChatSessionFiles(wsDir);
-    expect(files).toHaveLength(2);
     const abc = files.find((f) => f.endsWith('session-abc.json'))!;
     const usages = await parseChatSessionUsage(abc, wsDir, { charsPerToken: 4 });
     expect(usages).toHaveLength(1);

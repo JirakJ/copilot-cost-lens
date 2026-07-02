@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.14.0] — 2026-07-02
+
+### Fixed
+
+- **Current VS Code / Insiders chat spend was missed.** VS Code ≥ 1.128 stores chat sessions as append-only mutation logs (`chatSessions/<sessionId>.jsonl`, `chat.useLogSessionStorage`) instead of flat JSON, and the chat-session reader only accepted `*.json` — so new chat activity never showed up. The reader now replays the `.jsonl` log to the final session state (which also dedupes repeated streaming updates), and when a session exists in both formats only the `.jsonl` copy is read.
+
+### Added
+
+- **Exact chat usage when VS Code provides it.** Log-store sessions carry per-request `promptTokens`, `completionTokens` and `copilotCredits`; those are now used directly (credits are priced as billed) instead of character-length estimates. Exact data from Copilot extension logs for the same session still takes precedence, so nothing is counted twice.
+
 ## [1.13.2] — 2026-06-21
 
 ### Fixed
