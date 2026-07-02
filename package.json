@@ -279,15 +279,19 @@
     "vscode:prepublish": "npm run package",
     "vsix": "vsce package"
   },
+  "overrides": {
+    "undici": "^7.28.0",
+    "form-data": "^4.0.6"
+  },
   "devDependencies": {
     "@types/node": "^20.14.0",
     "@types/vscode": "^1.96.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
-    "@vscode/vsce": "^3.2.1",
-    "esbuild": "^0.24.0",
+    "@vscode/vsce": "^3.9.2",
+    "esbuild": "^0.28.1",
     "eslint": "^9.17.0",
     "typescript": "^5.7.2",
-    "vitest": "^2.1.8"
+    "vitest": "^4.1.9"
   }
 }
