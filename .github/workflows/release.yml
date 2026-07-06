@@ -19,7 +19,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # no remote cache on self-hosted: ~/.npm persists locally between runs
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck

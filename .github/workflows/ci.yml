@@ -13,7 +13,8 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-          cache: npm
+          # no remote cache on self-hosted: ~/.npm persists locally between runs,
+          # and the Post cache-upload step hangs on the RPI's home uplink
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
