@@ -13,7 +13,7 @@ permissions:
 
 jobs:
   release:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, rpi]   # RPI self-hosted — no GHA minutes
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
