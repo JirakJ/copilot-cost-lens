@@ -87,6 +87,7 @@ export function webviewStrings(): Record<string, string> {
     renameRepoTitle: t('Set a display name for this repository'),
     hideRepo: t('Hide'),
     hideRepoTitle: t('Hide this repository from the dashboard — raw exports and budget alerts still include it'),
+    hiddenManage: t('{0} hidden — manage'),
     effRateHint: t('Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.'),
     projectsEmptyHint: t('Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.'),
     providerCopilot: 'Copilot',

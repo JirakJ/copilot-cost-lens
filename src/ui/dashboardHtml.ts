@@ -113,6 +113,12 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   td.starcell { width: 22px; color: var(--muted); cursor: pointer; user-select: none; }
   td.starcell.on { color: var(--c5); }
   td.starcell:hover { color: var(--c5); }
+  .rowact { float: right; visibility: hidden; }
+  tr:hover .rowact, tr:focus-within .rowact { visibility: visible; }
+  .rowact button { background: none; border: none; cursor: pointer; color: var(--muted); padding: 0 3px; font-size: 12px; }
+  .rowact button:hover { color: inherit; }
+  tr.clickable:focus-visible { outline: 1px solid var(--c5); outline-offset: -1px; }
+  .hiddenlink { margin-left: 10px; color: var(--muted); font-size: 11px; white-space: nowrap; }
   .pick .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick .val { color: var(--muted); font-variant-numeric: tabular-nums; }
   .chip {
@@ -174,7 +180,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         return; // keep the project editor open; fresh data renders after save/cancel
       }
       // skip the rebuild when nothing changed → no flicker on idle auto-refresh
-      const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig]);
+      if (msg.currency) CUR = msg.currency;
+      const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig, msg.currency, msg.hiddenCount]);
       if (key === lastRenderKey) return;
       lastRenderKey = key;
       // same view (just refreshed data) → keep scroll; navigation → back to top
@@ -187,14 +194,15 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   });
   vscode.postMessage({ type: 'ready' });
 
-  const usd = (v) => '$' + v.toFixed(2);
+  let CUR = { code: 'USD', rate: 1 };
+  const usd = (v) => CUR.code === 'USD' ? '$' + v.toFixed(2) : (v * CUR.rate).toFixed(2) + ' ' + CUR.code;
   const cr = (v) => v >= 100 ? Math.round(v).toLocaleString() : v.toFixed(1);
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
   const tok = (v) => v >= 1e6 ? (v/1e6).toFixed(1)+'M' : v >= 1e3 ? (v/1e3).toFixed(1)+'k' : String(v);
   // effective blended price actually paid per 1M tokens (cache effects included)
   const effRate = (m) => {
     const total = (m.inputTokens || 0) + (m.outputTokens || 0) + (m.cachedTokens || 0) + (m.cacheWriteTokens || 0);
-    return total > 0 ? '$' + ((m.usd / total) * 1e6).toFixed(2) : '—';
+    return total > 0 ? usd((m.usd / total) * 1e6) : '—';
   };
   const tpl = (s, ...args) => s.replace(/\\{(\\d+)\\}/g, (_, i) => args[+i] ?? '');
 
@@ -278,7 +286,11 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       starredCard(r) +
       '<div class="card"><div class="cardhead"><h2>' + esc(S.repositories) + '</h2>' +
         '<div style="display:flex;gap:8px;align-items:center">' + providerChips(r) +
-        '<input id="repoFilter" class="textinput" style="max-width:230px" placeholder="' + esc(S.filterRepos) + '"></div></div>' +
+        '<input id="repoFilter" class="textinput" style="max-width:230px" placeholder="' + esc(S.filterRepos) + '">' +
+        (lastMsg && lastMsg.hiddenCount > 0
+          ? '<a href="#" id="manageHidden" class="hiddenlink">' + esc(S.hiddenManage.replace('{0}', lastMsg.hiddenCount)) + '</a>'
+          : '') +
+        '</div></div>' +
         repoTableDynamic() + '<div class="hint">' + esc(S.detailHint) + '</div></div>';
 
     bindAllowance();
@@ -501,15 +513,36 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     nameInput.focus();
   }
 
+  function keyable(row) {
+    row.tabIndex = 0;
+    row.setAttribute('role', 'button');
+    row.onkeydown = (e) => {
+      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.onclick(); }
+    };
+  }
+
   function bindRepoRows() {
     for (const row of document.querySelectorAll('tr.clickable[data-repo]')) {
       row.onclick = () => vscode.postMessage({ type: 'selectRepo', repo: row.dataset.repo });
+      keyable(row);
     }
+    for (const btn of document.querySelectorAll('.rowact button')) {
+      btn.onclick = (e) => {
+        e.stopPropagation();
+        vscode.postMessage({
+          type: btn.classList.contains('act-rename') ? 'renameRepo' : 'toggleHidden',
+          repo: btn.dataset.repo,
+        });
+      };
+    }
+    const hiddenLink = document.getElementById('manageHidden');
+    if (hiddenLink) hiddenLink.onclick = (e) => { e.preventDefault(); vscode.postMessage({ type: 'manageHidden' }); };
   }
 
   function bindGroupRows() {
     for (const row of document.querySelectorAll('tr.clickable[data-group]')) {
       row.onclick = () => vscode.postMessage({ type: 'selectGroup', group: row.dataset.group });
+      keyable(row);
     }
   }
 
@@ -705,7 +738,11 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       const isStar = starred.has(repo.repo.name.toLowerCase());
       return '<tr class="clickable" data-repo="' + esc(repo.repo.name) + '">' +
         '<td class="starcell' + (isStar ? ' on' : '') + '" data-star="' + esc(repo.repo.name) + '" title="' + esc(S.starToggle) + '">' + (isStar ? '★' : '☆') + '</td>' +
-        '<td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') + '</td>' +
+        '<td>' + esc(repo.repo.name) + (repo.hasEstimates ? '<span class="badge">~est</span>' : '') +
+          '<span class="rowact">' +
+          '<button class="act-rename" data-repo="' + esc(repo.repo.name) + '" title="' + esc(S.renameRepoTitle) + '">✎</button>' +
+          '<button class="act-hide" data-repo="' + esc(repo.repo.name) + '" title="' + esc(S.hideRepoTitle) + '">🙈</button>' +
+          '</span></td>' +
         '<td class="models" title="' + esc(models.map((m) => m.model + ' (' + m.requestCount + '×)').join(', ')) + '">' + shown + more + '</td>' +
         '<td class="num">' + repo.requestCount + '</td>' +
         '<td class="num">' + repo.sessionCount + '</td>' +

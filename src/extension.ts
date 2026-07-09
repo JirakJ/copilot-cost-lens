@@ -15,11 +15,13 @@ import { PLAN_CREDITS } from './core/pricing';
 import {
   clampCharsPerToken,
   sanitizeNumberArray,
+  sanitizeCurrency,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
   sanitizeRepoAliases,
   sanitizeStringArray,
 } from './core/config';
+import { DisplayCurrency } from './core/money';
 import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
 import { exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
@@ -52,6 +54,9 @@ export function activate(context: vscode.ExtensionContext): void {
     toggleStar: (repoName) => toggleStar(repoName),
     renameRepo: (repoName) => renameRepo(repoName),
     toggleHidden: (repoName) => toggleHidden(repoName),
+    getHiddenCount: () => hiddenRepos().length,
+    getCurrency: () => displayCurrency(),
+    manageHidden: () => manageHiddenRepos(),
     refresh: async () => {
       await store.refresh();
     },
@@ -77,6 +82,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.exportJson', () => exportUsage(store.getEvents(), 'json')),
     vscode.commands.registerCommand('copilotCostLens.exportReceipt', () => pickRepoAndExportReceipt(store)),
     vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
+    vscode.commands.registerCommand('copilotCostLens.manageHidden', () => manageHiddenRepos()),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
@@ -208,12 +214,18 @@ async function setAllowance(value: number | 'custom'): Promise<void> {
   await config.update('includedCreditsPerMonth', credits, vscode.ConfigurationTarget.Global);
 }
 
-function statusBarOptions(): { enabled: boolean; warnAtPercent: number } {
+function statusBarOptions(): { enabled: boolean; warnAtPercent: number; currency: DisplayCurrency } {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return {
     enabled: config.get<boolean>('statusBar.enabled', true),
     warnAtPercent: config.get<number>('warnAtPercent', 80),
+    currency: displayCurrency(),
   };
+}
+
+function displayCurrency(): DisplayCurrency {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  return sanitizeCurrency(config.get('displayCurrency', 'USD'), config.get('usdExchangeRate', 1));
 }
 
 function projectGroups(): ProjectGroups {
@@ -244,6 +256,33 @@ function visibleEvents(store: UsageStore): UsageEvent[] {
 function hiddenRepos(): string[] {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return sanitizeStringArray(config.get('hiddenRepos', []));
+}
+
+/** QuickPick to unhide repositories: unchecked entries are removed from hiddenRepos. */
+async function manageHiddenRepos(): Promise<void> {
+  const hidden = hiddenRepos();
+  if (hidden.length === 0) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t('Copilot Cost Lens: no hidden repositories.'),
+    );
+    return;
+  }
+  const picked = await vscode.window.showQuickPick(
+    hidden.map((name) => ({ label: name, picked: true })),
+    {
+      title: vscode.l10n.t('Hidden repositories — uncheck to unhide'),
+      canPickMany: true,
+    },
+  );
+  if (picked === undefined) {
+    return;
+  }
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  await config.update(
+    'hiddenRepos',
+    picked.map((p) => p.label),
+    vscode.ConfigurationTarget.Global,
+  );
 }
 
 async function toggleHidden(repoName: string): Promise<void> {

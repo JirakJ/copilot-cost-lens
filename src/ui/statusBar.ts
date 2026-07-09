@@ -1,4 +1,5 @@
 import * as vscode from 'vscode';
+import { DisplayCurrency, money } from '../core/money';
 import { sparkline } from '../core/sparkline';
 import { MonthReport } from '../types';
 
@@ -11,16 +12,19 @@ export class CostStatusBar implements vscode.Disposable {
     this.item.command = 'copilotCostLens.openDashboard';
   }
 
-  update(report: MonthReport, options: { enabled: boolean; warnAtPercent: number }): void {
+  update(
+    report: MonthReport,
+    options: { enabled: boolean; warnAtPercent: number; currency: DisplayCurrency },
+  ): void {
     if (!options.enabled) {
       this.item.hide();
       return;
     }
 
-    const usd = report.totalUsd.toFixed(2);
+    const usd = money(report.totalUsd, options.currency);
     const credits = formatCredits(report.totalCredits);
     const spark = sparkline(report);
-    this.item.text = `$(graph-line) ${credits} cr · $${usd}${spark ? ' ' + spark : ''}`;
+    this.item.text = `$(graph-line) ${credits} cr · ${usd}${spark ? ' ' + spark : ''}`;
 
     const overWarn =
       report.includedCredits > 0 && report.usedPercent >= options.warnAtPercent;
@@ -31,7 +35,7 @@ export class CostStatusBar implements vscode.Disposable {
     const t = vscode.l10n.t;
     const md = new vscode.MarkdownString(undefined, true);
     md.appendMarkdown(`**Copilot Cost Lens — ${report.month}**\n\n`);
-    md.appendMarkdown(t('Spend: **${0}** ({1} credits)', usd, credits) + '\n\n');
+    md.appendMarkdown(t('Spend: **{0}** ({1} credits)', usd, credits) + '\n\n');
     if (report.providers.length > 1) {
       const names: Record<string, string> = {
         copilot: 'Copilot',
@@ -40,7 +44,7 @@ export class CostStatusBar implements vscode.Disposable {
       };
       md.appendMarkdown(
         report.providers
-          .map((p) => `${names[p.provider] ?? p.provider}: $${p.usd.toFixed(2)}`)
+          .map((p) => `${names[p.provider] ?? p.provider}: ${money(p.usd, options.currency)}`)
           .join(' · ') + '\n\n',
       );
     }
@@ -53,11 +57,13 @@ export class CostStatusBar implements vscode.Disposable {
         ) + '\n\n',
       );
     }
-    md.appendMarkdown(t('Forecast: ${0} by end of month', report.forecastUsd.toFixed(2)) + '\n\n');
+    md.appendMarkdown(
+      t('Forecast: {0} by end of month', money(report.forecastUsd, options.currency)) + '\n\n',
+    );
     if (report.repos.length > 0) {
       md.appendMarkdown(`---\n\n`);
       for (const repo of report.repos.slice(0, 3)) {
-        md.appendMarkdown(`$(repo) ${repo.repo.name}: **$${repo.usd.toFixed(2)}**\n\n`);
+        md.appendMarkdown(`$(repo) ${repo.repo.name}: **${money(repo.usd, options.currency)}**\n\n`);
       }
     }
     if (report.hasEstimates) {

@@ -1,12 +1,14 @@
 import { describe, expect, it } from 'vitest';
 import {
   clampCharsPerToken,
+  sanitizeCurrency,
   sanitizeNumberArray,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
   sanitizeRepoAliases,
   sanitizeStringArray,
 } from '../src/core/config';
+import { money } from '../src/core/money';
 
 describe('sanitizeStringArray', () => {
   it('keeps only non-empty strings', () => {
@@ -81,5 +83,19 @@ describe('sanitizeRepoAliases', () => {
   it('tolerates non-object input', () => {
     expect(sanitizeRepoAliases(null)).toEqual({});
     expect(sanitizeRepoAliases([])).toEqual({});
+  });
+});
+
+describe('sanitizeCurrency + money', () => {
+  it('normalizes code and guards the rate', () => {
+    expect(sanitizeCurrency(' czk ', 23.5)).toEqual({ code: 'CZK', rate: 23.5 });
+    expect(sanitizeCurrency('EURO', 2)).toEqual({ code: 'USD', rate: 1 });
+    expect(sanitizeCurrency('EUR', -1)).toEqual({ code: 'EUR', rate: 1 });
+    expect(sanitizeCurrency('EUR', NaN)).toEqual({ code: 'EUR', rate: 1 });
+    expect(sanitizeCurrency('usd', 42)).toEqual({ code: 'USD', rate: 1 });
+  });
+  it('formats USD with $ and other currencies with code suffix', () => {
+    expect(money(12.345, { code: 'USD', rate: 1 })).toBe('$12.35');
+    expect(money(10, { code: 'CZK', rate: 23.5 })).toBe('235.00 CZK');
   });
 });

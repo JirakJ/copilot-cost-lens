@@ -47,8 +47,9 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **PDF receipts** — export a classic printed-receipt PDF per repository or per project (with a per-repository breakdown), including model line items, token counts, effective $/1M rates and totals. Great for chargeback or framing on the wall.
 - **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail and a combined receipt with per-repository breakdown.
 - **Starred repositories** — pin your important repos with a ☆ and they surface in a dedicated section at the top of the dashboard.
-- **Rename repositories** — give hash-named remote repositories like `(unknown) 2bebdc79` a friendly display name with the ✎ Rename button; the alias follows the repository through every view, project total and receipt.
-- **Hide repositories** — remove noise repos from the dashboard with the 🙈 Hide button. Raw CSV/JSON exports and budget alerts still see the full picture; unhide any time via `copilotCostLens.hiddenRepos`.
+- **Rename repositories** — give hash-named remote repositories like `(unknown) 2bebdc79` a friendly display name; the alias follows the repository through every view, project total and receipt. Hover a table row for the ✎ button, or use the detail view.
+- **Hide repositories** — remove noise repos with the 🙈 button (row hover or detail view). Raw CSV/JSON exports and budget alerts still see the full picture; unhide via `Copilot Cost Lens: Manage Hidden Repositories`.
+- **Your currency** — show all amounts in EUR, CZK, GBP… via `copilotCostLens.displayCurrency` plus a manually set exchange rate. No network calls, ever; receipts stay in USD.
 - **Runaway-session alert** — set `copilotCostLens.sessionCostAlertUsd` and get warned the moment a single (agent) session crosses your dollar threshold — before it becomes a surprise on the bill.
 - **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
@@ -119,8 +120,10 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.jetbrainsCopilot.enabled` | `false` | Include JetBrains Copilot chat sessions (estimated). |
 | `copilotCostLens.starredRepos` | `[]` | Repositories pinned to the top of the dashboard. |
 | `copilotCostLens.repoAliases` | `{}` | Display names: `{ "(unknown) 2bebdc79": "Backend API" }` — set via ✎ Rename. |
-| `copilotCostLens.hiddenRepos` | `[]` | Repositories hidden from all views — set via 🙈 Hide, remove here to unhide. |
+| `copilotCostLens.hiddenRepos` | `[]` | Repositories hidden from all views — set via 🙈 Hide, unhide via the Manage Hidden Repositories command. |
 | `copilotCostLens.sessionCostAlertUsd` | `0` | Warn when one session crosses this USD amount (0 = off). |
+| `copilotCostLens.displayCurrency` | `USD` | Currency code shown in the dashboard and status bar. |
+| `copilotCostLens.usdExchangeRate` | `1` | Units of the display currency per 1 USD (manual, offline). |
 | `copilotCostLens.documentLanguage` | `en` | Language of exported PDF receipts (`en`, `auto`, `cs`, `de`). |
 | `copilotCostLens.estimation.enabled` | `true` | Estimate sessions that have no exact token data. |
 | `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator — only affects `~est` entries. ~4 chars/token is the rule of thumb for English text and code (CJK ≈ 1–2); estimates land within roughly ±20–30 % of real counts. |
@@ -133,6 +136,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Refresh Usage Data`
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
 - `Copilot Cost Lens: Export Project Receipt (PDF)`
+- `Copilot Cost Lens: Manage Hidden Repositories`
 - `Copilot Cost Lens: Open Settings`
 - `Copilot Cost Lens: Show Diagnostics` — scanned roots, file counts, events per source
 

@@ -22,6 +22,12 @@ export interface DashboardDelegate {
   renameRepo(repoName: string): Promise<void>;
   /** Hide (or unhide) a repository from all dashboard views. */
   toggleHidden(repoName: string): Promise<void>;
+  /** Number of currently hidden repositories (for the manage link). */
+  getHiddenCount(): number;
+  /** Display currency for money formatting in the webview. */
+  getCurrency(): { code: string; rate: number };
+  /** Open the unhide QuickPick. */
+  manageHidden(): Promise<void>;
   refresh(): Promise<void>;
   /** Export usage records for the given period ('all' or YYYY-MM). */
   exportData(format: 'csv' | 'json', month: string): Promise<void>;
@@ -123,6 +129,10 @@ export class DashboardController {
             this.postAll();
           }
           break;
+        case 'manageHidden':
+          await this.delegate.manageHidden();
+          this.postAll();
+          break;
         case 'saveGroup':
           if (message.name && Array.isArray(message.members) && message.members.length > 0) {
             await this.delegate.saveGroup(message.originalName, message.name, message.members);
@@ -202,6 +212,8 @@ export class DashboardController {
       groupsConfig: this.delegate.getGroupsConfig(),
       starred: this.delegate.getStarred(),
       stats: this.delegate.getStats(),
+      hiddenCount: this.delegate.getHiddenCount(),
+      currency: this.delegate.getCurrency(),
     });
   }
 }

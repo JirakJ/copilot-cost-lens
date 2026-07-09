@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.17.0] — 2026-07-09
+
+### Added
+
+- **Row actions.** Hover any repository row for inline ✎ Rename and 🙈 Hide buttons — no need to open the detail view first.
+- **Manage Hidden Repositories.** A new command (and a "N hidden — manage" link next to the repository filter) opens a checklist to unhide repositories; no more hand-editing settings JSON.
+- **Display currency.** Show all dashboard and status-bar amounts in your currency (`copilotCostLens.displayCurrency` + `copilotCostLens.usdExchangeRate`). The rate is set manually — the extension still never touches the network. Internal accounting and PDF receipts stay in USD.
+
+### Changed
+
+- Repository and project rows are keyboard-accessible: focus with Tab, open with Enter or Space.
+
 ## [1.16.0] — 2026-07-09
 
 ### Added

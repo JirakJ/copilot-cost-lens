@@ -42,6 +42,19 @@ export function sanitizePriceOverrides(raw: unknown): Record<string, Partial<Mod
   return out;
 }
 
+/** Display currency for dashboard and status bar. USD always keeps rate 1. */
+export function sanitizeCurrency(codeRaw: unknown, rateRaw: unknown): { code: string; rate: number } {
+  const code =
+    typeof codeRaw === 'string' && /^[A-Za-z]{3}$/.test(codeRaw.trim())
+      ? codeRaw.trim().toUpperCase()
+      : 'USD';
+  if (code === 'USD') {
+    return { code, rate: 1 };
+  }
+  const rate = typeof rateRaw === 'number' && Number.isFinite(rateRaw) && rateRaw > 0 ? rateRaw : 1;
+  return { code, rate };
+}
+
 /** Parse the repo-alias map (original name → display name), dropping malformed entries. */
 export function sanitizeRepoAliases(raw: unknown): Record<string, string> {
   const out: Record<string, string> = {};
