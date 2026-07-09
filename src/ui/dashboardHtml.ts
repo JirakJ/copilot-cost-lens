@@ -119,6 +119,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   .rowact button:hover { color: inherit; }
   tr.clickable:focus-visible { outline: 1px solid var(--c5); outline-offset: -1px; }
   .hiddenlink { margin-left: 10px; color: var(--muted); font-size: 11px; white-space: nowrap; }
+  a.credit { color: var(--muted); font-size: 10px; text-decoration: none; opacity: .7; }
+  a.credit:hover { opacity: 1; text-decoration: underline; }
   .pick .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .pick .val { color: var(--muted); font-variant-numeric: tabular-nums; }
   .chip {
@@ -137,6 +139,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     <button id="refresh"></button>
     <button id="exportCsv"></button>
     <button id="exportJson"></button>
+    <button id="receiptAll"></button>
     <button id="settings">⚙</button>
   </header>
   <div id="app"><div class="loader"><div class="spinner"></div></div></div>
@@ -156,11 +159,14 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   document.getElementById('refresh').title = S.refreshTitle;
   document.getElementById('exportCsv').textContent = S.exportCsv;
   document.getElementById('exportJson').textContent = S.exportJson;
+  document.getElementById('receiptAll').textContent = '🧾 ' + S.receiptPdf;
+  document.getElementById('receiptAll').title = S.receiptAllTitle;
   document.getElementById('settings').title = S.settingsTitle;
 
   document.getElementById('refresh').onclick = () => vscode.postMessage({ type: 'refresh' });
   document.getElementById('exportCsv').onclick = () => vscode.postMessage({ type: 'export', format: 'csv' });
   document.getElementById('exportJson').onclick = () => vscode.postMessage({ type: 'export', format: 'json' });
+  document.getElementById('receiptAll').onclick = () => vscode.postMessage({ type: 'exportReceipt', all: true });
   document.getElementById('settings').onclick = () => vscode.postMessage({ type: 'openSettings' });
   monthSel.onchange = () => vscode.postMessage({ type: 'selectMonth', month: monthSel.value });
 
@@ -245,10 +251,13 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         (dataElsewhere
           ? '<p>' + esc(tpl(S.emptyOtherPeriod, periodName(selectedMonth))) + '</p>' +
             '<button id="viewAll" class="primary">' + esc(S.viewAllTime) + '</button>'
-          : '<p>' + esc(S.emptyTitle) + '</p><p>' + esc(S.emptyHint) + '</p>') +
+          : '<p>' + esc(S.emptyTitle) + '</p><p>' + esc(S.emptyHint) + '</p>' +
+            '<button id="addRoot">📁 ' + esc(S.addRoot) + '</button>') +
         '</div>';
       const viewAll = document.getElementById('viewAll');
       if (viewAll) viewAll.onclick = () => vscode.postMessage({ type: 'selectMonth', month: 'all' });
+      const addRoot = document.getElementById('addRoot');
+      if (addRoot) addRoot.onclick = () => vscode.postMessage({ type: 'addStorageRoot' });
       foot.innerHTML = '';
       return;
     }
@@ -321,7 +330,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     bindStars();
 
     foot.innerHTML = esc(S.footSources) + '<br>' + esc(S.footAllowance) +
-      (r.hasEstimates ? '<br>' + esc(S.footEstimates) : '');
+      (r.hasEstimates ? '<br>' + esc(S.footEstimates) : '') +
+      '<br><a class="credit" href="https://ai.jakubjirak.com">ai.jakubjirak.com</a>';
   }
 
   function renderDetail(d) {

@@ -14,7 +14,12 @@ export class CostStatusBar implements vscode.Disposable {
 
   update(
     report: MonthReport,
-    options: { enabled: boolean; warnAtPercent: number; currency: DisplayCurrency },
+    options: {
+      enabled: boolean;
+      warnAtPercent: number;
+      currency: DisplayCurrency;
+      mode?: 'spend' | 'remaining';
+    },
   ): void {
     if (!options.enabled) {
       this.item.hide();
@@ -24,7 +29,13 @@ export class CostStatusBar implements vscode.Disposable {
     const usd = money(report.totalUsd, options.currency);
     const credits = formatCredits(report.totalCredits);
     const spark = sparkline(report);
-    this.item.text = `$(graph-line) ${credits} cr · ${usd}${spark ? ' ' + spark : ''}`;
+    // remaining mode needs an allowance to count down from; fall back to spend
+    if (options.mode === 'remaining' && report.includedCredits > 0) {
+      const left = report.includedCredits - report.copilotCredits;
+      this.item.text = `$(graph-line) ${formatCredits(left)} cr left${spark ? ' ' + spark : ''}`;
+    } else {
+      this.item.text = `$(graph-line) ${credits} cr · ${usd}${spark ? ' ' + spark : ''}`;
+    }
 
     const overWarn =
       report.includedCredits > 0 && report.usedPercent >= options.warnAtPercent;

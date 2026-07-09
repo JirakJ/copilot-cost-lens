@@ -107,6 +107,13 @@
   "{0} hidden — manage": "{0} ausgeblendet — verwalten",
   "Copilot Cost Lens: no hidden repositories.": "Copilot Cost Lens: keine ausgeblendeten Repositories.",
   "Hidden repositories — uncheck to unhide": "Ausgeblendete Repositories — Häkchen entfernen zum Einblenden",
+  "Export a summary receipt (PDF) for every repository in this period": "Sammelbeleg (PDF) für alle Repositories in diesem Zeitraum exportieren",
+  "Add storage root…": "Protokollordner hinzufügen…",
+  "Add root": "Ordner hinzufügen",
+  "Select a folder with Copilot/Claude usage logs": "Ordner mit Copilot-/Claude-Nutzungsprotokollen auswählen",
+  "Copilot Cost Lens: storage root added: {0}": "Copilot Cost Lens: Protokollordner hinzugefügt: {0}",
+  "All repositories": "Alle Repositories",
+  "📅 Entire period (all repositories)": "📅 Gesamter Zeitraum (alle Repositories)",
   "No usage in {0}, but you have data in other periods.": "Keine Nutzung in {0}, aber Sie haben Daten in anderen Zeiträumen.",
   "View all time": "Gesamten Zeitraum anzeigen",
   "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)"

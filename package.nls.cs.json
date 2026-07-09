@@ -30,6 +30,8 @@
   "cfg.repoAliases": "Vlastní zobrazované názvy repozitářů podle jejich rozpoznaného názvu. Příklad: `{ \"(unknown) 2bebdc79\": \"Backend API\" }`. Místo ruční úpravy použijte tlačítko ✎ Přejmenovat v detailu repozitáře.",
   "cfg.hiddenRepos": "Repozitáře skryté z přehledu, stavového řádku a účtenek. Surové CSV/JSON exporty a rozpočtová upozornění je stále zahrnují. Použijte tlačítko 🙈 Skrýt v detailu repozitáře; znovu zobrazíte příkazem `Spravovat skryté repozitáře`.",
   "cmd.manageHidden": "Spravovat skryté repozitáře",
+  "cmd.addStorageRoot": "Přidat složku s logy…",
+  "cfg.statusBarMode": "Co zobrazuje stavový řádek: `spend` (dosavadní kredity a útrata) nebo `remaining` (zbývající zahrnuté AI kredity tento měsíc; bez nastavené kvóty se použije spend).",
   "cfg.displayCurrency": "Třípísmenný kód měny pro zobrazení částek v přehledu a stavovém řádku (např. `EUR`, `CZK`). Přepočet používá `#copilotCostLens.usdExchangeRate#`; interní účetnictví a PDF účtenky zůstávají v USD.",
   "cfg.usdExchangeRate": "Kolik jednotek měny `#copilotCostLens.displayCurrency#` koupí jeden americký dolar (např. `23.5` pro CZK). Nastavuje se ručně — rozšíření nikdy nekomunikuje po síti. Při zobrazení v USD se ignoruje.",
   "cfg.sessionCostAlert": "Upozornit, když celkové náklady jedné session překročí tuto částku v USD — včas odhalí utrženou agentní session. `0` upozornění vypne. Každá session upozorní nejvýše jednou.",

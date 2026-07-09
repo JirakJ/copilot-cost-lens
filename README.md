@@ -50,6 +50,8 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Rename repositories** — give hash-named remote repositories like `(unknown) 2bebdc79` a friendly display name; the alias follows the repository through every view, project total and receipt. Hover a table row for the ✎ button, or use the detail view.
 - **Hide repositories** — remove noise repos with the 🙈 button (row hover or detail view). Raw CSV/JSON exports and budget alerts still see the full picture; unhide via `Copilot Cost Lens: Manage Hidden Repositories`.
 - **Your currency** — show all amounts in EUR, CZK, GBP… via `copilotCostLens.displayCurrency` plus a manually set exchange rate. No network calls, ever; receipts stay in USD.
+- **Summary receipt** — one PDF for every repository in the selected period (🧾 button in the toolbar), next to the existing per-repository and per-project receipts.
+- **Status bar, your way** — show spend so far or the AI credits you have left (`copilotCostLens.statusBar.mode`).
 - **Runaway-session alert** — set `copilotCostLens.sessionCostAlertUsd` and get warned the moment a single (agent) session crosses your dollar threshold — before it becomes a surprise on the bill.
 - **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
@@ -124,6 +126,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.sessionCostAlertUsd` | `0` | Warn when one session crosses this USD amount (0 = off). |
 | `copilotCostLens.displayCurrency` | `USD` | Currency code shown in the dashboard and status bar. |
 | `copilotCostLens.usdExchangeRate` | `1` | Units of the display currency per 1 USD (manual, offline). |
+| `copilotCostLens.statusBar.mode` | `spend` | Status bar shows `spend` so far or `remaining` allowance credits. |
 | `copilotCostLens.documentLanguage` | `en` | Language of exported PDF receipts (`en`, `auto`, `cs`, `de`). |
 | `copilotCostLens.estimation.enabled` | `true` | Estimate sessions that have no exact token data. |
 | `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator — only affects `~est` entries. ~4 chars/token is the rule of thumb for English text and code (CJK ≈ 1–2); estimates land within roughly ±20–30 % of real counts. |
@@ -137,6 +140,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`
 - `Copilot Cost Lens: Export Project Receipt (PDF)`
 - `Copilot Cost Lens: Manage Hidden Repositories`
+- `Copilot Cost Lens: Add Storage Root…`
 - `Copilot Cost Lens: Open Settings`
 - `Copilot Cost Lens: Show Diagnostics` — scanned roots, file counts, events per source
 
@@ -176,3 +180,7 @@ Press <kbd>F5</kbd> in VS Code to launch the Extension Development Host.
 ## License
 
 [MIT](LICENSE)
+
+---
+
+<sub>Made by [Jakub Jirák](https://ai.jakubjirak.com)</sub>

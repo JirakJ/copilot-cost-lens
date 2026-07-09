@@ -107,6 +107,13 @@
   "{0} hidden — manage": "{0} skryto — spravovat",
   "Copilot Cost Lens: no hidden repositories.": "Copilot Cost Lens: žádné skryté repozitáře.",
   "Hidden repositories — uncheck to unhide": "Skryté repozitáře — odškrtnutím znovu zobrazíte",
+  "Export a summary receipt (PDF) for every repository in this period": "Exportovat souhrnnou účtenku (PDF) za všechny repozitáře v tomto období",
+  "Add storage root…": "Přidat složku s logy…",
+  "Add root": "Přidat složku",
+  "Select a folder with Copilot/Claude usage logs": "Vyberte složku s logy využití Copilot/Claude",
+  "Copilot Cost Lens: storage root added: {0}": "Copilot Cost Lens: složka s logy přidána: {0}",
+  "All repositories": "Všechny repozitáře",
+  "📅 Entire period (all repositories)": "📅 Celé období (všechny repozitáře)",
   "No usage in {0}, but you have data in other periods.": "V období {0} nejsou žádná data, ale máte data v jiných obdobích.",
   "View all time": "Zobrazit vše od počátku",
   "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)"

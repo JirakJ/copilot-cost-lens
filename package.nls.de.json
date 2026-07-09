@@ -30,6 +30,8 @@
   "cfg.repoAliases": "Eigene Anzeigenamen für Repositories, indexiert nach ihrem aufgelösten Namen. Beispiel: `{ \"(unknown) 2bebdc79\": \"Backend API\" }`. Nutzen Sie die Schaltfläche ✎ Umbenennen in der Detailansicht eines Repositories, statt dies von Hand zu bearbeiten.",
   "cfg.hiddenRepos": "Repositories, die aus Dashboard, Statusleiste und Belegen ausgeblendet sind. Roh-Exporte (CSV/JSON) und Budget-Warnungen berücksichtigen sie weiterhin. Nutzen Sie die Schaltfläche 🙈 Ausblenden in der Detailansicht; wieder einblenden über den Befehl `Ausgeblendete Repositories verwalten`.",
   "cmd.manageHidden": "Ausgeblendete Repositories verwalten",
+  "cmd.addStorageRoot": "Protokollordner hinzufügen…",
+  "cfg.statusBarMode": "Was die Statusleiste anzeigt: `spend` (bisherige Credits und Kosten) oder `remaining` (verbleibende enthaltene AI-Credits diesen Monat; ohne Kontingent wird spend verwendet).",
   "cfg.displayCurrency": "Dreibuchstabiger Währungscode für die Anzeige in Dashboard und Statusleiste (z. B. `EUR`, `CZK`). Die Umrechnung nutzt `#copilotCostLens.usdExchangeRate#`; interne Verrechnung und PDF-Belege bleiben in USD.",
   "cfg.usdExchangeRate": "Wie viele Einheiten von `#copilotCostLens.displayCurrency#` ein US-Dollar kauft (z. B. `0.92` für EUR). Manuell setzen — die Erweiterung kommuniziert nie über das Netzwerk. Bei USD-Anzeige ignoriert.",
   "cfg.sessionCostAlert": "Warnen, wenn die Gesamtkosten einer einzelnen Session diesen USD-Betrag überschreiten — erkennt außer Kontrolle geratene Agent-Sessions frühzeitig. `0` deaktiviert die Warnung. Jede Session warnt höchstens einmal.",

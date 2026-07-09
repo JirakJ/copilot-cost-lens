@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.18.0] — 2026-07-09
+
+### Added
+
+- **Summary receipt.** The 🧾 toolbar button (and a new "Entire period" option in the receipt picker) exports one PDF covering every repository in the selected period — your monthly AI expense document in one click.
+- **Add Storage Root command.** A folder picker that appends to `copilotCostLens.extraStorageRoots` — also offered right in the empty state, so "no data" has a one-click escape hatch.
+- **Status bar mode.** `copilotCostLens.statusBar.mode: "remaining"` counts down the AI credits you have left instead of showing spend.
+
+### Fixed
+
+- Project-group receipts now respect hidden repositories, matching what the dashboard shows (and what the docs promised).
+
 ## [1.17.0] — 2026-07-09
 
 ### Added

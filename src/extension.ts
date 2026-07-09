@@ -57,6 +57,7 @@ export function activate(context: vscode.ExtensionContext): void {
     getHiddenCount: () => hiddenRepos().length,
     getCurrency: () => displayCurrency(),
     manageHidden: () => manageHiddenRepos(),
+    addStorageRoot: () => addStorageRoot(),
     refresh: async () => {
       await store.refresh();
     },
@@ -83,6 +84,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.exportReceipt', () => pickRepoAndExportReceipt(store)),
     vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
     vscode.commands.registerCommand('copilotCostLens.manageHidden', () => manageHiddenRepos()),
+    vscode.commands.registerCommand('copilotCostLens.addStorageRoot', () => addStorageRoot()),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
@@ -214,12 +216,19 @@ async function setAllowance(value: number | 'custom'): Promise<void> {
   await config.update('includedCreditsPerMonth', credits, vscode.ConfigurationTarget.Global);
 }
 
-function statusBarOptions(): { enabled: boolean; warnAtPercent: number; currency: DisplayCurrency } {
+function statusBarOptions(): {
+  enabled: boolean;
+  warnAtPercent: number;
+  currency: DisplayCurrency;
+  mode: 'spend' | 'remaining';
+} {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const mode = config.get<string>('statusBar.mode', 'spend');
   return {
     enabled: config.get<boolean>('statusBar.enabled', true),
     warnAtPercent: config.get<number>('warnAtPercent', 80),
     currency: displayCurrency(),
+    mode: mode === 'remaining' ? 'remaining' : 'spend',
   };
 }
 
@@ -256,6 +265,30 @@ function visibleEvents(store: UsageStore): UsageEvent[] {
 function hiddenRepos(): string[] {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return sanitizeStringArray(config.get('hiddenRepos', []));
+}
+
+/** Folder picker appending to extraStorageRoots — the no-data escape hatch. */
+async function addStorageRoot(): Promise<void> {
+  const picked = await vscode.window.showOpenDialog({
+    canSelectFolders: true,
+    canSelectFiles: false,
+    canSelectMany: false,
+    openLabel: vscode.l10n.t('Add root'),
+    title: vscode.l10n.t('Select a folder with Copilot/Claude usage logs'),
+  });
+  const folder = picked?.[0]?.fsPath;
+  if (!folder) {
+    return;
+  }
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const current = sanitizeStringArray(config.get('extraStorageRoots', []));
+  if (current.includes(folder)) {
+    return;
+  }
+  await config.update('extraStorageRoots', [...current, folder], vscode.ConfigurationTarget.Global);
+  void vscode.window.showInformationMessage(
+    vscode.l10n.t('Copilot Cost Lens: storage root added: {0}', folder),
+  );
 }
 
 /** QuickPick to unhide repositories: unchecked entries are removed from hiddenRepos. */
@@ -404,21 +437,31 @@ async function openRepoFolder(folderPath: string): Promise<void> {
 
 async function exportReceipt(
   store: UsageStore,
-  target: { repo?: string; group?: string },
+  target: { repo?: string; group?: string; all?: boolean },
   month: string,
 ): Promise<void> {
   let data;
-  if (target.group) {
+  let name = target.group ?? target.repo ?? '';
+  if (target.all) {
+    // summary receipt: every visible repository in the period as one "group"
+    const report = buildMonthReport(visibleEvents(store), { month, includedCredits: 0 });
+    const members = report.repos.map((r) => r.repo.name);
+    name = vscode.l10n.t('All repositories');
+    const detail =
+      members.length > 0
+        ? buildGroupDetail(visibleEvents(store), { name, members, month })
+        : undefined;
+    data = detail ? receiptFromGroup(detail) : undefined;
+  } else if (target.group) {
     const members = projectGroups()[target.group];
     const detail = members
-      ? buildGroupDetail(store.getEvents(), { name: target.group, members, month })
+      ? buildGroupDetail(visibleEvents(store), { name: target.group, members, month })
       : undefined;
     data = detail ? receiptFromGroup(detail) : undefined;
   } else if (target.repo) {
-    const detail = buildRepoDetail(store.getEvents(), { repoName: target.repo, month });
+    const detail = buildRepoDetail(visibleEvents(store), { repoName: target.repo, month });
     data = detail ? receiptFromRepo(detail) : undefined;
   }
-  const name = target.group ?? target.repo ?? '';
   if (!data) {
     void vscode.window.showInformationMessage(
       vscode.l10n.t('Copilot Cost Lens: no usage data for {0} in this period.', name),
@@ -449,7 +492,12 @@ async function pickRepoAndExportReceipt(store: UsageStore): Promise<void> {
     includedCredits: 0,
     groups: projectGroups(),
   });
-  const items: (vscode.QuickPickItem & { target: { repo?: string; group?: string } })[] = [
+  const items: (vscode.QuickPickItem & { target: { repo?: string; group?: string; all?: boolean } })[] = [
+    {
+      label: vscode.l10n.t('📅 Entire period (all repositories)'),
+      description: `$${report.totalUsd.toFixed(2)}`,
+      target: { all: true },
+    },
     ...report.groups.map((g) => ({
       label: `📁 ${g.name}`,
       description: `$${g.usd.toFixed(2)} · ${g.repos.length}×`,

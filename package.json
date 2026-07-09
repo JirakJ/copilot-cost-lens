@@ -2,7 +2,7 @@
   "name": "copilot-cost-lens",
   "displayName": "Copilot Cost Lens — AI Usage & Spend Tracker",
   "description": "Track GitHub Copilot and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
-  "version": "1.17.0",
+  "version": "1.18.0",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -121,6 +121,11 @@
       {
         "command": "copilotCostLens.manageHidden",
         "title": "%cmd.manageHidden%",
+        "category": "Copilot Cost Lens"
+      },
+      {
+        "command": "copilotCostLens.addStorageRoot",
+        "title": "%cmd.addStorageRoot%",
         "category": "Copilot Cost Lens"
       },
       {
@@ -290,6 +295,15 @@
           "type": "boolean",
           "default": true,
           "description": "%cfg.statusBar%"
+        },
+        "copilotCostLens.statusBar.mode": {
+          "type": "string",
+          "enum": [
+            "spend",
+            "remaining"
+          ],
+          "default": "spend",
+          "description": "%cfg.statusBarMode%"
         },
         "copilotCostLens.extraStorageRoots": {
           "type": "array",

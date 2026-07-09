@@ -31,7 +31,9 @@ export interface DashboardDelegate {
   refresh(): Promise<void>;
   /** Export usage records for the given period ('all' or YYYY-MM). */
   exportData(format: 'csv' | 'json', month: string): Promise<void>;
-  exportReceipt(target: { repo?: string; group?: string }, month: string): Promise<void>;
+  exportReceipt(target: { repo?: string; group?: string; all?: boolean }, month: string): Promise<void>;
+  /** Folder picker that appends to copilotCostLens.extraStorageRoots. */
+  addStorageRoot(): Promise<void>;
   /** Open a repository folder in a new VS Code window. */
   openRepo(folderPath: string): Promise<void>;
   setAllowance(value: number | 'custom'): Promise<void>;
@@ -50,6 +52,7 @@ interface IncomingMessage {
   name?: string;
   members?: string[];
   path?: string;
+  all?: boolean;
 }
 
 /**
@@ -98,12 +101,15 @@ export class DashboardController {
           await this.delegate.exportData(message.format ?? 'csv', this.currentMonth());
           break;
         case 'exportReceipt':
-          if (message.repo || message.group) {
+          if (message.repo || message.group || message.all) {
             await this.delegate.exportReceipt(
-              { repo: message.repo, group: message.group },
+              { repo: message.repo, group: message.group, all: message.all },
               this.currentMonth(),
             );
           }
+          break;
+        case 'addStorageRoot':
+          await this.delegate.addStorageRoot();
           break;
         case 'openRepo':
           if (message.path) {
