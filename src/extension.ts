@@ -9,6 +9,7 @@ import {
   currentMonthKey,
   monthKey,
   ProjectGroups,
+  sessionCosts,
 } from './core/aggregate';
 import { PLAN_CREDITS } from './core/pricing';
 import {
@@ -25,7 +26,7 @@ import { StoreConfig, UsageStore } from './data/usageStore';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
 import { receiptStrings } from './core/receiptStrings';
-import { MonthReport } from './types';
+import { MonthReport, UsageEvent } from './types';
 
 export function activate(context: vscode.ExtensionContext): void {
   const store = new UsageStore(readStoreConfig());
@@ -33,23 +34,24 @@ export function activate(context: vscode.ExtensionContext): void {
 
   const controller = new DashboardController({
     getReport: (month) => buildReport(store, month),
-    getMonths: () => availableMonths(store.getEvents()),
-    getRepoDetail: (repoName, month) => buildRepoDetail(store.getEvents(), { repoName, month }),
+    getMonths: () => availableMonths(visibleEvents(store)),
+    getRepoDetail: (repoName, month) => buildRepoDetail(visibleEvents(store), { repoName, month }),
     getGroupDetail: (groupName, month) => {
       const members = projectGroups()[groupName];
       return members
-        ? buildGroupDetail(store.getEvents(), { name: groupName, members, month })
+        ? buildGroupDetail(visibleEvents(store), { name: groupName, members, month })
         : undefined;
     },
     getStats: () => store.getStats(),
     getAllRepos: () => {
-      const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
+      const report = buildMonthReport(visibleEvents(store), { month: ALL_TIME, includedCredits: 0 });
       return report.repos.map((r) => ({ name: r.repo.name, usd: r.usd }));
     },
     getGroupsConfig: () => projectGroups(),
     getStarred: () => starredRepos(),
     toggleStar: (repoName) => toggleStar(repoName),
     renameRepo: (repoName) => renameRepo(repoName),
+    toggleHidden: (repoName) => toggleHidden(repoName),
     refresh: async () => {
       await store.refresh();
     },
@@ -123,8 +125,15 @@ export function activate(context: vscode.ExtensionContext): void {
     const report = buildReport(store, currentMonthKey());
     statusBar.update(report, statusBarOptions());
     controller.notifyDataChanged();
-    maybeWarnBudget(context, report);
-    checkCreditAlerts(context, report);
+    // budget/credit/session alerts always see the full spend, hidden repos included
+    const fullReport = buildMonthReport(store.getEvents(), {
+      month: currentMonthKey(),
+      includedCredits: includedCredits(),
+      groups: projectGroups(),
+    });
+    maybeWarnBudget(context, fullReport);
+    checkCreditAlerts(context, fullReport);
+    checkSessionAlerts(context, store);
 
     const stats = store.getStats();
     output.appendLine(
@@ -213,11 +222,46 @@ function projectGroups(): ProjectGroups {
 }
 
 function buildReport(store: UsageStore, month: string): MonthReport {
-  return buildMonthReport(store.getEvents(), {
+  return buildMonthReport(visibleEvents(store), {
     month,
     includedCredits: includedCredits(),
     groups: projectGroups(),
   });
+}
+
+/**
+ * Events minus hidden repositories — what the dashboard and status bar show.
+ * Raw exports and budget alerts intentionally keep using the full event set.
+ */
+function visibleEvents(store: UsageStore): UsageEvent[] {
+  const hidden = new Set(hiddenRepos().map((h) => h.toLowerCase()));
+  if (hidden.size === 0) {
+    return store.getEvents();
+  }
+  return store.getEvents().filter((e) => !hidden.has(e.repo.name.toLowerCase()));
+}
+
+function hiddenRepos(): string[] {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  return sanitizeStringArray(config.get('hiddenRepos', []));
+}
+
+async function toggleHidden(repoName: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const current = hiddenRepos();
+  const exists = current.some((s) => s.toLowerCase() === repoName.toLowerCase());
+  const next = exists
+    ? current.filter((s) => s.toLowerCase() !== repoName.toLowerCase())
+    : [...current, repoName];
+  await config.update('hiddenRepos', next, vscode.ConfigurationTarget.Global);
+  if (!exists) {
+    void vscode.window.showInformationMessage(
+      vscode.l10n.t(
+        'Copilot Cost Lens: {0} hidden. Unhide it via the copilotCostLens.hiddenRepos setting.',
+        repoName,
+      ),
+    );
+  }
 }
 
 /**
@@ -255,6 +299,54 @@ function checkCreditAlerts(context: vscode.ExtensionContext, report: MonthReport
         }
       });
   }
+}
+
+/**
+ * Warn once per session when a single session's total cost crosses the
+ * configured USD threshold — catches runaway agent sessions early. Notified
+ * session ids are remembered in global state (capped, oldest dropped).
+ */
+const SESSION_ALERT_STATE_KEY = 'notifiedSessionAlerts';
+
+function checkSessionAlerts(context: vscode.ExtensionContext, store: UsageStore): void {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const thresholdUsd = config.get<number>('sessionCostAlertUsd', 0);
+  if (!Number.isFinite(thresholdUsd) || thresholdUsd <= 0) {
+    return;
+  }
+  const notified = new Set(context.globalState.get<string[]>(SESSION_ALERT_STATE_KEY, []));
+  const offenders = sessionCosts(store.getEvents()).filter(
+    (s) => s.usd >= thresholdUsd && !notified.has(s.sessionId),
+  );
+  if (offenders.length === 0) {
+    return;
+  }
+  for (const s of offenders) {
+    notified.add(s.sessionId);
+  }
+  void context.globalState.update(SESSION_ALERT_STATE_KEY, [...notified].slice(-1000));
+
+  const top = offenders.sort((a, b) => b.usd - a.usd)[0]!;
+  const openLabel = vscode.l10n.t('Open Dashboard');
+  const message =
+    offenders.length === 1
+      ? vscode.l10n.t(
+          'Copilot Cost Lens: a session in {0} has reached ${1}.',
+          top.repoName,
+          top.usd.toFixed(2),
+        )
+      : vscode.l10n.t(
+          'Copilot Cost Lens: {0} sessions crossed ${1} — the largest in {2} at ${3}.',
+          offenders.length,
+          thresholdUsd.toFixed(2),
+          top.repoName,
+          top.usd.toFixed(2),
+        );
+  void vscode.window.showWarningMessage(message, openLabel).then((choice) => {
+    if (choice === openLabel) {
+      void vscode.commands.executeCommand('copilotCostLens.openDashboard');
+    }
+  });
 }
 
 function eventsInPeriod(store: UsageStore, month: string) {
@@ -313,7 +405,7 @@ async function exportReceipt(
 
 /** Command-palette path: pick a project group or repository, then export. */
 async function pickRepoAndExportReceipt(store: UsageStore): Promise<void> {
-  const report = buildMonthReport(store.getEvents(), {
+  const report = buildMonthReport(visibleEvents(store), {
     month: ALL_TIME,
     includedCredits: 0,
     groups: projectGroups(),
@@ -353,7 +445,7 @@ async function pickMembers(
   groupName: string,
   preselected: string[],
 ): Promise<string[] | undefined> {
-  const report = buildMonthReport(store.getEvents(), { month: ALL_TIME, includedCredits: 0 });
+  const report = buildMonthReport(visibleEvents(store), { month: ALL_TIME, includedCredits: 0 });
   const current = new Set(preselected.map((m) => m.toLowerCase()));
   const items = report.repos.map((r) => ({
     label: r.repo.name,

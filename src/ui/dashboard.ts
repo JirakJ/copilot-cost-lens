@@ -20,6 +20,8 @@ export interface DashboardDelegate {
   toggleStar(repoName: string): Promise<void>;
   /** Prompt for and persist a display-name alias for a repository. */
   renameRepo(repoName: string): Promise<void>;
+  /** Hide (or unhide) a repository from all dashboard views. */
+  toggleHidden(repoName: string): Promise<void>;
   refresh(): Promise<void>;
   /** Export usage records for the given period ('all' or YYYY-MM). */
   exportData(format: 'csv' | 'json', month: string): Promise<void>;
@@ -112,6 +114,13 @@ export class DashboardController {
           if (message.repo) {
             // the config write triggers a rescan + postAll on its own
             await this.delegate.renameRepo(message.repo);
+          }
+          break;
+        case 'toggleHidden':
+          if (message.repo) {
+            this.selectedRepo = undefined; // the detail view just vanished
+            await this.delegate.toggleHidden(message.repo);
+            this.postAll();
           }
           break;
         case 'saveGroup':

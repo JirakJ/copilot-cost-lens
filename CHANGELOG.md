@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.16.0] — 2026-07-09
+
+### Added
+
+- **Hide repositories.** The 🙈 Hide button in a repository's detail removes noise repos from the dashboard, status bar and receipts. Raw CSV/JSON exports and budget alerts still count them, so totals never silently lie. Unhide via the new `copilotCostLens.hiddenRepos` setting.
+- **Runaway-session alert.** Set `copilotCostLens.sessionCostAlertUsd` and get warned the moment a single session — say, an agent left unattended — crosses your dollar threshold. Each session alerts at most once.
+- **Getting-started walkthrough.** A guided tour (Help → Get Started) covering the dashboard, plan selection, data sources and organizing tools.
+- **View toolbar.** Refresh, open-full-dashboard and settings icons directly on the sidebar view title.
+- Marketplace badges, `untrustedWorkspaces`/`virtualWorkspaces` capability declarations and an explicit `extensionKind` for remote setups.
+
 ## [1.15.0] — 2026-07-09
 
 ### Added

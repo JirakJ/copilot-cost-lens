@@ -2,7 +2,7 @@
   "name": "copilot-cost-lens",
   "displayName": "Copilot Cost Lens — AI Usage & Spend Tracker",
   "description": "Track GitHub Copilot and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
-  "version": "1.15.0",
+  "version": "1.16.0",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -46,6 +46,37 @@
   },
   "homepage": "https://github.com/JirakJ/copilot-cost-lens#readme",
   "main": "./dist/extension.js",
+  "extensionKind": [
+    "ui",
+    "workspace"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": true,
+      "description": "%cap.untrusted%"
+    },
+    "virtualWorkspaces": {
+      "supported": true,
+      "description": "%cap.virtual%"
+    }
+  },
+  "badges": [
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/v/JakubJirak.copilot-cost-lens?label=Marketplace&color=1b7f4d",
+      "href": "https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens",
+      "description": "Visual Studio Marketplace version"
+    },
+    {
+      "url": "https://img.shields.io/visual-studio-marketplace/i/JakubJirak.copilot-cost-lens?label=Installs",
+      "href": "https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens",
+      "description": "Visual Studio Marketplace installs"
+    },
+    {
+      "url": "https://img.shields.io/github/actions/workflow/status/JirakJ/copilot-cost-lens/ci.yml?label=CI",
+      "href": "https://github.com/JirakJ/copilot-cost-lens/actions/workflows/ci.yml",
+      "description": "CI status"
+    }
+  ],
   "activationEvents": [
     "onStartupFinished"
   ],
@@ -105,12 +136,89 @@
       {
         "command": "copilotCostLens.openSettings",
         "title": "%cmd.openSettings%",
-        "category": "Copilot Cost Lens"
+        "category": "Copilot Cost Lens",
+        "icon": "$(gear)"
       },
       {
         "command": "copilotCostLens.showDiagnostics",
         "title": "%cmd.showDiagnostics%",
         "category": "Copilot Cost Lens"
+      }
+    ],
+    "menus": {
+      "view/title": [
+        {
+          "command": "copilotCostLens.refresh",
+          "when": "view == copilotCostLens.dashboard",
+          "group": "navigation@1"
+        },
+        {
+          "command": "copilotCostLens.openDashboard",
+          "when": "view == copilotCostLens.dashboard",
+          "group": "navigation@2"
+        },
+        {
+          "command": "copilotCostLens.openSettings",
+          "when": "view == copilotCostLens.dashboard",
+          "group": "navigation@3"
+        }
+      ]
+    },
+    "walkthroughs": [
+      {
+        "id": "gettingStarted",
+        "title": "%walk.title%",
+        "description": "%walk.description%",
+        "steps": [
+          {
+            "id": "openDashboard",
+            "title": "%walk.step1.title%",
+            "description": "%walk.step1.description%",
+            "media": {
+              "markdown": "media/walkthrough/dashboard.md"
+            },
+            "completionEvents": [
+              "onCommand:copilotCostLens.openDashboard"
+            ]
+          },
+          {
+            "id": "pickPlan",
+            "title": "%walk.step2.title%",
+            "description": "%walk.step2.description%",
+            "media": {
+              "markdown": "media/walkthrough/plan.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:copilotCostLens.plan",
+              "onCommand:copilotCostLens.openSettings"
+            ]
+          },
+          {
+            "id": "enableSources",
+            "title": "%walk.step3.title%",
+            "description": "%walk.step3.description%",
+            "media": {
+              "markdown": "media/walkthrough/sources.md"
+            },
+            "completionEvents": [
+              "onSettingChanged:copilotCostLens.claudeCode.enabled",
+              "onSettingChanged:copilotCostLens.copilotCli.enabled",
+              "onSettingChanged:copilotCostLens.jetbrainsCopilot.enabled"
+            ]
+          },
+          {
+            "id": "organize",
+            "title": "%walk.step4.title%",
+            "description": "%walk.step4.description%",
+            "media": {
+              "markdown": "media/walkthrough/organize.md"
+            },
+            "completionEvents": [
+              "onCommand:copilotCostLens.createProject",
+              "onSettingChanged:copilotCostLens.sessionCostAlertUsd"
+            ]
+          }
+        ]
       }
     ],
     "configuration": {
@@ -255,6 +363,20 @@
           "additionalProperties": {
             "type": "string"
           }
+        },
+        "copilotCostLens.hiddenRepos": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "markdownDescription": "%cfg.hiddenRepos%"
+        },
+        "copilotCostLens.sessionCostAlertUsd": {
+          "type": "number",
+          "default": 0,
+          "minimum": 0,
+          "markdownDescription": "%cfg.sessionCostAlert%"
         },
         "copilotCostLens.documentLanguage": {
           "type": "string",

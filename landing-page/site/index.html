@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Copilot Cost Lens — know what your AI coding tools cost, per repository</title>
+  <meta name="description" content="A VS Code extension and JetBrains IDE plugin that reads the logs GitHub Copilot, the Copilot CLI and Claude Code already keep on your machine, attributes every request to a repository, and turns it into a live cost dashboard — budgets, forecasts, model & cache analytics, PDF receipts. 100% local, no telemetry.">
+  <link rel="icon" type="image/svg+xml" href="/assets/icon.svg">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/style.css">
+  <meta property="og:title" content="Copilot Cost Lens">
+  <meta property="og:description" content="Know exactly what GitHub Copilot, the Copilot CLI and Claude Code cost you — per repository, per model, per day. 100% local — for VS Code and JetBrains IDEs.">
+  <meta property="og:type" content="website">
+</head>
+<body>
+  <a class="skip-link" href="#main">Skip to main content</a>
+
+  <header class="site-header">
+    <div class="wrap">
+      <a class="brand" href="/">
+        <img src="/assets/icon.svg" alt="">
+        Copilot Cost Lens
+      </a>
+      <nav class="site-nav" aria-label="Main">
+        <ul>
+          <li class="hide-sm"><a href="#features">Features</a></li>
+          <li class="hide-sm"><a href="#how">How it works</a></li>
+          <li class="hide-sm"><a href="#privacy">Privacy</a></li>
+          <li class="hide-sm"><a href="#faq">FAQ</a></li>
+          <li class="hide-sm"><a href="#editions">Editions</a></li>
+          <li><a class="btn btn-primary btn-sm" href="#editions">Get it</a></li>
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <main id="main">
+
+    <!-- ===================== HERO ===================== -->
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="wrap">
+        <div>
+          <p class="eyebrow reveal">For VS Code &amp; JetBrains IDEs · Copilot · Copilot CLI · Claude Code</p>
+          <h1 id="hero-title" class="reveal r2">Know exactly what your AI coding tools <span class="focus-word">cost</span>.</h1>
+          <p class="lede reveal r3">GitHub's billing page gives you one account-level total. Copilot Cost Lens reads the logs Copilot, the Copilot CLI and Claude Code already keep on your machine, attributes every request to the repository you were in, prices it by model — and turns it into a live dashboard and a status-bar ticker. Per repository, per model, per day. 100% local.</p>
+          <div class="hero-ctas reveal r4">
+            <a class="btn btn-primary" href="#editions">Get the extension</a>
+            <a class="btn btn-ghost" href="#features">See features</a>
+          </div>
+          <ul class="hero-trust reveal r4">
+            <li>100% local — no network requests, no telemetry</li>
+            <li>Per repository, per model, per day</li>
+            <li>Free &amp; open source</li>
+          </ul>
+        </div>
+
+        <div class="reveal r3" aria-hidden="true">
+          <figure class="shot" style="margin:0">
+            <div class="titlebar"><i></i><i></i><i></i>&nbsp; Copilot Cost Lens — Dashboard</div>
+            <img src="/assets/dashboard.png" alt="" width="1360" height="1620" loading="eager">
+          </figure>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== STATS ===================== -->
+    <aside class="stat-band" aria-label="At a glance">
+      <div class="wrap">
+        <dl class="stats">
+          <div class="stat"><dt>4</dt><dd>AI tools in one ledger: Copilot Chat, Copilot CLI, Claude Code &amp; JetBrains Copilot (opt-in)</dd></div>
+          <div class="stat"><dt>100%</dt><dd>local — no network requests, no telemetry, never runs git</dd></div>
+          <div class="stat"><dt>2</dt><dd>editions: a VS Code extension and a native JetBrains IDE plugin — same dashboard</dd></div>
+          <div class="stat"><dt>0</dt><dd>runtime dependencies — small, fast, auditable</dd></div>
+        </dl>
+      </div>
+    </aside>
+
+    <!-- ===================== FEATURES ===================== -->
+    <section id="features" aria-labelledby="features-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">What it does</span>
+          <h2 id="features-title">The per-repository breakdown your bill can't give you.</h2>
+          <p>Since Copilot moved to usage-based AI Credits, the question isn't "how many requests?" but "which project is burning my credits, on which model, and will I fit my allowance?" Here are the answers, in your editor.</p>
+        </div>
+
+        <div class="feature-grid">
+          <article class="feature">
+            <span class="num">№ 01</span>
+            <h3>Cost per repository</h3>
+            <p>Every chat request is attributed to the workspace it ran in and resolved to an <code>owner/repo</code> slug from the project's git remote — so you see exactly which project spent what.</p>
+          </article>
+          <article class="feature">
+            <span class="num">№ 02</span>
+            <h3>Every AI tool, one ledger</h3>
+            <p>VS Code Copilot Chat, the Copilot CLI agent and Claude Code transcripts in a single view, with a per-provider split. Claude Code is shown but never counts against your Copilot allowance.</p>
+          </article>
+          <article class="feature">
+            <span class="num">№ 03</span>
+            <h3>Budgets, forecasts &amp; alerts</h3>
+            <p>An allowance gauge, end-of-month forecast, month-over-month trend and a projected allowance-exhaustion date. Set credit, dollar and per-session budgets — get warned the moment a runaway agent session crosses your threshold.</p>
+          </article>
+          <article class="feature">
+            <span class="num">№ 04</span>
+            <h3>Model &amp; token anatomy</h3>
+            <p>Input, output, and cache read/write tokens per repository, the exact models used, a cost-by-model donut, cache-read share, and the effective blended <code>$/1M</code> you're really paying.</p>
+          </article>
+          <article class="feature">
+            <span class="num">№ 05</span>
+            <h3>Drill-downs, projects &amp; receipts</h3>
+            <p>Open any repo for model mix and daily trend, roll repos into named projects, star the important ones, rename hash-named remotes, hide the noise — and export a printed-receipt PDF for chargeback.</p>
+          </article>
+          <article class="feature">
+            <span class="num">№ 06</span>
+            <h3>Built for 100+ repos</h3>
+            <p>Instant text filter, source chips, sortable columns and starred repos pinned on top. One-click CSV/JSON export, multi-editor scanning, and a UI localized in English, Čeština, Deutsch and 日本語.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== EDITIONS ===================== -->
+    <section id="editions" aria-labelledby="editions-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Editions</span>
+          <h2 id="editions-title">One ledger, native to your IDE.</h2>
+          <p>The same engine and the same dashboard in two editions — a VS Code extension and a JetBrains IDE plugin (built on JCEF, so it looks and behaves identically). Pick your editor; the numbers come out the same.</p>
+        </div>
+
+        <div class="tiers">
+          <article class="tier featured" aria-label="VS Code edition">
+            <span class="badge-popular">On the Marketplace</span>
+            <h3>VS Code</h3>
+            <p class="per">VS Code · Insiders · VSCodium · Cursor · Windsurf</p>
+            <ul>
+              <li>One-click install, auto-updates</li>
+              <li>Dashboard view, tree view and status-bar ticker</li>
+              <li>Free &amp; open source</li>
+            </ul>
+            <a class="btn btn-primary" href="https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens">Install from Marketplace</a>
+          </article>
+
+          <article class="tier" aria-label="JetBrains edition">
+            <span class="badge-popular">On the Marketplace</span>
+            <h3>JetBrains IDEs</h3>
+            <p class="per">IntelliJ IDEA · WebStorm · PyCharm · GoLand · Rider &amp; more · 2024.3+</p>
+            <ul>
+              <li>One-click install from the JetBrains Marketplace</li>
+              <li>The same dashboard, rendered with JCEF</li>
+              <li>At feature parity with the VS Code edition</li>
+            </ul>
+            <a class="btn btn-primary" href="https://plugins.jetbrains.com/plugin/32274-copilot-cost-lens">Install from Marketplace</a>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== HOW IT WORKS ===================== -->
+    <section id="how" class="law" aria-labelledby="how-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">How it works</span>
+          <h2 id="how-title">It reads the logs your tools already keep.</h2>
+          <p>No new agent, no proxy, no account. Cost Lens combines the local telemetry your AI tools already write to disk, prices it, and presents it. When exact billed data exists it's used; estimates are always labelled <code>~est</code>.</p>
+        </div>
+
+        <div class="law-grid">
+          <article class="law-card">
+            <span class="law-tag">Reads</span>
+            <h3>What's already on disk</h3>
+            <p>VS Code Copilot transcripts and debug logs, the Copilot CLI session-state, and Claude Code transcripts — most with exact token counts and billed AI-credit units per request.</p>
+          </article>
+          <article class="law-card">
+            <span class="law-tag">Prices</span>
+            <h3>Every request, by model</h3>
+            <p>Billed AI-credit units when present, otherwise exact tokens × a built-in model price table covering GPT, Claude, Gemini, Grok and more. Every rate is overridable — no waiting for an update when pricing changes.</p>
+          </article>
+          <article class="law-card">
+            <span class="law-tag">Shows</span>
+            <h3>Answers, not raw logs</h3>
+            <p>A live dashboard, a status-bar ticker with a 7-day sparkline, per-repo and per-project drill-downs, and CSV/JSON/PDF exports for invoicing and chargeback.</p>
+          </article>
+        </div>
+
+        <p class="service-note" style="color:var(--ink-soft)">Cost Lens is an independent open-source project, not affiliated with GitHub or Microsoft. The log format isn't a stable public API, and the figures are an analytical aid, not a bill — your GitHub billing page remains the source of truth.</p>
+      </div>
+    </section>
+
+    <!-- ===================== PRIVACY ===================== -->
+    <section id="privacy" class="services" aria-labelledby="privacy-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">Privacy</span>
+          <h2 id="privacy-title">Your costs never leave your machine.</h2>
+          <p>Spend data is sensitive, and Cost Lens treats it that way. Everything happens locally — there's simply nowhere for your numbers to go.</p>
+        </div>
+
+        <div class="service-grid">
+          <article class="service-card">
+            <h3>No network</h3>
+            <p>Cost Lens makes <strong>zero network requests</strong>. It reads local files only — your VS Code workspace storage and the Copilot CLI / Claude Code stores in your home directory.</p>
+          </article>
+          <article class="service-card">
+            <h3>No telemetry</h3>
+            <p>Nothing is collected, phoned home, or shared with anyone — including the author. There is no account to create and no data to opt out of.</p>
+          </article>
+          <article class="service-card">
+            <h3>Never runs git</h3>
+            <p>Repository names are read from <code>workspace.json</code> and <code>.git/config</code> as plain files. Cost Lens never executes git or any other command on your machine.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ===================== FAQ ===================== -->
+    <section id="faq" class="faq" aria-labelledby="faq-title">
+      <div class="wrap">
+        <div class="section-head">
+          <span class="kicker">FAQ</span>
+          <h2 id="faq-title">Questions, answered.</h2>
+        </div>
+
+        <details>
+          <summary>Does any of my code or usage data leave my machine?</summary>
+          <div class="answer"><p>No. Cost Lens reads local log files only, makes no network requests, and collects no telemetry. There's no backend and no account — your numbers stay on your computer.</p></div>
+        </details>
+        <details>
+          <summary>Which tools and editors does it track?</summary>
+          <div class="answer"><p>GitHub Copilot Chat, the Copilot CLI, and Claude Code, with an opt-in source for JetBrains Copilot. It automatically scans VS Code, VS Code Insiders, VSCodium, Cursor and Windsurf storage.</p></div>
+        </details>
+        <details>
+          <summary>Will the numbers match my GitHub bill exactly?</summary>
+          <div class="answer"><p>They're an analytical aid, not a bill. Cost Lens uses billed AI-credit units when the logs contain them and prices the rest from a model-rate table. The log format isn't a stable public API, so treat your GitHub billing page as the source of truth.</p></div>
+        </details>
+        <details>
+          <summary>How does it know which repository a request belongs to?</summary>
+          <div class="answer"><p>It resolves the workspace to an <code>owner/repo</code> slug by reading <code>workspace.json</code> and <code>.git/config</code> as plain files — it never executes git. Requests without a remote are grouped by folder.</p></div>
+        </details>
+        <details>
+          <summary>Is there a JetBrains edition?</summary>
+          <div class="answer"><p>Yes — a native plugin for IntelliJ IDEA, WebStorm, PyCharm, GoLand, Rider and the rest of the JetBrains family (2024.3+, Java 17). It renders the same dashboard through JCEF and is at feature parity with the VS Code edition. Install it from the <a href="https://plugins.jetbrains.com/plugin/32274-copilot-cost-lens">JetBrains Marketplace</a> (source on <a href="https://github.com/JirakJ/copilot-cost-lens-jetbrains">GitHub</a>). Either edition reads the same on-disk logs, so they report identical numbers — and both scan VS Code, Insiders, VSCodium, Cursor and Windsurf storage out of the box.</p></div>
+        </details>
+        <details>
+          <summary>How much does it cost?</summary>
+          <div class="answer"><p>It's free and open source — install it from the <a href="https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens">VS Code Marketplace</a> or browse the code on <a href="https://github.com/JirakJ/copilot-cost-lens">GitHub</a>.</p></div>
+        </details>
+      </div>
+    </section>
+
+    <!-- ===================== CTA ===================== -->
+    <section aria-labelledby="cta-title">
+      <div class="wrap">
+        <div class="cta-panel">
+          <h2 id="cta-title">See where your AI credits go.</h2>
+          <p>Install in under a minute. Your historical sessions are picked up on the first scan, so the dashboard has something to show the moment it opens.</p>
+          <p style="margin-top:1.8rem">
+            <a class="btn btn-primary" href="https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens">Install for VS Code</a>
+            &nbsp;
+            <a class="btn btn-ghost" href="https://plugins.jetbrains.com/plugin/32274-copilot-cost-lens">Get for JetBrains</a>
+          </p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer class="site-footer">
+    <div class="wrap">
+      <div>
+        <h2>Copilot Cost Lens</h2>
+        <p>Know what GitHub Copilot, the Copilot CLI and Claude Code cost you — per repository, per model, per day. 100% local — for VS Code and JetBrains IDEs.<br>Built by <a href="https://jakubjirak.com">Jakub Jirák</a>.</p>
+      </div>
+      <nav aria-label="Product">
+        <h2>Product</h2>
+        <ul>
+          <li><a href="#features">Features</a></li>
+          <li><a href="#how">How it works</a></li>
+          <li><a href="#privacy">Privacy</a></li>
+          <li><a href="https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens">VS Code Marketplace</a></li>
+          <li><a href="https://plugins.jetbrains.com/plugin/32274-copilot-cost-lens">JetBrains Marketplace</a></li>
+        </ul>
+      </nav>
+      <nav aria-label="Resources">
+        <h2>Resources</h2>
+        <ul>
+          <li><a href="https://github.com/JirakJ/copilot-cost-lens">VS Code edition · GitHub</a></li>
+          <li><a href="https://github.com/JirakJ/copilot-cost-lens-jetbrains">JetBrains edition · GitHub</a></li>
+          <li><a href="mailto:support@jakubjirak.com">support@jakubjirak.com</a></li>
+        </ul>
+      </nav>
+    </div>
+    <div class="wrap footer-legal">
+      <p>© 2026 Jakub Jirák. Copilot Cost Lens is an independent, open-source project and is not affiliated with or endorsed by GitHub, Microsoft, Anthropic, or JetBrains. Figures shown are an analytical aid, not a bill.</p>
+    </div>
+  </footer>
+</body>
+</html>

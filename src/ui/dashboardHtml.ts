@@ -340,6 +340,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<button id="receipt">🧾 ' + esc(S.receiptPdf) + '</button>' +
         (s.repo.folderPath ? '<button id="openRepo">📂 ' + esc(S.openFolder) + '</button>' : '') +
         '<button id="renameRepo" title="' + esc(S.renameRepoTitle) + '">✎ ' + esc(S.renameRepo) + '</button>' +
+        '<button id="hideRepo" title="' + esc(S.hideRepoTitle) + '">🙈 ' + esc(S.hideRepo) + '</button>' +
       '</div>' +
       '<div class="grid kpis">' +
         kpi(S.spend + ' · ' + periodLabel, usd(s.usd), cr(s.credits) + ' ' + S.aiCredits) +
@@ -370,6 +371,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     const openBtn = document.getElementById('openRepo');
     if (openBtn) openBtn.onclick = () => vscode.postMessage({ type: 'openRepo', path: s.repo.folderPath });
     document.getElementById('renameRepo').onclick = () => vscode.postMessage({ type: 'renameRepo', repo: s.repo.name });
+    document.getElementById('hideRepo').onclick = () => vscode.postMessage({ type: 'toggleHidden', repo: s.repo.name });
     foot.innerHTML = esc(S.footSources);
   }
 

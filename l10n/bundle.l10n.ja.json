@@ -99,6 +99,11 @@
   "Set a display name for this repository": "このリポジトリの表示名を設定します",
   "Rename repository": "リポジトリの名前を変更",
   "Display name for {0} (leave empty to reset)": "{0} の表示名（空欄でリセット）",
+  "Hide": "非表示",
+  "Hide this repository from the dashboard — raw exports and budget alerts still include it": "このリポジトリをダッシュボードから非表示にします — 生データエクスポートと予算アラートには引き続き含まれます",
+  "Copilot Cost Lens: {0} hidden. Unhide it via the copilotCostLens.hiddenRepos setting.": "Copilot Cost Lens: {0} を非表示にしました。copilotCostLens.hiddenRepos 設定から再表示できます。",
+  "Copilot Cost Lens: a session in {0} has reached ${1}.": "Copilot Cost Lens: {0} のセッションが ${1} に達しました。",
+  "Copilot Cost Lens: {0} sessions crossed ${1} — the largest in {2} at ${3}.": "Copilot Cost Lens: {0} 件のセッションが ${1} を超えました — 最大は {2} の ${3} です。",
   "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
   "View all time": "全期間を表示",
   "Activity (last 26 weeks)": "アクティビティ (直近26週間)"

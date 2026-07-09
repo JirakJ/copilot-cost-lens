@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="256" height="256" viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Copilot Cost Lens icon</title>
+  <desc id="desc">White rounded badge with a bar chart and a magnifying lens revealing a dollar sign</desc>
+
+  <rect x="16" y="16" width="224" height="224" rx="52" fill="#ffffff"/>
+  <rect x="16.5" y="16.5" width="223" height="223" rx="51.5" stroke="#d8e2f0" stroke-width="3"/>
+
+  <!-- bar chart -->
+  <rect x="52" y="150" width="26" height="52" rx="6" fill="#1e3a8a"/>
+  <rect x="90" y="124" width="26" height="78" rx="6" fill="#1d4ed8"/>
+  <rect x="128" y="138" width="26" height="64" rx="6" fill="#0f766e"/>
+  <rect x="166" y="104" width="26" height="98" rx="6" fill="#2dd4bf"/>
+
+  <!-- magnifying lens over the chart -->
+  <circle cx="150" cy="112" r="50" fill="#ffffff" fill-opacity="0.82"/>
+  <circle cx="150" cy="112" r="50" stroke="#1e3a8a" stroke-width="12" fill="none"/>
+  <line x1="186" y1="148" x2="214" y2="176" stroke="#1e3a8a" stroke-width="18" stroke-linecap="round"/>
+  <!-- dollar sign inside the lens -->
+  <text x="150" y="113" text-anchor="middle" dominant-baseline="central" font-family="Inter, system-ui, sans-serif" font-size="62" font-weight="800" fill="#d97706">$</text>
+</svg>

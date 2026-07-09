@@ -7,6 +7,7 @@ import {
   buildRepoDetail,
   dayKey,
   monthKey,
+  sessionCosts,
 } from '../src/core/aggregate';
 import { UsageEvent } from '../src/types';
 
@@ -289,5 +290,22 @@ describe('buildRepoDetail', () => {
     const detail = buildRepoDetail(events, { repoName: 'owner/alpha', month: ALL_TIME })!;
     expect(detail.summary.credits).toBe(10);
     expect(buildRepoDetail(events, { repoName: 'nope', month: ALL_TIME })).toBeUndefined();
+  });
+});
+
+describe('sessionCosts', () => {
+  it('sums credits per session and tags the most recent repo', () => {
+    const t1 = new Date(2026, 5, 10, 12).getTime();
+    const events = [
+      event({ sessionId: 'a', credits: 100, timestamp: t1 }),
+      event({ sessionId: 'a', credits: 150, timestamp: t1 + 1000, repo: { name: 'owner/beta' } }),
+      event({ sessionId: 'b', credits: 5 }),
+    ];
+    const costs = sessionCosts(events);
+    const a = costs.find((s) => s.sessionId === 'a')!;
+    expect(a.credits).toBe(250);
+    expect(a.usd).toBeCloseTo(2.5);
+    expect(a.repoName).toBe('owner/beta');
+    expect(costs.find((s) => s.sessionId === 'b')!.usd).toBeCloseTo(0.05);
   });
 });

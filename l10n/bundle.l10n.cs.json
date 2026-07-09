@@ -99,6 +99,11 @@
   "Set a display name for this repository": "Nastavit zobrazovaný název tohoto repozitáře",
   "Rename repository": "Přejmenovat repozitář",
   "Display name for {0} (leave empty to reset)": "Zobrazovaný název pro {0} (prázdné = zpět na původní)",
+  "Hide": "Skrýt",
+  "Hide this repository from the dashboard — raw exports and budget alerts still include it": "Skrýt tento repozitář z přehledu — surové exporty a rozpočtová upozornění ho stále zahrnují",
+  "Copilot Cost Lens: {0} hidden. Unhide it via the copilotCostLens.hiddenRepos setting.": "Copilot Cost Lens: {0} skryt. Znovu zobrazíte přes nastavení copilotCostLens.hiddenRepos.",
+  "Copilot Cost Lens: a session in {0} has reached ${1}.": "Copilot Cost Lens: session v {0} dosáhla ${1}.",
+  "Copilot Cost Lens: {0} sessions crossed ${1} — the largest in {2} at ${3}.": "Copilot Cost Lens: {0} sessions překročilo ${1} — největší v {2} za ${3}.",
   "No usage in {0}, but you have data in other periods.": "V období {0} nejsou žádná data, ale máte data v jiných obdobích.",
   "View all time": "Zobrazit vše od počátku",
   "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)"

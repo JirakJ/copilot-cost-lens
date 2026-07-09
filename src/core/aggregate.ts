@@ -511,3 +511,41 @@ function forecast(
   const elapsed = Math.max(1, now.getDate());
   return { forecastCredits: (totalCredits / elapsed) * daysInMonth };
 }
+
+export interface SessionCost {
+  sessionId: string;
+  credits: number;
+  usd: number;
+  /** Repo of the session's most recent event. */
+  repoName: string;
+  provider: string;
+  lastTimestamp: number;
+}
+
+/** Total cost per session across all events — used for runaway-session alerts. */
+export function sessionCosts(events: UsageEvent[]): SessionCost[] {
+  const map = new Map<string, SessionCost>();
+  for (const event of events) {
+    let entry = map.get(event.sessionId);
+    if (!entry) {
+      entry = {
+        sessionId: event.sessionId,
+        credits: 0,
+        usd: 0,
+        repoName: event.repo.name,
+        provider: event.provider,
+        lastTimestamp: 0,
+      };
+      map.set(event.sessionId, entry);
+    }
+    entry.credits += event.credits;
+    if (event.timestamp >= entry.lastTimestamp) {
+      entry.lastTimestamp = event.timestamp;
+      entry.repoName = event.repo.name;
+    }
+  }
+  for (const entry of map.values()) {
+    entry.usd = creditsToUsd(entry.credits);
+  }
+  return [...map.values()];
+}

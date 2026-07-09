@@ -1,5 +1,10 @@
 # Cost Lens for GitHub Copilot
 
+[![Marketplace](https://img.shields.io/visual-studio-marketplace/v/JakubJirak.copilot-cost-lens?label=Marketplace&color=1b7f4d)](https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens)
+[![Installs](https://img.shields.io/visual-studio-marketplace/i/JakubJirak.copilot-cost-lens?label=Installs)](https://marketplace.visualstudio.com/items?itemName=JakubJirak.copilot-cost-lens)
+[![CI](https://img.shields.io/github/actions/workflow/status/JirakJ/copilot-cost-lens/ci.yml?label=CI)](https://github.com/JirakJ/copilot-cost-lens/actions/workflows/ci.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
+
 **Know exactly what your AI coding tools cost you — per repository, per model, per day. 100% local and private.**
 
 Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI) and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard and a status-bar ticker.
@@ -42,6 +47,9 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **PDF receipts** — export a classic printed-receipt PDF per repository or per project (with a per-repository breakdown), including model line items, token counts, effective $/1M rates and totals. Great for chargeback or framing on the wall.
 - **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail and a combined receipt with per-repository breakdown.
 - **Starred repositories** — pin your important repos with a ☆ and they surface in a dedicated section at the top of the dashboard.
+- **Rename repositories** — give hash-named remote repositories like `(unknown) 2bebdc79` a friendly display name with the ✎ Rename button; the alias follows the repository through every view, project total and receipt.
+- **Hide repositories** — remove noise repos from the dashboard with the 🙈 Hide button. Raw CSV/JSON exports and budget alerts still see the full picture; unhide any time via `copilotCostLens.hiddenRepos`.
+- **Runaway-session alert** — set `copilotCostLens.sessionCostAlertUsd` and get warned the moment a single (agent) session crosses your dollar threshold — before it becomes a surprise on the bill.
 - **Credit alerts** — set absolute thresholds (e.g. 2,500 AIC) and get notified once per month when month-to-date Copilot usage crosses them, on top of the percentage warning.
 - **Localized** — English, Čeština, Deutsch and 日本語, following your VS Code display language.
 - **Dashboard** — monthly overview with spend, allowance gauge, end-of-month forecast, cost-by-repo chart, model donut, daily spend trend and a sortable repository table. Adapts to your color theme.
@@ -88,7 +96,7 @@ Everything happens on your machine. Cost Lens:
 
 ## Getting started
 
-1. Install **Cost Lens for GitHub Copilot** from the Marketplace.
+1. Install **Cost Lens for GitHub Copilot** from the Marketplace — the built-in **walkthrough** (Help → Get Started → Copilot Cost Lens) guides you through the rest.
 2. Set `copilotCostLens.plan` to your Copilot plan (defaults to Business).
 3. Open the **Copilot Cost Lens** view in the activity bar, or run `Copilot Cost Lens: Open Dashboard`.
 
@@ -108,6 +116,12 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
+| `copilotCostLens.jetbrainsCopilot.enabled` | `false` | Include JetBrains Copilot chat sessions (estimated). |
+| `copilotCostLens.starredRepos` | `[]` | Repositories pinned to the top of the dashboard. |
+| `copilotCostLens.repoAliases` | `{}` | Display names: `{ "(unknown) 2bebdc79": "Backend API" }` — set via ✎ Rename. |
+| `copilotCostLens.hiddenRepos` | `[]` | Repositories hidden from all views — set via 🙈 Hide, remove here to unhide. |
+| `copilotCostLens.sessionCostAlertUsd` | `0` | Warn when one session crosses this USD amount (0 = off). |
+| `copilotCostLens.documentLanguage` | `en` | Language of exported PDF receipts (`en`, `auto`, `cs`, `de`). |
 | `copilotCostLens.estimation.enabled` | `true` | Estimate sessions that have no exact token data. |
 | `copilotCostLens.estimation.charsPerToken` | `4` | Ratio used by the estimator — only affects `~est` entries. ~4 chars/token is the rule of thumb for English text and code (CJK ≈ 1–2); estimates land within roughly ±20–30 % of real counts. |
 | `copilotCostLens.priceOverrides` | `{}` | Per-model rate overrides (USD per 1M tokens). |
@@ -135,6 +149,9 @@ Your Copilot Chat version isn't writing token-level transcripts yet. Estimates s
 
 **Does it work with older "premium requests" billing?**
 Yes — Copilot CLI sessions log the billed premium requests directly and Cost Lens prices them at $0.04 each; everything else falls back to token-based pricing. The AI Credits model (effective June 2026) is the primary target.
+
+**How do I unhide a hidden repository?**
+Open settings and remove its entry from `copilotCostLens.hiddenRepos` (the 🙈 Hide button in a repository's detail adds it there). Hidden repositories are excluded from the dashboard, status bar and receipts, but raw CSV/JSON exports and budget alerts still include them, so your totals never silently lie.
 
 **Why is Claude Code in a Copilot extension?**
 Because the question you actually ask is "what does this repository cost me in AI tools?" Claude Code spend is tracked separately from the Copilot allowance gauge and can be disabled with one setting.

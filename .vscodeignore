@@ -12,3 +12,5 @@ eslint.config.mjs
 vitest.config.ts
 tsconfig.json
 docs/**
+landing-page/**
+.claude/**
