@@ -42,6 +42,20 @@ export function sanitizePriceOverrides(raw: unknown): Record<string, Partial<Mod
   return out;
 }
 
+/** Parse a {name: positive number} map (per-project budgets), dropping bad entries. */
+export function sanitizeBudgetMap(raw: unknown): Record<string, number> {
+  const out: Record<string, number> = {};
+  if (!raw || typeof raw !== 'object') {
+    return out;
+  }
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (key.trim() && typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      out[key.trim()] = value;
+    }
+  }
+  return out;
+}
+
 /** Display currency for dashboard and status bar. USD always keeps rate 1. */
 export function sanitizeCurrency(codeRaw: unknown, rateRaw: unknown): { code: string; rate: number } {
   const code =
@@ -78,7 +92,7 @@ export function sanitizeProjectGroups(raw: unknown): Record<string, string[]> {
   for (const [name, members] of Object.entries(raw as Record<string, unknown>)) {
     const list = sanitizeStringArray(members);
     if (name.trim() && list.length > 0) {
-      groups[name] = list;
+      groups[name.trim()] = list;
     }
   }
   return groups;

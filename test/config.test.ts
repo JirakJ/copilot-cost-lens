@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   clampCharsPerToken,
+  sanitizeBudgetMap,
   sanitizeCurrency,
   sanitizeNumberArray,
   sanitizePriceOverrides,
@@ -83,6 +84,15 @@ describe('sanitizeRepoAliases', () => {
   it('tolerates non-object input', () => {
     expect(sanitizeRepoAliases(null)).toEqual({});
     expect(sanitizeRepoAliases([])).toEqual({});
+  });
+});
+
+describe('sanitizeBudgetMap', () => {
+  it('keeps positive finite numbers with non-empty keys', () => {
+    expect(sanitizeBudgetMap({ App: 50, ' ': 5, Zero: 0, Neg: -1, Bad: 'x', Inf: Infinity })).toEqual(
+      { App: 50 },
+    );
+    expect(sanitizeBudgetMap(null)).toEqual({});
   });
 });
 

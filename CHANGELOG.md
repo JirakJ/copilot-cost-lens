@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.19.0] — 2026-07-09
+
+### Added
+
+- **Copy Summary as Markdown.** One command puts the current month — per-repository costs, shares and totals — on your clipboard as a Markdown table, ready for standups and status reports.
+- **Export Summary CSV.** A per-repository aggregate (requests, sessions, tokens, credits, USD, with a TOTAL row) as a pivot-ready CSV, alongside the existing raw event exports.
+- **Per-project budgets.** `copilotCostLens.projectBudgetsUsd` gives each project its own monthly USD budget; you are warned once per day when a project crosses `warnAtPercent` of it.
+
 ## [1.18.0] — 2026-07-09
 
 ### Added

@@ -114,6 +114,9 @@
   "Copilot Cost Lens: storage root added: {0}": "Copilot Cost Lens: Protokollordner hinzugefügt: {0}",
   "All repositories": "Alle Repositories",
   "📅 Entire period (all repositories)": "📅 Gesamter Zeitraum (alle Repositories)",
+  "Copilot Cost Lens: summary copied to clipboard.": "Copilot Cost Lens: Zusammenfassung in die Zwischenablage kopiert.",
+  "Copilot Cost Lens: summary exported to {0}": "Copilot Cost Lens: Zusammenfassung exportiert nach {0}",
+  "Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.": "Copilot Cost Lens: Projekt {0} hat ${1} seines Budgets von ${2} verbraucht.",
   "No usage in {0}, but you have data in other periods.": "Keine Nutzung in {0}, aber Sie haben Daten in anderen Zeiträumen.",
   "View all time": "Gesamten Zeitraum anzeigen",
   "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)"

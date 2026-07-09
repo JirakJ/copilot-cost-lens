@@ -15,6 +15,7 @@ import { PLAN_CREDITS } from './core/pricing';
 import {
   clampCharsPerToken,
   sanitizeNumberArray,
+  sanitizeBudgetMap,
   sanitizeCurrency,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
@@ -23,7 +24,8 @@ import {
 } from './core/config';
 import { DisplayCurrency } from './core/money';
 import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
-import { exportUsage } from './commands/export';
+import { summaryMarkdown } from './core/summary';
+import { exportSummary, exportUsage } from './commands/export';
 import { StoreConfig, UsageStore } from './data/usageStore';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
@@ -85,6 +87,17 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
     vscode.commands.registerCommand('copilotCostLens.manageHidden', () => manageHiddenRepos()),
     vscode.commands.registerCommand('copilotCostLens.addStorageRoot', () => addStorageRoot()),
+    vscode.commands.registerCommand('copilotCostLens.copySummary', async () => {
+      await vscode.env.clipboard.writeText(
+        summaryMarkdown(buildReport(store, currentMonthKey()), displayCurrency()),
+      );
+      void vscode.window.showInformationMessage(
+        vscode.l10n.t('Copilot Cost Lens: summary copied to clipboard.'),
+      );
+    }),
+    vscode.commands.registerCommand('copilotCostLens.exportSummaryCsv', () =>
+      exportSummary(buildReport(store, currentMonthKey())),
+    ),
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
@@ -142,6 +155,7 @@ export function activate(context: vscode.ExtensionContext): void {
     maybeWarnBudget(context, fullReport);
     checkCreditAlerts(context, fullReport);
     checkSessionAlerts(context, store);
+    checkProjectBudgets(context, fullReport);
 
     const stats = store.getStats();
     output.appendLine(
@@ -419,6 +433,47 @@ function checkSessionAlerts(context: vscode.ExtensionContext, store: UsageStore)
       void vscode.commands.executeCommand('copilotCostLens.openDashboard');
     }
   });
+}
+
+/**
+ * Per-project budget warnings, mirroring maybeWarnBudget: fire at most once
+ * per day per project once spend crosses warnAtPercent of that budget.
+ * Uses the full report (hidden repos included) — budgets track real spend.
+ */
+function checkProjectBudgets(context: vscode.ExtensionContext, report: MonthReport): void {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const budgets = sanitizeBudgetMap(config.get('projectBudgetsUsd', {}));
+  const warnAt = config.get<number>('warnAtPercent', 80);
+  const today = new Date().toISOString().slice(0, 10);
+
+  for (const group of report.groups) {
+    const budget = budgets[group.name];
+    if (!budget || group.usd < (budget * warnAt) / 100) {
+      continue;
+    }
+    const key = `project-budget-${report.month}-${group.name}`;
+    if (context.globalState.get<string>(key) === today) {
+      continue;
+    }
+    void context.globalState.update(key, today);
+
+    const openLabel = vscode.l10n.t('Open Dashboard');
+    void vscode.window
+      .showWarningMessage(
+        vscode.l10n.t(
+          'Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.',
+          group.name,
+          group.usd.toFixed(2),
+          budget.toFixed(2),
+        ),
+        openLabel,
+      )
+      .then((choice) => {
+        if (choice === openLabel) {
+          void vscode.commands.executeCommand('copilotCostLens.openDashboard');
+        }
+      });
+  }
 }
 
 function eventsInPeriod(store: UsageStore, month: string) {

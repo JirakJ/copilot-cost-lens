@@ -114,6 +114,9 @@
   "Copilot Cost Lens: storage root added: {0}": "Copilot Cost Lens: ログフォルダーを追加しました: {0}",
   "All repositories": "すべてのリポジトリ",
   "📅 Entire period (all repositories)": "📅 全期間（すべてのリポジトリ）",
+  "Copilot Cost Lens: summary copied to clipboard.": "Copilot Cost Lens: サマリーをクリップボードにコピーしました。",
+  "Copilot Cost Lens: summary exported to {0}": "Copilot Cost Lens: サマリーを {0} にエクスポートしました",
+  "Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.": "Copilot Cost Lens: プロジェクト {0} は予算 ${2} のうち ${1} を使用しました。",
   "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
   "View all time": "全期間を表示",
   "Activity (last 26 weeks)": "アクティビティ (直近26週間)"
