@@ -95,6 +95,10 @@
   "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "Effektiver Mischpreis pro 1M tatsächlich bezahlter Tokens — im Vergleich zu den offiziellen Listenpreisen zeigt sich Ihre Cache-Ersparnis.",
   "Filter repositories…": "Repositories filtern…",
   "Open in VS Code": "In VS Code öffnen",
+  "Rename": "Umbenennen",
+  "Set a display name for this repository": "Anzeigenamen für dieses Repository festlegen",
+  "Rename repository": "Repository umbenennen",
+  "Display name for {0} (leave empty to reset)": "Anzeigename für {0} (leer lassen zum Zurücksetzen)",
   "No usage in {0}, but you have data in other periods.": "Keine Nutzung in {0}, aber Sie haben Daten in anderen Zeiträumen.",
   "View all time": "Gesamten Zeitraum anzeigen",
   "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)"

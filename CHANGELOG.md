@@ -3,6 +3,16 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.15.0] — 2026-07-09
+
+### Added
+
+- **Rename repositories.** Open a repository's detail view and use the **✎ Rename** button to give it a friendly display name — so remote repositories no longer show up only as a hash like `(unknown) 2bebdc79`. Clear the field to reset. Names are stored in the new `copilotCostLens.repoAliases` setting and applied everywhere (dashboard, project totals, receipts).
+
+### Changed
+
+- Repositories assigned to a project group are hidden from the flat **Repositories** table — they now appear only under their project, removing the duplicate listing.
+
 ## [1.14.0] — 2026-07-02
 
 ### Fixed

@@ -4,6 +4,7 @@ import {
   sanitizeNumberArray,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
+  sanitizeRepoAliases,
   sanitizeStringArray,
 } from '../src/core/config';
 
@@ -60,5 +61,25 @@ describe('sanitizeProjectGroups', () => {
         bad: 'x',
       }),
     ).toEqual({ Product: ['a', 'b'] });
+  });
+});
+
+describe('sanitizeRepoAliases', () => {
+  it('keeps non-empty string aliases with non-empty keys', () => {
+    expect(
+      sanitizeRepoAliases({
+        '(unknown) 2bebdc79': 'Backend API',
+        '   ': 'x',
+        empty: '',
+        bad: 42,
+      }),
+    ).toEqual({ '(unknown) 2bebdc79': 'Backend API' });
+  });
+  it('trims keys and values so lookups match resolved names', () => {
+    expect(sanitizeRepoAliases({ '  (unknown) x  ': '  Foo  ' })).toEqual({ '(unknown) x': 'Foo' });
+  });
+  it('tolerates non-object input', () => {
+    expect(sanitizeRepoAliases(null)).toEqual({});
+    expect(sanitizeRepoAliases([])).toEqual({});
   });
 });

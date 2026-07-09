@@ -27,6 +27,7 @@
   "cfg.creditAlerts": "Absolutní prahy AI kreditů (např. [2500, 5000]). Každý práh vyvolá notifikaci jednou měsíčně, jakmile jej měsíční využití Copilota překročí.",
   "cmd.createProject": "Vytvořit projekt (seskupit repozitáře)",
   "cfg.starredRepos": "Oblíbené repozitáře — zobrazují se v samostatné sekci nahoře v přehledu pro rychlou orientaci. Hvězdičku přepnete přímo v tabulce repozitářů.",
+  "cfg.repoAliases": "Vlastní zobrazované názvy repozitářů podle jejich rozpoznaného názvu. Příklad: `{ \"(unknown) 2bebdc79\": \"Backend API\" }`. Místo ruční úpravy použijte tlačítko ✎ Přejmenovat v detailu repozitáře.",
   "cfg.documentLanguage": "Jazyk exportovaných PDF dokumentů (účtenky a faktury). Výchozí je angličtina; „auto\" se řídí jazykem VS Code.",
   "cfg.docLang.en": "Angličtina (výchozí)",
   "cfg.docLang.auto": "Podle jazyka VS Code",

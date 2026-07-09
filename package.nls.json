@@ -27,6 +27,7 @@
   "cfg.creditAlerts": "Absolute AI-credit thresholds (e.g. [2500, 5000]). Each fires a notification once per month when month-to-date Copilot usage crosses it.",
   "cmd.createProject": "Create Project (Group Repositories)",
   "cfg.starredRepos": "Starred repositories — shown in a dedicated section at the top of the dashboard for a quick overview. Toggle the star directly in the repository table.",
+  "cfg.repoAliases": "Custom display names for repositories, keyed by their resolved name. Example: `{ \"(unknown) 2bebdc79\": \"Backend API\" }`. Use the ✎ Rename button in a repository's detail view instead of editing this by hand.",
   "cfg.documentLanguage": "Language of exported PDF documents (receipts and invoices). English by default; \"auto\" follows the VS Code display language.",
   "cfg.docLang.en": "English (default)",
   "cfg.docLang.auto": "Follow the VS Code display language",

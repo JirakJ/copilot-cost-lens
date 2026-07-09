@@ -11,6 +11,8 @@ import { RawUsage, RepoRef, UsageEvent } from '../types';
 
 export interface StoreConfig {
   extraStorageRoots: string[];
+  /** Map of resolved repo name → user-chosen display name. */
+  repoAliases: Record<string, string>;
   claudeCodeEnabled: boolean;
   copilotCliEnabled: boolean;
   jetbrainsCopilotEnabled: boolean;
@@ -249,6 +251,12 @@ export class UsageStore {
   }
 
   private async resolveRepo(usage: RawUsage): Promise<RepoRef> {
+    const base = await this.baseRepo(usage);
+    const alias = this.config.repoAliases[base.name];
+    return alias ? { ...base, name: alias } : base;
+  }
+
+  private async baseRepo(usage: RawUsage): Promise<RepoRef> {
     if (usage.repoSlug) {
       return { name: usage.repoSlug, folderPath: usage.folderPath, remoteSlug: usage.repoSlug };
     }

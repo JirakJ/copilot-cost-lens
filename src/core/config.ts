@@ -42,6 +42,20 @@ export function sanitizePriceOverrides(raw: unknown): Record<string, Partial<Mod
   return out;
 }
 
+/** Parse the repo-alias map (original name → display name), dropping malformed entries. */
+export function sanitizeRepoAliases(raw: unknown): Record<string, string> {
+  const out: Record<string, string> = {};
+  if (!raw || typeof raw !== 'object') {
+    return out;
+  }
+  for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
+    if (key.trim() && typeof value === 'string' && value.trim()) {
+      out[key.trim()] = value.trim();
+    }
+  }
+  return out;
+}
+
 /** Parse a project-groups config object, dropping malformed entries. */
 export function sanitizeProjectGroups(raw: unknown): Record<string, string[]> {
   const groups: Record<string, string[]> = {};

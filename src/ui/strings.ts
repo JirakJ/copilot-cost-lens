@@ -83,6 +83,8 @@ export function webviewStrings(): Record<string, string> {
     colPerM: t('$ / 1M'),
     filterRepos: t('Filter repositories…'),
     openFolder: t('Open in VS Code'),
+    renameRepo: t('Rename'),
+    renameRepoTitle: t('Set a display name for this repository'),
     effRateHint: t('Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.'),
     projectsEmptyHint: t('Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.'),
     providerCopilot: 'Copilot',

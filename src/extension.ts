@@ -16,6 +16,7 @@ import {
   sanitizeNumberArray,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
+  sanitizeRepoAliases,
   sanitizeStringArray,
 } from './core/config';
 import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
@@ -48,6 +49,7 @@ export function activate(context: vscode.ExtensionContext): void {
     getGroupsConfig: () => projectGroups(),
     getStarred: () => starredRepos(),
     toggleStar: (repoName) => toggleStar(repoName),
+    renameRepo: (repoName) => renameRepo(repoName),
     refresh: async () => {
       await store.refresh();
     },
@@ -152,6 +154,7 @@ function readStoreConfig(): StoreConfig {
   return {
     // tolerate malformed user config — never let a bad value break the scan
     extraStorageRoots: sanitizeStringArray(config.get('extraStorageRoots', [])),
+    repoAliases: sanitizeRepoAliases(config.get('repoAliases', {})),
     claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
     copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),
     jetbrainsCopilotEnabled: config.get<boolean>('jetbrainsCopilot.enabled', false),
@@ -420,6 +423,43 @@ async function toggleStar(repoName: string): Promise<void> {
     ? current.filter((s) => s.toLowerCase() !== repoName.toLowerCase())
     : [...current, repoName];
   await config.update('starredRepos', next, vscode.ConfigurationTarget.Global);
+}
+
+function repoAliases(): Record<string, string> {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  return sanitizeRepoAliases(config.get('repoAliases', {}));
+}
+
+/**
+ * Rename a repository from the dashboard. `currentName` is what the user sees —
+ * either the original resolved name or an existing alias; the alias map is
+ * always keyed by the original name so renames stay stable across rescans.
+ * Clearing the input (or typing the original name) removes the alias.
+ */
+async function renameRepo(currentName: string): Promise<void> {
+  const config = vscode.workspace.getConfiguration('copilotCostLens');
+  const aliases = repoAliases();
+  const baseKey =
+    Object.entries(aliases).find(([, alias]) => alias.toLowerCase() === currentName.toLowerCase())?.[0] ??
+    currentName;
+
+  const input = await vscode.window.showInputBox({
+    title: vscode.l10n.t('Rename repository'),
+    prompt: vscode.l10n.t('Display name for {0} (leave empty to reset)', baseKey),
+    value: currentName,
+  });
+  if (input === undefined) {
+    return;
+  }
+
+  const next = { ...aliases };
+  const trimmed = input.trim();
+  if (!trimmed || trimmed === baseKey) {
+    delete next[baseKey];
+  } else {
+    next[baseKey] = trimmed;
+  }
+  await config.update('repoAliases', next, vscode.ConfigurationTarget.Global);
 }
 
 async function createGroup(store: UsageStore): Promise<void> {

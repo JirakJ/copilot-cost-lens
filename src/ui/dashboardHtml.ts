@@ -339,6 +339,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<h2>' + esc(s.repo.name) + (s.hasEstimates ? '<span class="badge">~est</span>' : '') + '</h2>' +
         '<button id="receipt">🧾 ' + esc(S.receiptPdf) + '</button>' +
         (s.repo.folderPath ? '<button id="openRepo">📂 ' + esc(S.openFolder) + '</button>' : '') +
+        '<button id="renameRepo" title="' + esc(S.renameRepoTitle) + '">✎ ' + esc(S.renameRepo) + '</button>' +
       '</div>' +
       '<div class="grid kpis">' +
         kpi(S.spend + ' · ' + periodLabel, usd(s.usd), cr(s.credits) + ' ' + S.aiCredits) +
@@ -368,6 +369,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     document.getElementById('receipt').onclick = () => vscode.postMessage({ type: 'exportReceipt', repo: s.repo.name });
     const openBtn = document.getElementById('openRepo');
     if (openBtn) openBtn.onclick = () => vscode.postMessage({ type: 'openRepo', path: s.repo.folderPath });
+    document.getElementById('renameRepo').onclick = () => vscode.postMessage({ type: 'renameRepo', repo: s.repo.name });
     foot.innerHTML = esc(S.footSources);
   }
 
@@ -441,12 +443,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
   function renderEditor() {
     // repos already claimed by another project are not offered again
-    const assignedElsewhere = new Set();
-    const groupsConfig = (lastMsg && lastMsg.groupsConfig) || {};
-    for (const [gname, members] of Object.entries(groupsConfig)) {
-      if (gname === editor.originalName) continue;
-      for (const m of members) assignedElsewhere.add(String(m).toLowerCase());
-    }
+    const assignedElsewhere = projectRepoSet(editor.originalName);
     const allRepos = ((lastMsg && lastMsg.allRepos) || []).filter(
       (r) => !assignedElsewhere.has(r.name.toLowerCase()) || editor.members.has(r.name));
     const rows = allRepos.map((r) =>
@@ -664,6 +661,19 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     return new Set(((lastMsg && lastMsg.starred) || []).map((s) => String(s).toLowerCase()));
   }
 
+  // Repo names (lowercased) claimed by a project. A repo belongs to at most one
+  // project, so these are hidden from the Repositories table — they're counted
+  // under their project instead. Pass exceptGroup to ignore one group's members.
+  function projectRepoSet(exceptGroup) {
+    const set = new Set();
+    const cfg = (lastMsg && lastMsg.groupsConfig) || {};
+    for (const [gname, members] of Object.entries(cfg)) {
+      if (gname === exceptGroup) continue;
+      for (const m of members) set.add(String(m).toLowerCase());
+    }
+    return set;
+  }
+
   function starredCard(r) {
     const starred = starredSet();
     if (starred.size === 0) return '';
@@ -750,6 +760,9 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     const r = lastMsg.report;
     const needle = repoFilter.trim().toLowerCase();
     let list = r.repos;
+    // repos assigned to a project are shown under their project, not here
+    const assigned = projectRepoSet();
+    if (assigned.size) list = list.filter((repo) => !assigned.has(repo.repo.name.toLowerCase()));
     if (repoProvider) {
       list = list.filter((repo) => (repo.providers || []).includes(repoProvider));
     }

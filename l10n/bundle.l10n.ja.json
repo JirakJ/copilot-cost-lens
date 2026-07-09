@@ -95,6 +95,10 @@
   "Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.": "実際に支払った 100 万トークンあたりの実効価格です。公式の定価と比較すると、キャッシュによる節約が分かります。",
   "Filter repositories…": "リポジトリを絞り込む…",
   "Open in VS Code": "VS Code で開く",
+  "Rename": "名前を変更",
+  "Set a display name for this repository": "このリポジトリの表示名を設定します",
+  "Rename repository": "リポジトリの名前を変更",
+  "Display name for {0} (leave empty to reset)": "{0} の表示名（空欄でリセット）",
   "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
   "View all time": "全期間を表示",
   "Activity (last 26 weeks)": "アクティビティ (直近26週間)"

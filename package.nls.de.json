@@ -27,6 +27,7 @@
   "cfg.creditAlerts": "Absolute AI-Credit-Schwellen (z. B. [2500, 5000]). Jede löst einmal pro Monat eine Benachrichtigung aus, sobald die Copilot-Nutzung sie überschreitet.",
   "cmd.createProject": "Projekt erstellen (Repositories gruppieren)",
   "cfg.starredRepos": "Favorisierte Repositories — werden für den schnellen Überblick in einem eigenen Abschnitt oben im Dashboard angezeigt. Der Stern lässt sich direkt in der Repository-Tabelle umschalten.",
+  "cfg.repoAliases": "Eigene Anzeigenamen für Repositories, indexiert nach ihrem aufgelösten Namen. Beispiel: `{ \"(unknown) 2bebdc79\": \"Backend API\" }`. Nutzen Sie die Schaltfläche ✎ Umbenennen in der Detailansicht eines Repositories, statt dies von Hand zu bearbeiten.",
   "cfg.documentLanguage": "Sprache exportierter PDF-Dokumente (Quittungen und Rechnungen). Standard ist Englisch; „auto\" folgt der VS-Code-Anzeigesprache.",
   "cfg.docLang.en": "Englisch (Standard)",
   "cfg.docLang.auto": "Der VS-Code-Anzeigesprache folgen",
