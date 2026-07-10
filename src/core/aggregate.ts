@@ -96,9 +96,10 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     providerMap.set(e.provider, provider);
 
     const day = dayKey(e.timestamp);
-    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
+    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0, tokens: 0 };
     point.credits += e.credits;
     point.usd = creditsToUsd(point.credits);
+    point.tokens += eventTokens(e);
     dayMap.set(day, point);
   }
 
@@ -178,6 +179,10 @@ function addToModelSummary(summary: ModelSummary, e: UsageEvent): void {
   summary.cacheWriteTokens += e.cacheWriteTokens;
 }
 
+function eventTokens(e: UsageEvent): number {
+  return e.inputTokens + e.outputTokens + e.cachedTokens + e.cacheWriteTokens;
+}
+
 export function previousMonthKey(month: string): string {
   const [yearStr, monthStr] = month.split('-');
   const date = new Date(Number(yearStr), Number(monthStr) - 2, 1);
@@ -187,20 +192,23 @@ export function previousMonthKey(month: string): string {
 /** Daily spend for the last `weeks` weeks (aligned to whole days), all sources. */
 export function buildHeatmap(events: UsageEvent[], now = new Date(), weeks = 26): DayPoint[] {
   const days = weeks * 7;
-  const totals = new Map<string, number>();
+  const totals = new Map<string, { credits: number; tokens: number }>();
   const start = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1)).getTime();
   for (const e of events) {
     if (e.timestamp >= start) {
       const key = dayKey(e.timestamp);
-      totals.set(key, (totals.get(key) ?? 0) + e.credits);
+      const t = totals.get(key) ?? { credits: 0, tokens: 0 };
+      t.credits += e.credits;
+      t.tokens += eventTokens(e);
+      totals.set(key, t);
     }
   }
   const out: DayPoint[] = [];
   for (let i = 0; i < days; i++) {
     const d = new Date(now.getFullYear(), now.getMonth(), now.getDate() - (days - 1) + i);
     const key = dayKey(d.getTime());
-    const credits = totals.get(key) ?? 0;
-    out.push({ day: key, credits, usd: creditsToUsd(credits) });
+    const t = totals.get(key) ?? { credits: 0, tokens: 0 };
+    out.push({ day: key, credits: t.credits, usd: creditsToUsd(t.credits), tokens: t.tokens });
   }
   return out;
 }
@@ -338,9 +346,10 @@ export function buildGroupDetail(
   const providerMap = new Map<string, ProviderSummary>();
   for (const e of inScope) {
     const day = dayKey(e.timestamp);
-    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
+    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0, tokens: 0 };
     point.credits += e.credits;
     point.usd = creditsToUsd(point.credits);
+    point.tokens += eventTokens(e);
     dayMap.set(day, point);
 
     const provider = providerMap.get(e.provider) ?? {
@@ -396,9 +405,10 @@ export function buildRepoDetail(
   for (const e of filtered) {
     firstActivity = Math.min(firstActivity, e.timestamp);
     const day = dayKey(e.timestamp);
-    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0 };
+    const point = dayMap.get(day) ?? { day, credits: 0, usd: 0, tokens: 0 };
     point.credits += e.credits;
     point.usd = creditsToUsd(point.credits);
+    point.tokens += eventTokens(e);
     dayMap.set(day, point);
 
     const provider = providerMap.get(e.provider) ?? {

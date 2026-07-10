@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.21.0] — 2026-07-10
+
+### Added
+
+- **Today's tokens.** The dashboard Spend card badge now shows today's token consumption alongside today's spend (e.g. `Today: $2.40 · 1.9M tokens`).
+- **Per-day tokens in the heatmap.** Hovering any day in the activity heatmap now shows that day's tokens next to its spend.
+
 ## [1.20.0] — 2026-07-10
 
 ### Added

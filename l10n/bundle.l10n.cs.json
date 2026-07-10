@@ -121,5 +121,6 @@
   "View all time": "Zobrazit vše od počátku",
   "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)",
   "Today: **{0}**": "Dnes: **{0}**",
-  "Today": "Dnes"
+  "Today": "Dnes",
+  "tokens": "tokenů"
 }

@@ -141,6 +141,8 @@ export interface DayPoint {
   day: string;
   credits: number;
   usd: number;
+  /** Total tokens (input + output + cached + cache-write) for the day. */
+  tokens: number;
 }
 
 export interface MonthPoint {

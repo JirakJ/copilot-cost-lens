@@ -34,9 +34,9 @@ describe('sparkline', () => {
   it('renders the last 7 days with gaps as the lowest block', () => {
     const spark = sparkline(
       reportWithDays([
-        { day: '2026-06-04', credits: 100, usd: 1 },
-        { day: '2026-06-07', credits: 400, usd: 4 },
-        { day: '2026-06-10', credits: 200, usd: 2 },
+        { day: '2026-06-04', credits: 100, usd: 1, tokens: 0 },
+        { day: '2026-06-07', credits: 400, usd: 4, tokens: 0 },
+        { day: '2026-06-10', credits: 200, usd: 2, tokens: 0 },
       ]),
       now,
     );
@@ -53,7 +53,7 @@ describe('sparkline', () => {
 
   it('ignores days outside the 7-day window', () => {
     const spark = sparkline(
-      reportWithDays([{ day: '2026-06-01', credits: 500, usd: 5 }]),
+      reportWithDays([{ day: '2026-06-01', credits: 500, usd: 5, tokens: 0 }]),
       now,
     );
     expect(spark).toBe('');
@@ -65,8 +65,8 @@ describe('todayUsd', () => {
 
   it('sums only entries for the current local day', () => {
     const report = reportWithDays([
-      { day: '2026-06-09', credits: 100, usd: 1 },
-      { day: '2026-06-10', credits: 200, usd: 2.5 },
+      { day: '2026-06-09', credits: 100, usd: 1, tokens: 0 },
+      { day: '2026-06-10', credits: 200, usd: 2.5, tokens: 0 },
     ]);
     expect(todayUsd(report, now)).toBe(2.5);
   });

@@ -121,5 +121,6 @@
   "View all time": "全期間を表示",
   "Activity (last 26 weeks)": "アクティビティ (直近26週間)",
   "Today: **{0}**": "今日: **{0}**",
-  "Today": "今日"
+  "Today": "今日",
+  "tokens": "トークン"
 }

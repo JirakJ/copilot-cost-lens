@@ -599,8 +599,10 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
     let todayLine = '';
     if (selectedMonth === 'all' || selectedMonth === todayKey.slice(0, 7)) {
-      const todayUsd = (r.days || []).filter((d) => d.day === todayKey).reduce((s, d) => s + d.usd, 0);
-      todayLine = '<div class="sub"><b>' + esc(S.today + ': ' + usd(todayUsd)) + '</b></div>';
+      const todayDays = (r.days || []).filter((d) => d.day === todayKey);
+      const todayUsd = todayDays.reduce((s, d) => s + d.usd, 0);
+      const todayTokens = todayDays.reduce((s, d) => s + (d.tokens || 0), 0);
+      todayLine = '<div class="sub"><b>' + esc(S.today + ': ' + usd(todayUsd) + ' · ' + tok(todayTokens) + ' ' + S.tokens) + '</b></div>';
     }
     return '<div class="card"><div class="label">' + esc(S.spend + ' · ' + periodLabel) + '</div>' +
       '<div class="value">' + esc(usd(r.totalUsd)) + trend + '</div>' +
@@ -862,7 +864,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       const t = d.usd / max;
       const fill = d.usd <= 0 ? 'rgba(128,128,128,0.12)'
         : 'color-mix(in srgb, var(--c1) ' + Math.round(25 + t * 75) + '%, transparent)';
-      svg += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="2.5" fill="' + fill + '"><title>' + d.day + ': $' + d.usd.toFixed(2) + '</title></rect>';
+      svg += '<rect x="' + x + '" y="' + y + '" width="' + cell + '" height="' + cell + '" rx="2.5" fill="' + fill + '"><title>' + d.day + ': $' + d.usd.toFixed(2) + ' · ' + tok(d.tokens || 0) + ' ' + S.tokens + '</title></rect>';
       const mon = d.day.slice(0, 7);
       if (row === 0 && mon !== lastMonth) { lastMonth = mon; svg += '<text x="' + x + '" y="10">' + (+d.day.slice(5, 7)) + '/' + d.day.slice(2, 4) + '</text>'; }
     });

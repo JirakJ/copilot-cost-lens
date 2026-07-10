@@ -66,6 +66,16 @@ describe('buildMonthReport', () => {
     expect(report.requestCount).toBe(1);
   });
 
+  it('sums per-day tokens across all token buckets', () => {
+    const events = [
+      event({ inputTokens: 1000, outputTokens: 200, cachedTokens: 50, cacheWriteTokens: 10 }),
+      event({ inputTokens: 500, outputTokens: 100, cachedTokens: 0, cacheWriteTokens: 0, sessionId: 's2' }),
+    ];
+    const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    const today = report.days.find((d) => d.day === '2026-06-10');
+    expect(today?.tokens).toBe(1860);
+  });
+
   it('ranks repositories by cost', () => {
     const events = [
       event({ repo: { name: 'owner/alpha' }, credits: 1 }),
