@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.21.1] — 2026-07-10
+
+### Fixed
+
+- Today's spend/tokens badge now also shows on the empty-state overview (a month with no activity yet), so today's running total is always visible on the current month and all-time.
+
 ## [1.21.0] — 2026-07-10
 
 ### Added

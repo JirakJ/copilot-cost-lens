@@ -253,6 +253,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
             '<button id="viewAll" class="primary">' + esc(S.viewAllTime) + '</button>'
           : '<p>' + esc(S.emptyTitle) + '</p><p>' + esc(S.emptyHint) + '</p>' +
             '<button id="addRoot">📁 ' + esc(S.addRoot) + '</button>') +
+        todayBadge(r, selectedMonth) +
         '</div>';
       const viewAll = document.getElementById('viewAll');
       if (viewAll) viewAll.onclick = () => vscode.postMessage({ type: 'selectMonth', month: 'all' });
@@ -595,19 +596,21 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       trend = ' <span style="font-size:13px;color:var(' + (up ? '--c4' : '--c3') + ')">' +
         (up ? '▲' : '▼') + Math.abs(delta).toFixed(0) + '% ' + esc(S.vsPrevMonth) + '</span>';
     }
-    const now = new Date();
-    const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
-    let todayLine = '';
-    if (selectedMonth === 'all' || selectedMonth === todayKey.slice(0, 7)) {
-      const todayDays = (r.days || []).filter((d) => d.day === todayKey);
-      const todayUsd = todayDays.reduce((s, d) => s + d.usd, 0);
-      const todayTokens = todayDays.reduce((s, d) => s + (d.tokens || 0), 0);
-      todayLine = '<div class="sub"><b>' + esc(S.today + ': ' + usd(todayUsd) + ' · ' + tok(todayTokens) + ' ' + S.tokens) + '</b></div>';
-    }
     return '<div class="card"><div class="label">' + esc(S.spend + ' · ' + periodLabel) + '</div>' +
       '<div class="value">' + esc(usd(r.totalUsd)) + trend + '</div>' +
-      todayLine +
+      todayBadge(r, selectedMonth) +
       '<div class="sub">' + esc(providerSplit || (cr(r.totalCredits) + ' ' + S.aiCredits)) + '</div></div>';
+  }
+
+  // Today's running spend + tokens. Shown on the current month and all-time only.
+  function todayBadge(r, selectedMonth) {
+    const now = new Date();
+    const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    if (selectedMonth !== 'all' && selectedMonth !== todayKey.slice(0, 7)) return '';
+    const todayDays = ((r && r.days) || []).filter((d) => d.day === todayKey);
+    const todayUsd = todayDays.reduce((s, d) => s + d.usd, 0);
+    const todayTokens = todayDays.reduce((s, d) => s + (d.tokens || 0), 0);
+    return '<div class="sub"><b>' + esc(S.today + ': ' + usd(todayUsd) + ' · ' + tok(todayTokens) + ' ' + S.tokens) + '</b></div>';
   }
 
   function kpiGauge(r, pct, over, selectedMonth) {
