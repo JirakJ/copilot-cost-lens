@@ -119,5 +119,7 @@
   "Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.": "Copilot Cost Lens: プロジェクト {0} は予算 ${2} のうち ${1} を使用しました。",
   "No usage in {0}, but you have data in other periods.": "{0} のデータはありませんが、他の期間にはデータがあります。",
   "View all time": "全期間を表示",
-  "Activity (last 26 weeks)": "アクティビティ (直近26週間)"
+  "Activity (last 26 weeks)": "アクティビティ (直近26週間)",
+  "Today: **{0}**": "今日: **{0}**",
+  "Today": "今日"
 }

@@ -234,7 +234,7 @@ function statusBarOptions(): {
   enabled: boolean;
   warnAtPercent: number;
   currency: DisplayCurrency;
-  mode: 'spend' | 'remaining';
+  mode: 'spend' | 'remaining' | 'today';
 } {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   const mode = config.get<string>('statusBar.mode', 'spend');
@@ -242,7 +242,7 @@ function statusBarOptions(): {
     enabled: config.get<boolean>('statusBar.enabled', true),
     warnAtPercent: config.get<number>('warnAtPercent', 80),
     currency: displayCurrency(),
-    mode: mode === 'remaining' ? 'remaining' : 'spend',
+    mode: mode === 'remaining' || mode === 'today' ? mode : 'spend',
   };
 }
 

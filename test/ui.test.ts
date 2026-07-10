@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { csvField, toCsv } from '../src/core/csv';
-import { sparkline } from '../src/core/sparkline';
+import { sparkline, todayUsd } from '../src/core/sparkline';
 import { renderDashboardHtml } from '../src/ui/dashboardHtml';
 import { MonthReport, UsageEvent } from '../src/types';
 
@@ -57,6 +57,22 @@ describe('sparkline', () => {
       now,
     );
     expect(spark).toBe('');
+  });
+});
+
+describe('todayUsd', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('sums only entries for the current local day', () => {
+    const report = reportWithDays([
+      { day: '2026-06-09', credits: 100, usd: 1 },
+      { day: '2026-06-10', credits: 200, usd: 2.5 },
+    ]);
+    expect(todayUsd(report, now)).toBe(2.5);
+  });
+
+  it('returns 0 without spend today', () => {
+    expect(todayUsd(reportWithDays([]), now)).toBe(0);
   });
 });
 

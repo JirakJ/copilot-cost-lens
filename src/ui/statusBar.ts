@@ -1,6 +1,6 @@
 import * as vscode from 'vscode';
 import { DisplayCurrency, money } from '../core/money';
-import { sparkline } from '../core/sparkline';
+import { sparkline, todayUsd } from '../core/sparkline';
 import { MonthReport } from '../types';
 
 export class CostStatusBar implements vscode.Disposable {
@@ -18,7 +18,7 @@ export class CostStatusBar implements vscode.Disposable {
       enabled: boolean;
       warnAtPercent: number;
       currency: DisplayCurrency;
-      mode?: 'spend' | 'remaining';
+      mode?: 'spend' | 'remaining' | 'today';
     },
   ): void {
     if (!options.enabled) {
@@ -28,9 +28,12 @@ export class CostStatusBar implements vscode.Disposable {
 
     const usd = money(report.totalUsd, options.currency);
     const credits = formatCredits(report.totalCredits);
+    const today = money(todayUsd(report), options.currency);
     const spark = sparkline(report);
-    // remaining mode needs an allowance to count down from; fall back to spend
-    if (options.mode === 'remaining' && report.includedCredits > 0) {
+    if (options.mode === 'today') {
+      this.item.text = `$(graph-line) ${today} today${spark ? ' ' + spark : ''}`;
+      // remaining mode needs an allowance to count down from; fall back to spend
+    } else if (options.mode === 'remaining' && report.includedCredits > 0) {
       const left = report.includedCredits - report.copilotCredits;
       this.item.text = `$(graph-line) ${formatCredits(left)} cr left${spark ? ' ' + spark : ''}`;
     } else {
@@ -47,6 +50,7 @@ export class CostStatusBar implements vscode.Disposable {
     const md = new vscode.MarkdownString(undefined, true);
     md.appendMarkdown(`**Copilot Cost Lens — ${report.month}**\n\n`);
     md.appendMarkdown(t('Spend: **{0}** ({1} credits)', usd, credits) + '\n\n');
+    md.appendMarkdown(t('Today: **{0}**', today) + '\n\n');
     if (report.providers.length > 1) {
       const names: Record<string, string> = {
         copilot: 'Copilot',

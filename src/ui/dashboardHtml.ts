@@ -595,8 +595,16 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       trend = ' <span style="font-size:13px;color:var(' + (up ? '--c4' : '--c3') + ')">' +
         (up ? '▲' : '▼') + Math.abs(delta).toFixed(0) + '% ' + esc(S.vsPrevMonth) + '</span>';
     }
+    const now = new Date();
+    const todayKey = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');
+    let todayLine = '';
+    if (selectedMonth === 'all' || selectedMonth === todayKey.slice(0, 7)) {
+      const todayUsd = (r.days || []).filter((d) => d.day === todayKey).reduce((s, d) => s + d.usd, 0);
+      todayLine = '<div class="sub"><b>' + esc(S.today + ': ' + usd(todayUsd)) + '</b></div>';
+    }
     return '<div class="card"><div class="label">' + esc(S.spend + ' · ' + periodLabel) + '</div>' +
       '<div class="value">' + esc(usd(r.totalUsd)) + trend + '</div>' +
+      todayLine +
       '<div class="sub">' + esc(providerSplit || (cr(r.totalCredits) + ' ' + S.aiCredits)) + '</div></div>';
   }
 

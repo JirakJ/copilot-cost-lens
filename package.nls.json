@@ -34,7 +34,7 @@
   "cmd.copySummary": "Copy Summary as Markdown",
   "cmd.exportSummaryCsv": "Export Summary CSV (per repository)",
   "cfg.projectBudgets": "Monthly USD budget per project, keyed by project name. Example: `{ \"MyProduct\": 50 }`. Warns once per day when a project crosses `#copilotCostLens.warnAtPercent#` of its budget.",
-  "cfg.statusBarMode": "What the status bar shows: `spend` (credits and cost so far) or `remaining` (included AI credits left this month; falls back to spend when no allowance is set).",
+  "cfg.statusBarMode": "What the status bar shows: `spend` (credits and cost so far), `remaining` (included AI credits left this month; falls back to spend when no allowance is set), or `today` (spend recorded today).",
   "cfg.displayCurrency": "Three-letter currency code for displaying amounts in the dashboard and status bar (e.g. `EUR`, `CZK`). Conversion uses `#copilotCostLens.usdExchangeRate#`; internal accounting and PDF receipts stay in USD.",
   "cfg.usdExchangeRate": "How many units of `#copilotCostLens.displayCurrency#` one US dollar buys (e.g. `23.5` for CZK). Set manually — the extension never talks to the network. Ignored while the display currency is USD.",
   "cfg.sessionCostAlert": "Warn when a single session's total cost crosses this USD amount — catches runaway agent sessions early. `0` disables the alert. Each session fires at most once.",

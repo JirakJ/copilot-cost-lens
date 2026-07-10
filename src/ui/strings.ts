@@ -15,6 +15,7 @@ export function webviewStrings(): Record<string, string> {
     settingsTitle: t('Open settings'),
     allTime: t('All time'),
     spend: t('Spend'),
+    today: t('Today'),
     allowance: t('Copilot allowance'),
     forecast: t('Forecast (end of month)'),
     activity: t('Activity'),

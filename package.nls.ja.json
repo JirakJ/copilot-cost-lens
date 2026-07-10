@@ -34,7 +34,7 @@
   "cmd.copySummary": "サマリーを Markdown としてコピー",
   "cmd.exportSummaryCsv": "サマリー CSV をエクスポート（リポジトリ別）",
   "cfg.projectBudgets": "プロジェクト名をキーとする月次 USD 予算。例: `{ \"MyProduct\": 50 }`。プロジェクトが予算の `#copilotCostLens.warnAtPercent#` を超えると 1 日 1 回警告します。",
-  "cfg.statusBarMode": "ステータスバーの表示内容: `spend`（これまでのクレジットとコスト）または `remaining`（今月の残り AI クレジット。クォータ未設定時は spend にフォールバック）。",
+  "cfg.statusBarMode": "ステータスバーの表示内容: `spend`（これまでのクレジットとコスト）、`remaining`（今月の残り AI クレジット。クォータ未設定時は spend にフォールバック）、または `today`（今日の支出）。",
   "cfg.displayCurrency": "ダッシュボードとステータスバーの金額表示に使う 3 文字の通貨コード（例: `EUR`、`JPY`）。換算には `#copilotCostLens.usdExchangeRate#` を使用します。内部計算と PDF 領収書は USD のままです。",
   "cfg.usdExchangeRate": "1 米ドルで買える `#copilotCostLens.displayCurrency#` の単位数（例: JPY なら `155`）。手動で設定してください — 拡張機能がネットワークに接続することはありません。表示通貨が USD の間は無視されます。",
   "cfg.sessionCostAlert": "1 つのセッションの合計コストがこの USD 金額を超えたときに警告します — 暴走したエージェントセッションを早期に検知します。`0` で無効。各セッションの警告は最大 1 回です。",

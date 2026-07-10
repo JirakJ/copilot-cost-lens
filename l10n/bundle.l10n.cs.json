@@ -119,5 +119,7 @@
   "Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.": "Copilot Cost Lens: projekt {0} vyčerpal ${1} ze svého rozpočtu ${2}.",
   "No usage in {0}, but you have data in other periods.": "V období {0} nejsou žádná data, ale máte data v jiných obdobích.",
   "View all time": "Zobrazit vše od počátku",
-  "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)"
+  "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)",
+  "Today: **{0}**": "Dnes: **{0}**",
+  "Today": "Dnes"
 }

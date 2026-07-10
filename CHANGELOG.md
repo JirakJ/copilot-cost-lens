@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.20.0] — 2026-07-10
+
+### Added
+
+- **Today's running spend.** The dashboard Spend card and the status bar tooltip now show what you have spent today, so the daily burn is always one glance away.
+- **Status bar mode `today`.** `copilotCostLens.statusBar.mode: "today"` puts today's spend directly in the status bar instead of the monthly total.
+
 ## [1.19.0] — 2026-07-09
 
 ### Added

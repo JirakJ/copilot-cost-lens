@@ -119,5 +119,7 @@
   "Copilot Cost Lens: project {0} has used ${1} of its ${2} budget.": "Copilot Cost Lens: Projekt {0} hat ${1} seines Budgets von ${2} verbraucht.",
   "No usage in {0}, but you have data in other periods.": "Keine Nutzung in {0}, aber Sie haben Daten in anderen Zeiträumen.",
   "View all time": "Gesamten Zeitraum anzeigen",
-  "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)"
+  "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)",
+  "Today: **{0}**": "Heute: **{0}**",
+  "Today": "Heute"
 }
