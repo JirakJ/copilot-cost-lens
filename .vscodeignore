@@ -14,3 +14,4 @@ tsconfig.json
 docs/**
 landing-page/**
 .claude/**
+.code-review-graph/**
