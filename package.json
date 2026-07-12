@@ -1,8 +1,8 @@
 {
   "name": "copilot-cost-lens",
   "displayName": "Copilot Cost Lens — AI Usage & Spend Tracker",
-  "description": "Track GitHub Copilot and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
-  "version": "1.21.1",
+  "description": "Track GitHub Copilot, ChatGPT Codex and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
+  "version": "1.22.0",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -24,6 +24,8 @@
     "spend",
     "analytics",
     "claude code",
+    "chatgpt codex",
+    "codex cli",
     "copilot cli",
     "token tracker",
     "usage tracker",
@@ -223,6 +225,7 @@
             "completionEvents": [
               "onSettingChanged:copilotCostLens.claudeCode.enabled",
               "onSettingChanged:copilotCostLens.copilotCli.enabled",
+              "onSettingChanged:copilotCostLens.codex.enabled",
               "onSettingChanged:copilotCostLens.jetbrainsCopilot.enabled"
             ]
           },
@@ -341,6 +344,11 @@
           "type": "boolean",
           "default": true,
           "description": "%cfg.copilotCli%"
+        },
+        "copilotCostLens.codex.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%cfg.codex%"
         },
         "copilotCostLens.jetbrainsCopilot.enabled": {
           "type": "boolean",

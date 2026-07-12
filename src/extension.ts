@@ -188,6 +188,7 @@ function readStoreConfig(): StoreConfig {
     repoAliases: sanitizeRepoAliases(config.get('repoAliases', {})),
     claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
     copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),
+    codexEnabled: config.get<boolean>('codex.enabled', true),
     jetbrainsCopilotEnabled: config.get<boolean>('jetbrainsCopilot.enabled', false),
     estimationEnabled: config.get<boolean>('estimation.enabled', true),
     charsPerToken: clampCharsPerToken(config.get('estimation.charsPerToken', 4)),

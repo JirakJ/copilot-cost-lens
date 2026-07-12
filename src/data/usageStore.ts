@@ -3,6 +3,7 @@ import { normalizeModelId, priceUsage, PricingOptions } from '../core/pricing';
 import { findChatSessionFiles, parseChatSessionUsage } from '../sources/chatSessionSource';
 import { defaultClaudeCodeRoot, findClaudeCodeFiles, parseClaudeCodeUsage } from '../sources/claudeCodeSource';
 import { defaultCopilotCliRoot, findCopilotCliFiles, parseCopilotCliUsage } from '../sources/copilotCliSource';
+import { defaultCodexRoot, findCodexFiles, parseCodexUsage } from '../sources/codexSource';
 import { defaultJetBrainsCopilotRoot, findJetBrainsCopilotDbs, parseJetBrainsUsage } from '../sources/jetbrainsSource';
 import { findJsonlFiles, parseJsonlUsage } from '../sources/jsonlSource';
 import { detectStorageRoots, listWorkspaceStorageDirs } from '../sources/storageRoots';
@@ -15,6 +16,7 @@ export interface StoreConfig {
   repoAliases: Record<string, string>;
   claudeCodeEnabled: boolean;
   copilotCliEnabled: boolean;
+  codexEnabled: boolean;
   jetbrainsCopilotEnabled: boolean;
   estimationEnabled: boolean;
   charsPerToken: number;
@@ -41,8 +43,8 @@ interface FileCacheEntry {
 }
 
 /**
- * Scans every detected data source — VS Code Copilot Chat logs, Claude Code
- * transcripts and Copilot CLI session events — then dedupes and prices the
+ * Scans every detected data source — VS Code Copilot Chat logs, Claude Code,
+ * ChatGPT Codex and Copilot CLI session events — then dedupes and prices the
  * result. Incremental: unchanged files are served from an mtime+size cache,
  * so periodic rescans stay cheap.
  */
@@ -89,6 +91,9 @@ export class UsageStore {
     }
     if (this.config.copilotCliEnabled) {
       dirs.push(defaultCopilotCliRoot());
+    }
+    if (this.config.codexEnabled) {
+      dirs.push(defaultCodexRoot());
     }
     if (this.config.jetbrainsCopilotEnabled) {
       dirs.push(defaultJetBrainsCopilotRoot());
@@ -188,6 +193,15 @@ export class UsageStore {
               parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
             ),
           );
+        }
+      });
+    }
+
+    if (this.config.codexEnabled) {
+      await guard('codex', async () => {
+        scannedRoots.push(defaultCodexRoot());
+        for (const file of await findCodexFiles(defaultCodexRoot())) {
+          push(await this.parseCached(file, () => parseCodexUsage(file)));
         }
       });
     }

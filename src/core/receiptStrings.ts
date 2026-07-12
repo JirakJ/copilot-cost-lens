@@ -10,6 +10,7 @@ export function receiptStrings(locale: string): ReceiptStrings {
     copilot: 'Copilot',
     'copilot-cli': 'Copilot CLI',
     'claude-code': 'Claude Code',
+    codex: 'ChatGPT Codex',
   };
   const lang = locale.toLowerCase().split(/[-_]/)[0];
 

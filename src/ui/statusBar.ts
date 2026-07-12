@@ -56,6 +56,7 @@ export class CostStatusBar implements vscode.Disposable {
         copilot: 'Copilot',
         'copilot-cli': 'Copilot CLI',
         'claude-code': 'Claude Code',
+        codex: 'ChatGPT Codex',
       };
       md.appendMarkdown(
         report.providers

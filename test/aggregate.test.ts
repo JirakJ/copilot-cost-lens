@@ -120,12 +120,13 @@ describe('buildMonthReport', () => {
       event({ credits: 100, provider: 'copilot' }),
       event({ credits: 50, provider: 'copilot-cli', sessionId: 's2' }),
       event({ credits: 900, provider: 'claude-code', sessionId: 's3' }),
+      event({ credits: 300, provider: 'codex', sessionId: 's4' }),
     ];
     const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
-    expect(report.totalCredits).toBe(1050);
+    expect(report.totalCredits).toBe(1350);
     expect(report.copilotCredits).toBe(150);
     expect(report.usedPercent).toBeCloseTo((150 / 1900) * 100);
-    expect(report.providers.map((p) => p.provider)).toEqual(['claude-code', 'copilot', 'copilot-cli']);
+    expect(report.providers.map((p) => p.provider)).toEqual(['claude-code', 'codex', 'copilot', 'copilot-cli']);
   });
 
   it('sums cache tokens per repository', () => {

@@ -1,5 +1,5 @@
 /** Where a usage event came from. */
-export type Provider = 'copilot' | 'copilot-cli' | 'claude-code';
+export type Provider = 'copilot' | 'copilot-cli' | 'claude-code' | 'codex';
 
 /** How the cost of a usage event was determined. */
 export type CostSource =

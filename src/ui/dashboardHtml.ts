@@ -153,7 +153,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   const monthSel = document.getElementById('month');
   const PALETTE = ['var(--c1)','var(--c2)','var(--c3)','var(--c4)','var(--c5)','var(--c6)'];
   const ALLOWANCE_PRESETS = [1900, 3900, 10000, 100000, 1000000];
-  const PROVIDER_NAMES = { 'copilot': S.providerCopilot, 'copilot-cli': S.providerCopilotCli, 'claude-code': S.providerClaudeCode };
+  const PROVIDER_NAMES = { 'copilot': S.providerCopilot, 'copilot-cli': S.providerCopilotCli, 'claude-code': S.providerClaudeCode, 'codex': S.providerCodex };
 
   document.getElementById('refresh').textContent = '⟳ ' + S.refresh;
   document.getElementById('refresh').title = S.refreshTitle;
@@ -845,7 +845,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
   function providerChips(r) {
     const present = [...new Set((r.repos || []).flatMap((x) => x.providers || []))];
-    const order = ['copilot', 'copilot-cli', 'claude-code'];
+    const order = ['copilot', 'copilot-cli', 'claude-code', 'codex'];
     return present.sort((a, b) => order.indexOf(a) - order.indexOf(b)).map((p) =>
       '<span class="chip' + (repoProvider === p ? ' on' : '') + '" data-provider="' + p + '">' +
       esc(PROVIDER_NAMES[p] || p) + '</span>').join('');

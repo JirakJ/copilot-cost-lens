@@ -68,7 +68,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   for (const e of inMonth) {
     totalCredits += e.credits;
-    if (e.provider !== 'claude-code') {
+    if (e.provider === 'copilot' || e.provider === 'copilot-cli') {
       copilotCredits += e.credits;
     }
     sessions.add(e.sessionId);

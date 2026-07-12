@@ -7,7 +7,7 @@
 
 **Know exactly what your AI coding tools cost you — per repository, per model, per day. 100% local and private.**
 
-Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI) and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard and a status-bar ticker.
+Cost Lens reads the logs that GitHub Copilot (VS Code Chat **and** the Copilot CLI), ChatGPT Codex and optionally Claude Code already keep on your machine, attributes every request to the repository you were working in, prices it using the providers' model rates, and turns the result into a live dashboard and a status-bar ticker.
 
 ![Dashboard](docs/dashboard.png)
 
@@ -79,6 +79,7 @@ Cost Lens combines these local sources:
 | VS Code: `chatSessions/*.json` | model, timestamp and conversation content | **estimated** from content length |
 | Copilot CLI: `~/.copilot/session-state/**` | exact per-model tokens incl. cache read/write, billed premium requests / AI-credit units, repository slug | **exact** (estimation fallback for crashed sessions) |
 | Claude Code: `~/.claude/projects/**/*.jsonl` | exact per-request tokens incl. cache read/write, model, working directory | **exact** |
+| ChatGPT Codex: `~/.codex/sessions/**/*.jsonl` | exact per-request input, cached and output tokens, model, working directory | **exact** |
 | JetBrains Copilot: `~/.config/github-copilot/<ide>/**` (opt-in) | repository + models recovered; cost estimated from content (plugin stores no token counts) | **estimated** |
 
 When both exact and estimated data exist for the same session, exact wins. Estimated entries are always marked (`~est`) in every view. Costs are computed as:
@@ -95,7 +96,7 @@ The built-in price table covers GPT, Claude, Gemini, Grok and more, and every ra
 
 Everything happens on your machine. Cost Lens:
 
-- reads only local files (VS Code `workspaceStorage`, and the Copilot CLI / Claude Code / JetBrains Copilot stores in your home directory),
+- reads only local files (VS Code `workspaceStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
 - makes **no network requests**, collects **no telemetry**,
 - never executes git — repository names are read from `workspace.json` and `.git/config` as plain files.
 
@@ -121,6 +122,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
+| `copilotCostLens.codex.enabled` | `true` | Include ChatGPT Codex CLI/Desktop usage. |
 | `copilotCostLens.jetbrainsCopilot.enabled` | `false` | Include JetBrains Copilot chat sessions (estimated). |
 | `copilotCostLens.starredRepos` | `[]` | Repositories pinned to the top of the dashboard. |
 | `copilotCostLens.repoAliases` | `{}` | Display names: `{ "(unknown) 2bebdc79": "Backend API" }` — set via ✎ Rename. |

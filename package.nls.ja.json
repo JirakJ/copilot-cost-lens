@@ -19,6 +19,7 @@
   "cfg.extraRoots": "追加でスキャンする 'workspaceStorage' ルート (絶対パス)。VS Code、Insiders、VSCodium の標準の場所は自動検出されます。",
   "cfg.claudeCode": "Claude Code の使用状況 (~/.claude/projects) をリポジトリ別コストに含めます。Claude Code の支出が Copilot クレジット枠に計上されることはありません。",
   "cfg.copilotCli": "GitHub Copilot CLI の使用状況 (~/.copilot/session-state) をリポジトリ別コストに含めます。",
+  "cfg.codex": "ChatGPT Codex の使用状況 (~/.codex/sessions) をリポジトリ別コストに含めます。Codex の支出は Copilot 利用枠には含まれません。",
   "cfg.estimation": "ログに正確なトークン数がない場合、チャット内容から推定します。推定エントリには明確な印 (~est) が付きます。",
   "cfg.charsPerToken": "**`~est` の推定エントリにのみ**使われる「1 トークンあたりの文字数」です (ログに正確なトークン数がないセッション)。\n\nLLM のトークナイザーは**英語テキストとコードで平均約 4 文字/トークン**になります。これが業界の経験則であり既定値です。ダイアクリティカルマークを持つ言語は約 3–4、日本語などの CJK 言語は約 1–2 文字/トークンです。\n\nこの方法による推定は実際のトークン数と通常 **±20–30%** 程度の誤差があります。リポジトリの比較や傾向の把握には十分ですが、請求には適しません。ログに正確な数があれば常にそちらが使われ、この設定は影響しません。",
   "cfg.priceOverrides": "モデル価格の上書き (100万トークンあたり USD)。例: `{ \"gpt-5.5\": { \"input\": 5, \"cachedInput\": 0.5, \"output\": 30 } }`",

@@ -97,5 +97,6 @@ export function webviewStrings(): Record<string, string> {
     providerCopilot: 'Copilot',
     providerCopilotCli: 'Copilot CLI',
     providerClaudeCode: 'Claude Code',
+    providerCodex: 'ChatGPT Codex',
   };
 }
