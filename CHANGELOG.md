@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.22.1] — 2026-07-12
+
+### Fixed
+
+- Added pricing for the GPT-5.6 Sol/Terra/Luna Codex models — they were previously falling back to a generic estimated rate instead of OpenAI's actual per-tier pricing.
+
 ## [1.21.1] — 2026-07-10
 
 ### Fixed
