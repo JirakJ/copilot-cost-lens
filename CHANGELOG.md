@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.22.3] — 2026-07-14
+
+### Fixed
+
+- Remote SSH, dev-container and WSL workspaces are now identified from their `vscode-remote://` metadata in the local dashboard, so they can be renamed without first connecting to the remote machine.
+
 ## [1.22.2] — 2026-07-12
 
 ### Fixed

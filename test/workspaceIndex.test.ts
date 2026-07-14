@@ -2,7 +2,15 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { findRepoRoot, folderName, parseRemoteSlug, readGitRemoteSlug, refForFolder } from '../src/sources/workspaceIndex';
+import {
+  findRepoRoot,
+  folderName,
+  parseRemoteSlug,
+  readGitRemoteSlug,
+  refForFolder,
+  remoteRefFromWorkspaceUri,
+  WorkspaceIndex,
+} from '../src/sources/workspaceIndex';
 
 describe('parseRemoteSlug', () => {
   it('parses ssh remotes', () => {
@@ -41,6 +49,40 @@ describe('folderName', () => {
   });
   it('skips a Claude Code worktree slug and its scaffolding', () => {
     expect(folderName('/Users/me/work/myproj/.claude/worktrees/sleepy-mestorf-9e9b83')).toBe('myproj');
+  });
+});
+
+describe('remoteRefFromWorkspaceUri', () => {
+  it('uses the remote folder name without exposing it as a local path', () => {
+    expect(remoteRefFromWorkspaceUri('vscode-remote://ssh-remote+build-vm/home/dev/backend')).toEqual({
+      name: 'backend',
+    });
+  });
+
+  it('supports remote workspace files and decoded paths', () => {
+    expect(
+      remoteRefFromWorkspaceUri(
+        'vscode-remote://ssh-remote+build-vm/home/dev/My%20Product.code-workspace',
+      ),
+    ).toEqual({ name: 'My Product' });
+  });
+
+  it('resolves remote workspace metadata through the workspace index', async () => {
+    const storageDir = await fs.mkdtemp(path.join(os.tmpdir(), 'wi-remote-'));
+    try {
+      await fs.writeFile(
+        path.join(storageDir, 'workspace.json'),
+        JSON.stringify({ folder: 'vscode-remote://ssh-remote+build-vm/home/dev/backend' }),
+      );
+      expect(await new WorkspaceIndex().resolve(storageDir)).toEqual({ name: 'backend' });
+    } finally {
+      await fs.rm(storageDir, { recursive: true, force: true });
+    }
+  });
+
+  it('ignores local and malformed URIs', () => {
+    expect(remoteRefFromWorkspaceUri('file:///home/dev/backend')).toBeUndefined();
+    expect(remoteRefFromWorkspaceUri('not a URI')).toBeUndefined();
   });
 });
 

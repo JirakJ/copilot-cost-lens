@@ -33,11 +33,18 @@ export class WorkspaceIndex {
   }
 
   private async resolveUncached(workspaceStorageDir: string): Promise<RepoRef> {
-    const folderPath = await readWorkspaceFolder(workspaceStorageDir);
-    if (!folderPath) {
-      return { name: `(unknown) ${path.basename(workspaceStorageDir).slice(0, 8)}` };
+    const uri = await readWorkspaceUri(workspaceStorageDir);
+    if (uri) {
+      const folderPath = filePathFromWorkspaceUri(uri);
+      if (folderPath) {
+        return refForFolder(folderPath);
+      }
+      const remoteRef = remoteRefFromWorkspaceUri(uri);
+      if (remoteRef) {
+        return remoteRef;
+      }
     }
-    return refForFolder(folderPath);
+    return { name: `(unknown) ${path.basename(workspaceStorageDir).slice(0, 8)}` };
   }
 }
 
@@ -82,17 +89,44 @@ async function pathExists(p: string): Promise<boolean> {
 
 /** Parse workspace.json and return the local folder path it points to. */
 export async function readWorkspaceFolder(workspaceStorageDir: string): Promise<string | undefined> {
+  const uri = await readWorkspaceUri(workspaceStorageDir);
+  return uri ? filePathFromWorkspaceUri(uri) : undefined;
+}
+
+async function readWorkspaceUri(workspaceStorageDir: string): Promise<string | undefined> {
   try {
     const raw = await fs.readFile(path.join(workspaceStorageDir, 'workspace.json'), 'utf8');
     const parsed = JSON.parse(raw) as { folder?: string; workspace?: string; configuration?: string };
-    const uri = parsed.folder ?? parsed.workspace ?? parsed.configuration;
-    if (!uri || !uri.startsWith('file://')) {
+    return parsed.folder ?? parsed.workspace ?? parsed.configuration;
+  } catch {
+    return undefined;
+  }
+}
+
+function filePathFromWorkspaceUri(uri: string): string | undefined {
+  if (!uri.startsWith('file://')) {
+    return undefined;
+  }
+  const fsPath = decodeURIComponent(uri.replace(/^file:\/\//, ''));
+  // Windows: file:///c%3A/dev/repo → /c:/dev/repo → c:/dev/repo
+  const normalized = /^\/[a-zA-Z]:\//.test(fsPath) ? fsPath.slice(1) : fsPath;
+  return normalized.replace(/\.code-workspace$/, '');
+}
+
+/**
+ * Derive a useful identity for a remotely opened workspace whose files are not
+ * accessible from the local extension host. Keeping folderPath unset prevents
+ * the dashboard from trying to open the remote path as a local folder.
+ */
+export function remoteRefFromWorkspaceUri(uri: string): RepoRef | undefined {
+  try {
+    const parsed = new URL(uri);
+    if (parsed.protocol !== 'vscode-remote:') {
       return undefined;
     }
-    const fsPath = decodeURIComponent(uri.replace(/^file:\/\//, ''));
-    // Windows: file:///c%3A/dev/repo → /c:/dev/repo → c:/dev/repo
-    const normalized = /^\/[a-zA-Z]:\//.test(fsPath) ? fsPath.slice(1) : fsPath;
-    return normalized.replace(/\.code-workspace$/, '');
+    const remotePath = decodeURIComponent(parsed.pathname).replace(/\.code-workspace$/, '');
+    const name = folderName(remotePath);
+    return name ? { name } : undefined;
   } catch {
     return undefined;
   }

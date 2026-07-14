@@ -162,6 +162,9 @@ Expected. Sessions without exact token logs are estimated from content length, c
 **I see `~est` everywhere.**
 Your Copilot Chat version isn't writing token-level transcripts yet. Estimates still give you a faithful *relative* picture across repos; exact data is used automatically the moment it appears.
 
+**Can I rename a remote repository from my local VS Code window?**
+Yes. Cost Lens recognizes `vscode-remote://` workspace metadata and shows the remote folder name instead of an opaque workspace hash. You can rename that entry directly from the local dashboard; you no longer need to connect to the remote machine first.
+
 **Does it work with older "premium requests" billing?**
 Yes — Copilot CLI sessions log the billed premium requests directly and Cost Lens prices them at $0.04 each; everything else falls back to token-based pricing. The AI Credits model (effective June 2026) is the primary target.
 
