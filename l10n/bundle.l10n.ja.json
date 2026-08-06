@@ -122,5 +122,18 @@
   "Activity (last 26 weeks)": "アクティビティ (直近26週間)",
   "Today: **{0}**": "今日: **{0}**",
   "Today": "今日",
-  "tokens": "トークン"
+  "tokens": "トークン",
+  "vs previous": "前期比",
+  "new": "新規",
+  "Δ": "Δ",
+  "Custom range…": "カスタム期間…",
+  "From": "開始",
+  "To": "終了",
+  "Cache economics": "キャッシュ収支",
+  "Saved on cache reads": "キャッシュ読み取りによる節約",
+  "Paid for cache writes": "キャッシュ書き込みの費用",
+  "Net": "差引",
+  "Savings headroom": "削減余地",
+  "A ceiling, not a target — some of this traffic needed the expensive model.": "これは上限であり目標ではありません — 一部は高価なモデルを必要としていました。",
+  "would cost": "の場合の費用"
 }

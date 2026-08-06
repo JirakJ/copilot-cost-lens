@@ -163,6 +163,16 @@ export interface SessionSummary {
   lastTimestamp: number;
 }
 
+/** Derived insight blocks; see src/core/insights.ts. */
+export interface ReportInsights {
+  cache: { saved: number; paid: number; net: number };
+  headroom: {
+    rows: { model: string; cheapest: string; actualUsd: number; counterfactualUsd: number }[];
+    actualUsd: number;
+    counterfactualUsd: number;
+  };
+}
+
 /** The window preceding the selected period, for delta rendering. */
 export interface CompareBlock {
   /** Period key of the previous window. */
@@ -192,6 +202,8 @@ export interface MonthReport {
   prevMonthUsd?: number;
   /** Previous equal-length window; undefined for all-time. */
   compare?: CompareBlock;
+  /** Cache economics and savings headroom for the period. */
+  insights?: ReportInsights;
   /** Projected date (YYYY-MM-DD) the Copilot allowance runs out at current pace. */
   allowanceExhaustion?: string;
   /** Per-month series across all data — used by the all-time chart. */

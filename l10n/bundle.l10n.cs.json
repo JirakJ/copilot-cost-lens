@@ -122,5 +122,18 @@
   "Activity (last 26 weeks)": "Aktivita (posledních 26 týdnů)",
   "Today: **{0}**": "Dnes: **{0}**",
   "Today": "Dnes",
-  "tokens": "tokenů"
+  "tokens": "tokenů",
+  "vs previous": "oproti minulému",
+  "new": "nové",
+  "Δ": "Δ",
+  "Custom range…": "Vlastní rozsah…",
+  "From": "Od",
+  "To": "Do",
+  "Cache economics": "Ekonomika cache",
+  "Saved on cache reads": "Ušetřeno na čtení z cache",
+  "Paid for cache writes": "Zaplaceno za zápis do cache",
+  "Net": "Čistě",
+  "Savings headroom": "Prostor pro úsporu",
+  "A ceiling, not a target — some of this traffic needed the expensive model.": "Strop, ne cíl — část tohoto provozu drahý model potřebovala.",
+  "would cost": "by stálo"
 }

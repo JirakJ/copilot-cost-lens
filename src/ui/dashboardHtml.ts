@@ -129,6 +129,15 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   }
   .chip:hover { border-color: var(--accent); }
   .chip.on { background: var(--accent); color: var(--vscode-button-foreground, #fff); border-color: transparent; }
+  /* spend is a cost, so a rise is red and a fall is green */
+  .delta { font-size: 12px; white-space: nowrap; }
+  .delta.up { color: var(--c4); }
+  .delta.down { color: var(--c3); }
+  .delta.new { color: var(--muted); }
+  .insight { display: flex; justify-content: space-between; gap: 12px; padding: 3px 0; }
+  .insight .val { font-variant-numeric: tabular-nums; }
+  .insight.total { border-top: 1px solid var(--border); margin-top: 4px; padding-top: 6px; font-weight: 600; }
+  .caveat { color: var(--muted); font-size: 11.5px; margin-top: 8px; }
 </style>
 </head>
 <body>
@@ -136,6 +145,12 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     <h1>Copilot Cost Lens</h1>
     <span class="spacer"></span>
     <select id="month"></select>
+    <span id="rangeBox" hidden>
+      <label for="rangeFrom">${strings.rangeFrom}</label>
+      <input type="date" id="rangeFrom">
+      <label for="rangeTo">${strings.rangeTo}</label>
+      <input type="date" id="rangeTo">
+    </span>
     <button id="refresh"></button>
     <button id="exportCsv"></button>
     <button id="exportJson"></button>
@@ -168,7 +183,25 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
   document.getElementById('exportJson').onclick = () => vscode.postMessage({ type: 'export', format: 'json' });
   document.getElementById('receiptAll').onclick = () => vscode.postMessage({ type: 'exportReceipt', all: true });
   document.getElementById('settings').onclick = () => vscode.postMessage({ type: 'openSettings' });
-  monthSel.onchange = () => vscode.postMessage({ type: 'selectMonth', month: monthSel.value });
+  monthSel.onchange = () => {
+    if (monthSel.value === 'custom') {
+      // wait for both dates before asking the host for a report
+      document.getElementById('rangeBox').hidden = false;
+      return;
+    }
+    document.getElementById('rangeBox').hidden = true;
+    vscode.postMessage({ type: 'selectMonth', month: monthSel.value });
+  };
+
+  function submitRange() {
+    const from = document.getElementById('rangeFrom').value;
+    const to = document.getElementById('rangeTo').value;
+    if (from && to && from <= to) {
+      vscode.postMessage({ type: 'selectMonth', month: 'range:' + from + '..' + to });
+    }
+  }
+  document.getElementById('rangeFrom').addEventListener('change', submitRange);
+  document.getElementById('rangeTo').addEventListener('change', submitRange);
 
   let lastMsg = null;
   let editor = null; // { originalName, name, members:Set, deletable }
@@ -214,9 +247,19 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
   function render(msg) {
     const { report: r, months, selectedMonth, detail, groupDetail, stats } = msg;
+    const isRange = String(selectedMonth).startsWith('range:');
     monthSel.innerHTML =
       '<option value="all"' + (selectedMonth === 'all' ? ' selected' : '') + '>' + esc(S.allTime) + '</option>' +
-      months.map((m) => '<option value="' + m + '"' + (m === selectedMonth ? ' selected' : '') + '>' + m + '</option>').join('');
+      months.map((m) => '<option value="' + m + '"' + (m === selectedMonth ? ' selected' : '') + '>' + m + '</option>').join('') +
+      '<option value="custom"' + (isRange ? ' selected' : '') + '>' + esc(S.customRange) + '</option>';
+
+    const rangeBox = document.getElementById('rangeBox');
+    rangeBox.hidden = !isRange;
+    if (isRange) {
+      const parts = selectedMonth.slice('range:'.length).split('..');
+      document.getElementById('rangeFrom').value = parts[0] || '';
+      document.getElementById('rangeTo').value = parts[1] || '';
+    }
 
     if (groupDetail) {
       renderGroupDetail(groupDetail);
@@ -284,6 +327,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<div class="card"><h2>' + esc(S.costByModel) + '</h2>' + modelDonut(r.models) + '</div>' +
       '</div>' +
       trendChart +
+      insightCards(r) +
       ((r.heatmap || []).some((d) => d.credits > 0)
         ? '<div class="card" style="margin-bottom:12px"><h2>' + esc(S.activityHeatmap) + '</h2>' + heatmapGrid(r.heatmap) + '</div>'
         : '') +
@@ -583,19 +627,60 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     };
   }
 
+  function insightRow(label, value, cls) {
+    return '<div class="insight' + (cls ? ' ' + cls : '') + '"><span>' + esc(label) +
+      '</span><span class="val">' + esc(value) + '</span></div>';
+  }
+
+  // Two derived cards. Each is omitted when it would have nothing to say —
+  // an empty card is worse than no card.
+  function insightCards(r) {
+    const ins = r.insights;
+    if (!ins) return '';
+    let out = '';
+
+    const c = ins.cache;
+    if (c && c.saved + c.paid > 0) {
+      out += '<div class="card" style="margin-bottom:12px"><h2>' + esc(S.cacheEconomics) + '</h2>' +
+        insightRow(S.cacheSaved, usd(c.saved)) +
+        insightRow(S.cachePaid, usd(c.paid)) +
+        insightRow(S.cacheNet, usd(c.net), 'total') +
+        '</div>';
+    }
+
+    const h = ins.headroom;
+    if (h && h.rows.length > 0) {
+      out += '<div class="card" style="margin-bottom:12px"><h2>' + esc(S.savingsHeadroom) + '</h2>' +
+        h.rows.map((row) => insightRow(
+          row.model + ' → ' + row.cheapest,
+          usd(row.actualUsd) + ' · ' + S.headroomWouldCost + ' ' + usd(row.counterfactualUsd),
+        )).join('') +
+        insightRow(S.spend, usd(h.actualUsd) + ' · ' + S.headroomWouldCost + ' ' + usd(h.counterfactualUsd), 'total') +
+        '<div class="caveat">' + esc(S.headroomCaveat) + '</div></div>';
+    }
+    return out;
+  }
+
   function kpi(label, value, sub) {
     return '<div class="card"><div class="label">' + esc(label) + '</div>' +
       '<div class="value">' + esc(value) + '</div><div class="sub">' + esc(sub) + '</div></div>';
   }
 
+  // current vs previous USD → "▲ 24% vs previous", "▼ 8% vs previous", or "new".
+  // Spend going up is bad, so up is red and down is green. Sub-1% moves are
+  // rounding wobble, not news, and render as nothing.
+  function deltaBadge(current, previous) {
+    if (previous === undefined) return '<span class="delta new">' + esc(S.newThisPeriod) + '</span>';
+    if (previous === 0) return '';
+    const pct = ((current - previous) / previous) * 100;
+    if (Math.abs(pct) < 1) return '';
+    const up = pct > 0;
+    return '<span class="delta ' + (up ? 'up' : 'down') + '">' +
+      (up ? '▲' : '▼') + ' ' + Math.abs(Math.round(pct)) + '% ' + esc(S.vsPrevious) + '</span>';
+  }
+
   function kpiSpend(r, periodLabel, providerSplit, selectedMonth) {
-    let trend = '';
-    if (selectedMonth !== 'all' && r.prevMonthUsd !== undefined && r.prevMonthUsd > 0) {
-      const delta = ((r.totalUsd - r.prevMonthUsd) / r.prevMonthUsd) * 100;
-      const up = delta >= 0;
-      trend = ' <span style="font-size:13px;color:var(' + (up ? '--c4' : '--c3') + ')">' +
-        (up ? '▲' : '▼') + Math.abs(delta).toFixed(0) + '% ' + esc(S.vsPrevMonth) + '</span>';
-    }
+    const trend = r.compare && r.compare.usd > 0 ? ' ' + deltaBadge(r.totalUsd, r.compare.usd) : '';
     return '<div class="card"><div class="label">' + esc(S.spend + ' · ' + periodLabel) + '</div>' +
       '<div class="value">' + esc(usd(r.totalUsd)) + trend + '</div>' +
       todayBadge(r, selectedMonth) +
@@ -775,6 +860,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         '<td class="num">' + tok(repo.cacheWriteTokens) + '</td>' +
         '<td class="num">' + cr(repo.credits) + '</td>' +
         '<td class="num"><b>' + usd(repo.usd) + '</b></td>' +
+        '<td>' + (r.compare ? deltaBadge(repo.usd, r.compare.repos[repo.repo.name]) : '') + '</td>' +
         '<td><span class="sharebar" style="width:' + Math.max(3, share) + 'px"></span>' + share.toFixed(1) + '%</td></tr>';
     }).join('');
   }
@@ -796,7 +882,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       ['', null], [S.colRepository, 'name'], [S.colModels, null], [S.colReq, 'req'],
       [S.colSessions, 'sessions'], [S.colInput, 'input'], [S.colOutput, 'output'],
       [S.colCacheR, 'cacher'], [S.colCacheW, 'cachew'], [S.colCredits, 'credits'],
-      [S.colSpend, 'spend'], [S.colShare, null],
+      [S.colSpend, 'spend'], [S.colDelta, null], [S.colShare, null],
     ];
     return cols.map(([label, key], i) => {
       const num = i >= 3 && i <= 10 ? ' class="num"' : '';

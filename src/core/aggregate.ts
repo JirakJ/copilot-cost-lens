@@ -1,4 +1,5 @@
 import { creditsToUsd } from './pricing';
+import { cacheEconomics, savingsHeadroom } from './insights';
 import { ALL_TIME, dayKey, monthKey, parsePeriod, Period, previousMonthKey } from './period';
 import {
   CompareBlock,
@@ -131,6 +132,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     prevMonth,
     prevMonthUsd,
     compare: buildCompare(events, period, now),
+    insights: { cache: cacheEconomics(models), headroom: savingsHeadroom(models) },
     allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
     monthsSeries: buildMonthsSeries(events),
     heatmap: buildHeatmap(events, now),

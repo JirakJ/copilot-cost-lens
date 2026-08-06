@@ -122,5 +122,18 @@
   "Activity (last 26 weeks)": "Aktivität (letzte 26 Wochen)",
   "Today: **{0}**": "Heute: **{0}**",
   "Today": "Heute",
-  "tokens": "Tokens"
+  "tokens": "Tokens",
+  "vs previous": "ggü. Vorperiode",
+  "new": "neu",
+  "Δ": "Δ",
+  "Custom range…": "Eigener Zeitraum…",
+  "From": "Von",
+  "To": "Bis",
+  "Cache economics": "Cache-Wirtschaftlichkeit",
+  "Saved on cache reads": "Gespart durch Cache-Lesezugriffe",
+  "Paid for cache writes": "Bezahlt für Cache-Schreibzugriffe",
+  "Net": "Netto",
+  "Savings headroom": "Einsparpotenzial",
+  "A ceiling, not a target — some of this traffic needed the expensive model.": "Eine Obergrenze, kein Ziel — ein Teil dieses Verkehrs brauchte das teure Modell.",
+  "would cost": "würde kosten"
 }

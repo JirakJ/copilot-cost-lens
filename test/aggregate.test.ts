@@ -410,3 +410,25 @@ describe('period-over-period comparison', () => {
     expect(r.compare).toBeUndefined();
   });
 });
+
+describe('report insights', () => {
+  it('attaches cache economics and savings headroom', () => {
+    const events = [
+      event({
+        model: 'claude-sonnet-4.5',
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cachedTokens: 1_000_000,
+        cacheWriteTokens: 0,
+        timestamp: new Date(2026, 5, 5).getTime(),
+      }),
+    ];
+    const r = buildMonthReport(events, {
+      month: '2026-06',
+      includedCredits: 1900,
+      now: new Date(2026, 5, 10),
+    });
+    expect(r.insights?.cache.saved).toBeCloseTo(2.7);
+    expect(r.insights?.headroom.rows[0]?.cheapest).toBe('claude-haiku-4');
+  });
+});
