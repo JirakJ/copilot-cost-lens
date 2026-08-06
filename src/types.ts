@@ -163,6 +163,16 @@ export interface SessionSummary {
   lastTimestamp: number;
 }
 
+/** The window preceding the selected period, for delta rendering. */
+export interface CompareBlock {
+  /** Period key of the previous window. */
+  key: string;
+  /** Total spend of the previous window. */
+  usd: number;
+  /** Repository display name → USD in the previous window. Absent = no spend. */
+  repos: Record<string, number>;
+}
+
 export interface MonthReport {
   /** YYYY-MM, local time. */
   month: string;
@@ -180,6 +190,8 @@ export interface MonthReport {
   /** Spend of the previous calendar month (undefined for all-time). */
   prevMonth?: string;
   prevMonthUsd?: number;
+  /** Previous equal-length window; undefined for all-time. */
+  compare?: CompareBlock;
   /** Projected date (YYYY-MM-DD) the Copilot allowance runs out at current pace. */
   allowanceExhaustion?: string;
   /** Per-month series across all data — used by the all-time chart. */

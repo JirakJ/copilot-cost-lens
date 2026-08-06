@@ -365,3 +365,48 @@ describe('buildMonthReport with a custom range', () => {
     expect(r.allowanceExhaustion).toBeUndefined();
   });
 });
+
+describe('period-over-period comparison', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('totals the previous calendar month and splits it per repository', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 4, 5).getTime(), repo: { name: 'owner/alpha' }, credits: 100 }),
+      event({ timestamp: new Date(2026, 4, 6).getTime(), repo: { name: 'owner/beta' }, credits: 50 }),
+      event({ timestamp: new Date(2026, 5, 5).getTime(), repo: { name: 'owner/alpha' }, credits: 20 }),
+    ];
+    const r = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(r.compare?.key).toBe('2026-05');
+    expect(r.compare?.usd).toBeCloseTo(1.5);
+    expect(r.compare?.repos['owner/alpha']).toBeCloseTo(1.0);
+    expect(r.compare?.repos['owner/beta']).toBeCloseTo(0.5);
+  });
+
+  it('omits repositories with no previous spend', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 5).getTime(), repo: { name: 'owner/fresh' }, credits: 20 }),
+    ];
+    const r = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(r.compare?.repos['owner/fresh']).toBeUndefined();
+  });
+
+  it('compares a range against the equal-length window before it', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 1).getTime(), credits: 40 }),
+      event({ timestamp: new Date(2026, 5, 6).getTime(), credits: 10 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-05..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.compare?.key).toBe('range:2026-05-31..2026-06-04');
+    expect(r.compare?.usd).toBeCloseTo(0.4);
+  });
+
+  it('has no comparison for all-time', () => {
+    const events = [event({ credits: 10 })];
+    const r = buildMonthReport(events, { month: ALL_TIME, includedCredits: 1900, now });
+    expect(r.compare).toBeUndefined();
+  });
+});

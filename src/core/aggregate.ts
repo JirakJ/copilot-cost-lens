@@ -1,6 +1,7 @@
 import { creditsToUsd } from './pricing';
 import { ALL_TIME, dayKey, monthKey, parsePeriod, Period, previousMonthKey } from './period';
 import {
+  CompareBlock,
   DayPoint,
   GroupSummary,
   ModelSummary,
@@ -129,6 +130,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     forecastUsd: creditsToUsd(forecastCredits),
     prevMonth,
     prevMonthUsd,
+    compare: buildCompare(events, period, now),
     allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
     monthsSeries: buildMonthsSeries(events),
     heatmap: buildHeatmap(events, now),
@@ -141,6 +143,28 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     sessionCount: sessions.size,
     hasEstimates,
   };
+}
+
+/** Total and per-repository spend of the window preceding `period`. */
+function buildCompare(events: UsageEvent[], period: Period, now: Date): CompareBlock | undefined {
+  if (!period.prevKey) {
+    return undefined;
+  }
+  const prev = parsePeriod(period.prevKey, now);
+  const repoCredits = new Map<string, number>();
+  let credits = 0;
+  for (const e of events) {
+    if (!prev.match(e.timestamp)) {
+      continue;
+    }
+    credits += e.credits;
+    repoCredits.set(e.repo.name, (repoCredits.get(e.repo.name) ?? 0) + e.credits);
+  }
+  const repos: Record<string, number> = {};
+  for (const [name, c] of repoCredits) {
+    repos[name] = creditsToUsd(c);
+  }
+  return { key: period.prevKey, usd: creditsToUsd(credits), repos };
 }
 
 function emptyModelSummary(model: string): ModelSummary {
