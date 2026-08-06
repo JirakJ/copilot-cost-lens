@@ -1,4 +1,5 @@
 import { creditsToUsd } from './pricing';
+import { ALL_TIME, dayKey, monthKey, parsePeriod, Period, previousMonthKey } from './period';
 import {
   DayPoint,
   GroupSummary,
@@ -14,17 +15,8 @@ import {
 /** User-defined project groups: name → member repo identifiers. */
 export type ProjectGroups = Record<string, string[]>;
 
-/** YYYY-MM in local time. */
-export function monthKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/** YYYY-MM-DD in local time. */
-export function dayKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${monthKey(timestamp)}-${String(d.getDate()).padStart(2, '0')}`;
-}
+export { ALL_TIME, dayKey, monthKey, previousMonthKey };
+export type { Period, PeriodKind } from './period';
 
 export function currentMonthKey(now = new Date()): string {
   return monthKey(now.getTime());
@@ -39,11 +31,8 @@ export function availableMonths(events: UsageEvent[], now = new Date()): string[
   return [...months].sort().reverse();
 }
 
-/** Sentinel period covering everything since the first recorded event. */
-export const ALL_TIME = 'all';
-
 export interface ReportOptions {
-  /** YYYY-MM or ALL_TIME. */
+  /** YYYY-MM, ALL_TIME, or a `range:` key — see parsePeriod(). */
   month: string;
   includedCredits: number;
   groups?: ProjectGroups;
@@ -181,12 +170,6 @@ function addToModelSummary(summary: ModelSummary, e: UsageEvent): void {
 
 function eventTokens(e: UsageEvent): number {
   return e.inputTokens + e.outputTokens + e.cachedTokens + e.cacheWriteTokens;
-}
-
-export function previousMonthKey(month: string): string {
-  const [yearStr, monthStr] = month.split('-');
-  const date = new Date(Number(yearStr), Number(monthStr) - 2, 1);
-  return monthKey(date.getTime());
 }
 
 /** Daily spend for the last `weeks` weeks (aligned to whole days), all sources. */
