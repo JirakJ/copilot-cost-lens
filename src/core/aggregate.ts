@@ -1,5 +1,8 @@
 import { creditsToUsd } from './pricing';
+import { cacheEconomics, savingsHeadroom } from './insights';
+import { ALL_TIME, dayKey, monthKey, parsePeriod, Period, previousMonthKey } from './period';
 import {
+  CompareBlock,
   DayPoint,
   GroupSummary,
   ModelSummary,
@@ -14,17 +17,8 @@ import {
 /** User-defined project groups: name → member repo identifiers. */
 export type ProjectGroups = Record<string, string[]>;
 
-/** YYYY-MM in local time. */
-export function monthKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
-}
-
-/** YYYY-MM-DD in local time. */
-export function dayKey(timestamp: number): string {
-  const d = new Date(timestamp);
-  return `${monthKey(timestamp)}-${String(d.getDate()).padStart(2, '0')}`;
-}
+export { ALL_TIME, dayKey, monthKey, previousMonthKey };
+export type { Period, PeriodKind } from './period';
 
 export function currentMonthKey(now = new Date()): string {
   return monthKey(now.getTime());
@@ -39,11 +33,8 @@ export function availableMonths(events: UsageEvent[], now = new Date()): string[
   return [...months].sort().reverse();
 }
 
-/** Sentinel period covering everything since the first recorded event. */
-export const ALL_TIME = 'all';
-
 export interface ReportOptions {
-  /** YYYY-MM or ALL_TIME. */
+  /** YYYY-MM, ALL_TIME, or a `range:` key — see parsePeriod(). */
   month: string;
   includedCredits: number;
   groups?: ProjectGroups;
@@ -51,10 +42,8 @@ export interface ReportOptions {
 }
 
 export function buildMonthReport(events: UsageEvent[], options: ReportOptions): MonthReport {
-  const inMonth =
-    options.month === ALL_TIME
-      ? events
-      : events.filter((e) => monthKey(e.timestamp) === options.month);
+  const period = parsePeriod(options.month, options.now ?? new Date());
+  const inMonth = events.filter((e) => period.match(e.timestamp));
 
   const repoMap = new Map<string, UsageEvent[]>();
   const modelMap = new Map<string, ModelSummary>();
@@ -113,14 +102,14 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   const { forecastCredits } = forecast(options.month, totalCredits, days, options.now ?? new Date());
 
-  // a monthly allowance is meaningless for the all-time view
-  const includedCredits = options.month === ALL_TIME ? 0 : options.includedCredits;
+  // a monthly allowance is meaningless outside a calendar month
+  const includedCredits = period.kind === 'month' ? options.includedCredits : 0;
   const now = options.now ?? new Date();
 
   let prevMonth: string | undefined;
   let prevMonthUsd: number | undefined;
-  if (options.month !== ALL_TIME) {
-    prevMonth = previousMonthKey(options.month);
+  if (period.kind === 'month' && period.prevKey) {
+    prevMonth = period.prevKey;
     let prevCredits = 0;
     for (const e of events) {
       if (monthKey(e.timestamp) === prevMonth) {
@@ -142,6 +131,8 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     forecastUsd: creditsToUsd(forecastCredits),
     prevMonth,
     prevMonthUsd,
+    compare: buildCompare(events, period, now),
+    insights: { cache: cacheEconomics(models), headroom: savingsHeadroom(models) },
     allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
     monthsSeries: buildMonthsSeries(events),
     heatmap: buildHeatmap(events, now),
@@ -154,6 +145,28 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     sessionCount: sessions.size,
     hasEstimates,
   };
+}
+
+/** Total and per-repository spend of the window preceding `period`. */
+function buildCompare(events: UsageEvent[], period: Period, now: Date): CompareBlock | undefined {
+  if (!period.prevKey) {
+    return undefined;
+  }
+  const prev = parsePeriod(period.prevKey, now);
+  const repoCredits = new Map<string, number>();
+  let credits = 0;
+  for (const e of events) {
+    if (!prev.match(e.timestamp)) {
+      continue;
+    }
+    credits += e.credits;
+    repoCredits.set(e.repo.name, (repoCredits.get(e.repo.name) ?? 0) + e.credits);
+  }
+  const repos: Record<string, number> = {};
+  for (const [name, c] of repoCredits) {
+    repos[name] = creditsToUsd(c);
+  }
+  return { key: period.prevKey, usd: creditsToUsd(credits), repos };
 }
 
 function emptyModelSummary(model: string): ModelSummary {
@@ -181,12 +194,6 @@ function addToModelSummary(summary: ModelSummary, e: UsageEvent): void {
 
 function eventTokens(e: UsageEvent): number {
   return e.inputTokens + e.outputTokens + e.cachedTokens + e.cacheWriteTokens;
-}
-
-export function previousMonthKey(month: string): string {
-  const [yearStr, monthStr] = month.split('-');
-  const date = new Date(Number(yearStr), Number(monthStr) - 2, 1);
-  return monthKey(date.getTime());
 }
 
 /** Daily spend for the last `weeks` weeks (aligned to whole days), all sources. */

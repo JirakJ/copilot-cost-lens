@@ -181,7 +181,12 @@ export class DashboardController {
 
   private currentMonth(): string {
     const months = this.delegate.getMonths();
-    if (this.selectedMonth === 'all' || (this.selectedMonth && months.includes(this.selectedMonth))) {
+    // a malformed range key is harmless — parsePeriod falls back to this month
+    if (
+      this.selectedMonth === 'all' ||
+      this.selectedMonth?.startsWith('range:') ||
+      (this.selectedMonth && months.includes(this.selectedMonth))
+    ) {
       return this.selectedMonth;
     }
     return months[0] ?? 'all';

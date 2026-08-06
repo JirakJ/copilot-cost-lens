@@ -166,3 +166,23 @@ describe('renderDashboardHtml', () => {
     expect(html).toContain("originalName: editor.originalName || undefined");
   });
 });
+
+describe('period selector and insights', () => {
+  it('renders the custom-range option and inputs', () => {
+    const html = renderDashboardHtml({
+      customRange: 'Custom range…',
+      rangeFrom: 'From',
+      rangeTo: 'To',
+    });
+    expect(html).toContain('id="rangeFrom"');
+    expect(html).toContain('id="rangeTo"');
+    expect(html).toContain('Custom range…');
+  });
+
+  it('ships the delta badge and insight card helpers', () => {
+    const html = renderDashboardHtml({ vsPrevious: 'vs previous', newThisPeriod: 'new' });
+    expect(html).toContain('function deltaBadge');
+    expect(html).toContain('function insightCards');
+    expect(html).toContain('vs previous');
+  });
+});

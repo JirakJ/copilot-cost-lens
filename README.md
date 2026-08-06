@@ -44,6 +44,10 @@ Since GitHub Copilot moved to usage-based billing (AI Credits), the question is 
 - **Token anatomy** — input, output, cache read and cache write tokens per repository, plus the exact models used and how often.
 - **Project drill-down** — click any repository for a detailed view: model mix, daily trend, source split, token anatomy, first/last activity.
 - **All-time view** — switch the period selector to *All time* to see everything since your logs began, not just one month.
+- **Custom date ranges** — pick *Custom range…* and cost any from/to window: a sprint, a billing period, a single week. The range flows through the dashboard, exports and receipts.
+- **Period-over-period deltas** — the spend card and every repository row show how the period compares with the equal-length window before it, so you see what is actually growing.
+- **Cache economics** — what prompt caching earned you (cache reads priced against fresh input) against what cache writes cost, per period. Negative net is a real finding, not a bug: short sessions pay to fill a cache nobody reuses.
+- **Savings headroom** — each model's tokens repriced at the cheapest model of the same family. It is a ceiling, not a recommendation: Cost Lens never reads prompt content, so it cannot tell which requests genuinely needed the expensive model.
 - **PDF receipts** — export a classic printed-receipt PDF per repository or per project (with a per-repository breakdown), including model line items, token counts, effective $/1M rates and totals. Great for chargeback or framing on the wall.
 - **Project groups** — roll several repositories (frontend, backend, e2e…) into one named project, straight from the dashboard ("＋ New project" → pick repos; membership is exclusive). The aggregated project gets its own detail and a combined receipt with per-repository breakdown.
 - **Starred repositories** — pin your important repos with a ☆ and they surface in a dedicated section at the top of the dashboard.

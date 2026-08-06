@@ -320,3 +320,115 @@ describe('sessionCosts', () => {
     expect(costs.find((s) => s.sessionId === 'b')!.usd).toBeCloseTo(0.05);
   });
 });
+
+describe('buildMonthReport with a custom range', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('includes only events inside the inclusive range', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 3, 12).getTime(), credits: 5 }),
+      event({ timestamp: new Date(2026, 5, 5, 12).getTime(), credits: 7 }),
+      event({ timestamp: new Date(2026, 5, 9, 12).getTime(), credits: 11 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-05..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.totalCredits).toBe(18);
+    expect(r.requestCount).toBe(2);
+  });
+
+  it('spans a month boundary', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 4, 30, 12).getTime(), credits: 3 }),
+      event({ timestamp: new Date(2026, 5, 2, 12).getTime(), credits: 4 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-05-30..2026-06-02',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.totalCredits).toBe(7);
+  });
+
+  it('reports no allowance or forecast for a range', () => {
+    const events = [event({ timestamp: new Date(2026, 5, 5, 12).getTime(), credits: 9 })];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-01..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.includedCredits).toBe(0);
+    expect(r.usedPercent).toBe(0);
+    expect(r.forecastCredits).toBe(9);
+    expect(r.allowanceExhaustion).toBeUndefined();
+  });
+});
+
+describe('period-over-period comparison', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('totals the previous calendar month and splits it per repository', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 4, 5).getTime(), repo: { name: 'owner/alpha' }, credits: 100 }),
+      event({ timestamp: new Date(2026, 4, 6).getTime(), repo: { name: 'owner/beta' }, credits: 50 }),
+      event({ timestamp: new Date(2026, 5, 5).getTime(), repo: { name: 'owner/alpha' }, credits: 20 }),
+    ];
+    const r = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(r.compare?.key).toBe('2026-05');
+    expect(r.compare?.usd).toBeCloseTo(1.5);
+    expect(r.compare?.repos['owner/alpha']).toBeCloseTo(1.0);
+    expect(r.compare?.repos['owner/beta']).toBeCloseTo(0.5);
+  });
+
+  it('omits repositories with no previous spend', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 5).getTime(), repo: { name: 'owner/fresh' }, credits: 20 }),
+    ];
+    const r = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(r.compare?.repos['owner/fresh']).toBeUndefined();
+  });
+
+  it('compares a range against the equal-length window before it', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 1).getTime(), credits: 40 }),
+      event({ timestamp: new Date(2026, 5, 6).getTime(), credits: 10 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-05..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.compare?.key).toBe('range:2026-05-31..2026-06-04');
+    expect(r.compare?.usd).toBeCloseTo(0.4);
+  });
+
+  it('has no comparison for all-time', () => {
+    const events = [event({ credits: 10 })];
+    const r = buildMonthReport(events, { month: ALL_TIME, includedCredits: 1900, now });
+    expect(r.compare).toBeUndefined();
+  });
+});
+
+describe('report insights', () => {
+  it('attaches cache economics and savings headroom', () => {
+    const events = [
+      event({
+        model: 'claude-sonnet-4.5',
+        inputTokens: 1_000_000,
+        outputTokens: 0,
+        cachedTokens: 1_000_000,
+        cacheWriteTokens: 0,
+        timestamp: new Date(2026, 5, 5).getTime(),
+      }),
+    ];
+    const r = buildMonthReport(events, {
+      month: '2026-06',
+      includedCredits: 1900,
+      now: new Date(2026, 5, 10),
+    });
+    expect(r.insights?.cache.saved).toBeCloseTo(2.7);
+    expect(r.insights?.headroom.rows[0]?.cheapest).toBe('claude-haiku-4');
+  });
+});
