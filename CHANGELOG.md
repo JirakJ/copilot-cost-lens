@@ -3,6 +3,15 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.23.0] — 2026-08-06
+
+### Added
+
+- **Custom date ranges.** The period selector gained *Custom range…* — pick any from/to pair instead of a whole calendar month. The range flows through the dashboard, CSV/JSON exports and PDF receipts, so a sprint or a billing window can be costed directly.
+- **Period-over-period deltas.** The spend card and every repository row now show how the period compares with the equal-length window before it. Repositories with no earlier spend are marked *new* rather than shown as an infinite rise.
+- **Cache economics.** A card showing what prompt caching earned (cache reads priced against fresh input) and what it cost (cache writes), plus the net. The net is legitimately negative for short sessions where the cache never gets reused.
+- **Savings headroom.** A counterfactual card repricing each model's tokens at the cheapest model of the same family. It is labelled as a ceiling, not a recommendation — the extension never reads prompt content and cannot tell which requests actually needed the expensive model.
+
 ## [1.22.4] — 2026-08-06
 
 ### Fixed
