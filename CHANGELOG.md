@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.22.4] — 2026-08-06
+
+### Fixed
+
+- Lowered the minimum supported VS Code from 1.96 to 1.75. The extension never used an API newer than `vscode.l10n` (1.73), so the old floor locked out older installations for no reason.
+
 ## [1.22.3] — 2026-07-14
 
 ### Fixed

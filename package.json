@@ -2,13 +2,13 @@
   "name": "copilot-cost-lens",
   "displayName": "Copilot Cost Lens — AI Usage & Spend Tracker",
   "description": "Track GitHub Copilot, ChatGPT Codex and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
-  "version": "1.22.3",
+  "version": "1.22.4",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
   "l10n": "./l10n",
   "engines": {
-    "vscode": "^1.96.0"
+    "vscode": "^1.75.0"
   },
   "categories": [
     "Visualization",
@@ -473,7 +473,7 @@
   },
   "devDependencies": {
     "@types/node": "^20.14.0",
-    "@types/vscode": "^1.96.0",
+    "@types/vscode": "^1.75.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "@vscode/vsce": "^3.9.2",
