@@ -40,10 +40,8 @@ export interface ReportOptions {
 }
 
 export function buildMonthReport(events: UsageEvent[], options: ReportOptions): MonthReport {
-  const inMonth =
-    options.month === ALL_TIME
-      ? events
-      : events.filter((e) => monthKey(e.timestamp) === options.month);
+  const period = parsePeriod(options.month, options.now ?? new Date());
+  const inMonth = events.filter((e) => period.match(e.timestamp));
 
   const repoMap = new Map<string, UsageEvent[]>();
   const modelMap = new Map<string, ModelSummary>();
@@ -102,14 +100,14 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   const { forecastCredits } = forecast(options.month, totalCredits, days, options.now ?? new Date());
 
-  // a monthly allowance is meaningless for the all-time view
-  const includedCredits = options.month === ALL_TIME ? 0 : options.includedCredits;
+  // a monthly allowance is meaningless outside a calendar month
+  const includedCredits = period.kind === 'month' ? options.includedCredits : 0;
   const now = options.now ?? new Date();
 
   let prevMonth: string | undefined;
   let prevMonthUsd: number | undefined;
-  if (options.month !== ALL_TIME) {
-    prevMonth = previousMonthKey(options.month);
+  if (period.kind === 'month' && period.prevKey) {
+    prevMonth = period.prevKey;
     let prevCredits = 0;
     for (const e of events) {
       if (monthKey(e.timestamp) === prevMonth) {

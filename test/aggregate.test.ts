@@ -320,3 +320,48 @@ describe('sessionCosts', () => {
     expect(costs.find((s) => s.sessionId === 'b')!.usd).toBeCloseTo(0.05);
   });
 });
+
+describe('buildMonthReport with a custom range', () => {
+  const now = new Date(2026, 5, 10);
+
+  it('includes only events inside the inclusive range', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 5, 3, 12).getTime(), credits: 5 }),
+      event({ timestamp: new Date(2026, 5, 5, 12).getTime(), credits: 7 }),
+      event({ timestamp: new Date(2026, 5, 9, 12).getTime(), credits: 11 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-05..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.totalCredits).toBe(18);
+    expect(r.requestCount).toBe(2);
+  });
+
+  it('spans a month boundary', () => {
+    const events = [
+      event({ timestamp: new Date(2026, 4, 30, 12).getTime(), credits: 3 }),
+      event({ timestamp: new Date(2026, 5, 2, 12).getTime(), credits: 4 }),
+    ];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-05-30..2026-06-02',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.totalCredits).toBe(7);
+  });
+
+  it('reports no allowance or forecast for a range', () => {
+    const events = [event({ timestamp: new Date(2026, 5, 5, 12).getTime(), credits: 9 })];
+    const r = buildMonthReport(events, {
+      month: 'range:2026-06-01..2026-06-09',
+      includedCredits: 1900,
+      now,
+    });
+    expect(r.includedCredits).toBe(0);
+    expect(r.usedPercent).toBe(0);
+    expect(r.forecastCredits).toBe(9);
+    expect(r.allowanceExhaustion).toBeUndefined();
+  });
+});
