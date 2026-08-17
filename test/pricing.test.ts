@@ -122,6 +122,44 @@ describe('priceTokensUsd', () => {
     expect(DEFAULT_RATES['mai-code-1-flash']!.input).toBe(0.75);
     expect(DEFAULT_RATES['gemini-3.1-pro']!.longContext!.threshold).toBe(200_000);
   });
+
+  it('prices the Claude 5 family instead of silently falling back', () => {
+    // Claude Opus 5 bills at the Opus tier — the fallback rate under-counted it 2.5×
+    expect(rateFor('claude-opus-5')).toEqual({
+      input: 5.0,
+      cachedInput: 0.5,
+      cacheWrite: 6.25,
+      output: 25.0,
+    });
+    expect(rateFor('claude-sonnet-5')).toEqual({
+      input: 2.0,
+      cachedInput: 0.2,
+      cacheWrite: 2.5,
+      output: 10.0,
+    });
+    // context-window suffixes must not knock the model off its rate
+    expect(rateFor('claude-opus-5[1m]')).toEqual(rateFor('claude-opus-5'));
+    expect(rateFor('claude-opus-5-20260601')).toEqual(rateFor('claude-opus-5'));
+    for (const id of ['claude-opus-5', 'claude-sonnet-5', 'claude-opus-5[1m]']) {
+      expect(rateFor(id)).not.toEqual(FALLBACK_RATE);
+    }
+  });
+
+  it('tracks the August 2026 GPT-5.6 repricing', () => {
+    // Luna dropped an order of magnitude; Sol and Terra gained cache-write
+    // and long-context tiers
+    expect(DEFAULT_RATES['gpt-5.6-luna']).toEqual({
+      input: 0.2,
+      cachedInput: 0.02,
+      cacheWrite: 0.25,
+      output: 1.2,
+      longContext: { threshold: 272_000, input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
+    });
+    expect(DEFAULT_RATES['gpt-5.6-sol']!.cacheWrite).toBe(6.25);
+    expect(DEFAULT_RATES['gpt-5.6-sol']!.longContext!.output).toBe(45.0);
+    expect(DEFAULT_RATES['gpt-5.6-terra']!.input).toBe(2.0);
+    expect(DEFAULT_RATES['gpt-5.6-terra']!.output).toBe(12.0);
+  });
 });
 
 describe('priceUsage', () => {

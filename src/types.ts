@@ -80,6 +80,8 @@ export interface ModelRate {
     threshold: number;
     input: number;
     cachedInput: number;
+    /** Omitted when the model has no separate cache-write price. */
+    cacheWrite?: number;
     output: number;
   };
 }

@@ -56,6 +56,26 @@ beforeAll(async () => {
     ].join('\n'),
   );
 
+  // Subagent transcripts live one level deeper, under <sessionId>/subagents/.
+  // Their usage is billed on top of the main session, never a duplicate of it.
+  const subagentDir = path.join(projectDir, 'sess-1', 'subagents');
+  await fs.mkdir(subagentDir, { recursive: true });
+  await fs.writeFile(
+    path.join(subagentDir, 'agent-abc123.jsonl'),
+    JSON.stringify({
+      type: 'assistant',
+      sessionId: 'sess-1',
+      cwd: '/Users/dev/work/acme',
+      timestamp: '2026-06-10T10:02:00Z',
+      requestId: 'req_sub_1',
+      message: {
+        id: 'msg_sub_1',
+        model: 'claude-opus-5',
+        usage: { input_tokens: 100, output_tokens: 200, cache_read_input_tokens: 300, cache_creation_input_tokens: 400 },
+      },
+    }),
+  );
+
   // --- Copilot CLI fixtures ------------------------------------------------
   const cliRoot = path.join(root, 'copilot-session-state');
   const cliSession = path.join(cliRoot, 'cli-sess-1');
@@ -130,8 +150,8 @@ afterAll(async () => {
 describe('claudeCodeSource', () => {
   it('parses exact usage and dedupes streamed duplicates', async () => {
     const files = await findClaudeCodeFiles(path.join(root, 'claude-projects'));
-    expect(files).toHaveLength(1);
-    const usages = await parseClaudeCodeUsage(files[0]!);
+    const mainFile = files.find((f) => f.endsWith(`${path.sep}sess-1.jsonl`))!;
+    const usages = await parseClaudeCodeUsage(mainFile);
 
     // msg_1 deduped, msg_2 kept, synthetic dropped
     expect(usages).toHaveLength(2);
@@ -142,6 +162,17 @@ describe('claudeCodeSource', () => {
     expect(first.cachedTokens).toBe(7912);
     expect(first.cacheWriteTokens).toBe(3682);
     expect(first.estimated).toBe(false);
+  });
+
+  it('discovers subagent transcripts nested under the session directory', async () => {
+    const files = await findClaudeCodeFiles(path.join(root, 'claude-projects'));
+    const subagentFile = files.find((f) => f.includes(`${path.sep}subagents${path.sep}`));
+
+    expect(subagentFile).toBeDefined();
+    const usages = await parseClaudeCodeUsage(subagentFile!);
+    expect(usages).toHaveLength(1);
+    expect(usages[0]!.model).toBe('claude-opus-5');
+    expect(usages[0]!.outputTokens).toBe(200);
   });
 });
 

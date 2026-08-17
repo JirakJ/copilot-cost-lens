@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.23.1] — 2026-08-17
+
+### Fixed
+
+- **Subagent and workflow usage was never counted.** Claude Code writes each subagent turn to `<sessionId>/subagents/…jsonl` and each workflow run below that, but discovery only scanned the flat project directory, so every one of those billed calls was invisible. On agent-heavy months this hid the majority of real spend — measured against local transcripts, July gained 2.04 billion tokens and August 1.12 billion once the scan walks the whole tree. Message ids never collide with the parent session's, so nothing is double counted.
+- **Claude Opus 5 and Claude Sonnet 5 had no price.** Both fell through to the generic fallback rate, which bills Opus 5 at $2/$10 per 1M instead of $5/$25 — a 2.5× under-count on what became the most-used model of the month. Context-window suffixes such as `claude-opus-5[1m]` now resolve to the same rate instead of dropping off the table.
+- **GPT-5.6 rates were stale.** Luna fell to $0.20/$1.20 per 1M (it was billed at 5× that), while Sol and Terra gained cache-write and long-context tiers that were previously priced at their base rate. Terra also repriced to $2.00/$12.00.
+
+### Added
+
+- Price-table entries for Gemini 3.6/3.7 Flash, Grok 4.5/4.6, Kimi K2.7 Code, Kimi K3 and MAI-Code-1.1-Flash, all previously billed at the fallback rate.
+
 ## [1.23.0] — 2026-08-06
 
 ### Added

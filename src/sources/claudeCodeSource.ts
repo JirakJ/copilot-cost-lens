@@ -7,6 +7,14 @@ import { RawUsage } from '../types';
 /**
  * Reads exact usage from Claude Code session transcripts:
  *   ~/.claude/projects/<encoded-project-path>/<sessionId>.jsonl
+ *   ~/.claude/projects/<encoded-project-path>/<sessionId>/subagents/<agentId>.jsonl
+ *   ~/.claude/projects/<encoded-project-path>/<sessionId>/workflows/<runId>/*.jsonl
+ *
+ * Subagent and workflow turns are billed API calls of their own and are
+ * written to nested directories rather than the main transcript, so discovery
+ * walks the whole tree — a flat scan of the project directory missed the
+ * majority of real usage on agent-heavy sessions. Their message ids never
+ * collide with the parent session's, so nothing is double counted.
  *
  * Assistant records carry the model and exact token usage including cache
  * reads and cache writes, plus the working directory for repo attribution.
@@ -19,15 +27,25 @@ export function defaultClaudeCodeRoot(): string {
 
 export async function findClaudeCodeFiles(root: string): Promise<string[]> {
   const files: string[] = [];
-  for (const project of await safeReaddir(root)) {
-    const dir = path.join(root, project);
-    for (const name of await safeReaddir(dir)) {
-      if (name.endsWith('.jsonl')) {
-        files.push(path.join(dir, name));
-      }
+  await walk(root, files);
+  return files;
+}
+
+async function walk(dir: string, files: string[]): Promise<void> {
+  let entries;
+  try {
+    entries = await fs.readdir(dir, { withFileTypes: true });
+  } catch {
+    return;
+  }
+  for (const entry of entries) {
+    const full = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      await walk(full, files);
+    } else if (entry.isFile() && entry.name.endsWith('.jsonl')) {
+      files.push(full);
     }
   }
-  return files;
 }
 
 export async function parseClaudeCodeUsage(filePath: string): Promise<RawUsage[]> {
@@ -68,14 +86,6 @@ export async function parseClaudeCodeUsage(filePath: string): Promise<RawUsage[]
   });
 
   return [...byMessage.values()];
-}
-
-async function safeReaddir(dir: string): Promise<string[]> {
-  try {
-    return await fs.readdir(dir);
-  } catch {
-    return [];
-  }
 }
 
 function asRecord(value: unknown): Record<string, unknown> {

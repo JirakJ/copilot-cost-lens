@@ -56,23 +56,23 @@ describe('savingsHeadroom', () => {
   it('reprices an expensive model at the cheapest of its family', () => {
     // 100k stays under gpt-5.5's 272k long-context threshold, so base rates apply.
     // gpt-5.5: input 5.0, output 30.0 → 0.1M in + 0.1M out = $3.50
-    // cheapest of the gpt family is gpt-5.4-nano: input 0.2, output 1.25 → $0.145
+    // cheapest of the gpt family is gpt-5.6-luna: input 0.2, output 1.2 → $0.14
     const r = savingsHeadroom([model({ model: 'gpt-5.5', inputTokens: 100_000, outputTokens: 100_000 })]);
     expect(r.rows).toHaveLength(1);
-    expect(r.rows[0]?.cheapest).toBe('gpt-5.4-nano');
+    expect(r.rows[0]?.cheapest).toBe('gpt-5.6-luna');
     expect(r.rows[0]?.actualUsd).toBeCloseTo(3.5);
-    expect(r.rows[0]?.counterfactualUsd).toBeCloseTo(0.145);
+    expect(r.rows[0]?.counterfactualUsd).toBeCloseTo(0.14);
     expect(r.actualUsd).toBeCloseTo(3.5);
-    expect(r.counterfactualUsd).toBeCloseTo(0.145);
+    expect(r.counterfactualUsd).toBeCloseTo(0.14);
   });
 
   it('omits a model that is already the cheapest in its family', () => {
     const r = savingsHeadroom([
-      model({ model: 'gpt-5.4-nano', inputTokens: 100_000, outputTokens: 100_000 }),
+      model({ model: 'gpt-5.6-luna', inputTokens: 100_000, outputTokens: 100_000 }),
     ]);
     expect(r.rows).toHaveLength(0);
-    expect(r.actualUsd).toBeCloseTo(0.145);
-    expect(r.counterfactualUsd).toBeCloseTo(0.145);
+    expect(r.actualUsd).toBeCloseTo(0.14);
+    expect(r.counterfactualUsd).toBeCloseTo(0.14);
   });
 
   it('keeps families apart', () => {
