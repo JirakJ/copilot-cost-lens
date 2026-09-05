@@ -26,8 +26,9 @@ const IDE_DIRS = ['iu', 'ic', 'intellij', 'py', 'pc', 'ps', 'go', 'rd', 'ws', 'r
 // binary noise like "o3" is not mistaken for a model.
 const MODEL_RE =
   /claude-(?:opus|sonnet|haiku|fable)-\d+(?:\.\d+)?|gpt-\d+(?:\.\d+)?(?:-(?:codex-max|codex|mini|nano))?|gemini-\d+(?:\.\d+)?-(?:pro|flash)|grok-code-fast-1|raptor-mini|mai-code-1-flash/g;
-// any reasonably deep absolute unix path; resolveRepoRoot validates against FS
-const PATH_RE = /\/[\w.-]+(?:\/[\w.-]+){2,30}/g;
+// Absolute Unix or Windows drive paths, including short-name aliases and mixed separators.
+// resolveRepoRoot validates each candidate against the local filesystem.
+const PATH_RE = /(?:[a-zA-Z]:[\\/]|\/)[\w.~\-]+(?:[\\/][\w.~\-]+){2,30}/g;
 
 export function defaultJetBrainsCopilotRoot(): string {
   return path.join(os.homedir(), '.config', 'github-copilot');

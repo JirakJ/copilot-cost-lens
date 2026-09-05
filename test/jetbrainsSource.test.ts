@@ -23,7 +23,8 @@ async function fakeDb(dir: string, lines: string[]): Promise<string> {
 
 beforeAll(async () => {
   root = await fs.mkdtemp(path.join(os.tmpdir(), 'jb-test-'));
-  repo = path.join(root, 'work', 'new-automation');
+  // Tildes also occur in Windows short paths such as RUNNER~1.
+  repo = path.join(root, 'work~1', 'new-automation');
   await fs.mkdir(path.join(repo, '.git'), { recursive: true });
 
   const lines: string[] = [];

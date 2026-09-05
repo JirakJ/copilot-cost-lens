@@ -16,6 +16,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Fixed
 
+- Resolve JetBrains repository paths on Windows, including short-name aliases and mixed path separators.
 - Apply custom date ranges consistently to repository details, project charts, receipts and raw exports; use portable export filenames.
 - Recompute cached estimates after configuration changes, finish concurrent scans with the latest configuration, track changes to migration fallback files, and release deleted file cache entries.
 - Handle watcher errors, restart background scanning after configuration changes, validate refresh intervals and dispose pending timers/listeners.
