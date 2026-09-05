@@ -7,6 +7,7 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ### Security
 
+- Pin transitive build dependencies to fast-uri 3.1.6 and qs 6.16.0, fixing six reported URI-parsing and query-string denial-of-service advisories.
 - Restrict VSIX contents to runtime files and Marketplace documentation; local agent state, configuration and development files cannot enter the package.
 - Validate dashboard messages at the extension-host boundary, disable webview local-resource access, and restrict folder opening to the selected repository.
 - Neutralize spreadsheet formulas in CSV exports, escape session identifiers and tooltip repository names, and exclude credentials/query strings from git remote names.
