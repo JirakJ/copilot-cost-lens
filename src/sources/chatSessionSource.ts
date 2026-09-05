@@ -2,6 +2,7 @@ import * as fs from 'node:fs/promises';
 import * as path from 'node:path';
 import { estimateTokensFromChars, totalTextLength } from '../core/estimate';
 import { RawUsage } from '../types';
+import { MAX_JSON_RECORD_BYTES, readJsonlRecords } from './jsonl';
 
 /**
  * Reads VS Code's own chat session store:
@@ -67,11 +68,16 @@ async function parseOneFormat(
 ): Promise<RawUsage[]> {
   let session: ChatSessionFile | undefined;
   try {
-    const content = await fs.readFile(filePath, 'utf8');
-    session = filePath.endsWith('.jsonl')
-      ? replaySessionLog(content)
-      : (JSON.parse(content) as ChatSessionFile);
-  } catch {
+    if (filePath.endsWith('.jsonl')) {
+      session = await replaySessionLog(filePath);
+    } else {
+      if ((await fs.stat(filePath)).size > MAX_JSON_RECORD_BYTES) {
+        throw new RangeError('JSON session exceeds the supported size');
+      }
+      session = JSON.parse(await fs.readFile(filePath, 'utf8')) as ChatSessionFile;
+    }
+  } catch (error) {
+    if (error instanceof RangeError) throw error;
     return [];
   }
   if (!session || !Array.isArray(session.requests)) {
@@ -144,18 +150,10 @@ async function parseOneFormat(
  * {kind:2,k,v?,i?} array push (truncate to `i` first), {kind:3,k} delete.
  * Malformed lines and failed operations are skipped.
  */
-function replaySessionLog(content: string): ChatSessionFile | undefined {
+async function replaySessionLog(filePath: string): Promise<ChatSessionFile | undefined> {
   let state: unknown;
-  for (const line of content.split('\n')) {
-    if (!line.trim()) {
-      continue;
-    }
-    let entry: LogEntry;
-    try {
-      entry = JSON.parse(line) as LogEntry;
-    } catch {
-      continue;
-    }
+  await readJsonlRecords(filePath, (record) => {
+    const entry = record as unknown as LogEntry;
     try {
       switch (entry.kind) {
         case 0:
@@ -172,9 +170,9 @@ function replaySessionLog(content: string): ChatSessionFile | undefined {
           break;
       }
     } catch {
-      // corrupt operation — skip; usage extraction below is field-tolerant
+      // Corrupt operation; usage extraction below is field-tolerant.
     }
-  }
+  });
   return isRecord(state) ? (state as ChatSessionFile) : undefined;
 }
 
@@ -188,11 +186,16 @@ interface LogEntry {
 const UNSAFE_KEYS = new Set(['__proto__', 'constructor', 'prototype']);
 
 function walkToParent(state: unknown, keys: (string | number)[]): Record<string | number, unknown> | undefined {
-  if (keys.some((key) => typeof key === 'string' && UNSAFE_KEYS.has(key))) {
+  if (!Array.isArray(keys) || keys.some((key) =>
+    typeof key === 'string' ? UNSAFE_KEYS.has(key) : !Number.isSafeInteger(key) || key < 0,
+  )) {
     return undefined;
   }
   let current = state as Record<string | number, unknown>;
   for (let i = 0; i < keys.length - 1; i++) {
+    if (!current || !Object.hasOwn(current, keys[i]!)) {
+      return undefined;
+    }
     current = current[keys[i]!] as Record<string | number, unknown>;
   }
   return isRecord(current) || Array.isArray(current) ? current : undefined;
@@ -206,7 +209,7 @@ function applySet(state: unknown, keys: (string | number)[] | undefined, value: 
   const key = keys[keys.length - 1]!;
   // arrays only ever take numeric indices — a string key (e.g. "length" from
   // a corrupt line) could blow the array up to millions of holes
-  if (parent && (!Array.isArray(parent) || typeof key === 'number')) {
+  if (parent && (!Array.isArray(parent) || (typeof key === 'number' && key <= parent.length))) {
     parent[key] = value;
   }
 }
@@ -220,14 +223,19 @@ function applyPush(state: unknown, keys: (string | number)[] | undefined, values
     return;
   }
   const arrayKey = keys[keys.length - 1]!;
+  if (Array.isArray(parent) && (typeof arrayKey !== 'number' || arrayKey > parent.length)) {
+    return;
+  }
   const arr = Array.isArray(parent[arrayKey]) ? (parent[arrayKey] as unknown[]) : [];
   // upstream only ever writes i <= arr.length (truncation) — a larger index
   // from a corrupt line would create a huge sparse array, so clamp
-  if (typeof startIndex === 'number' && startIndex >= 0 && startIndex < arr.length) {
+  if (typeof startIndex === 'number' && Number.isSafeInteger(startIndex) && startIndex >= 0 && startIndex < arr.length) {
     arr.length = startIndex;
   }
   if (Array.isArray(values) && values.length > 0) {
-    arr.push(...values);
+    for (const value of values) {
+      arr.push(value);
+    }
   }
   parent[arrayKey] = arr;
 }

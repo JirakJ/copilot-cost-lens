@@ -75,10 +75,10 @@ export function parsePeriod(key: string, now = new Date()): Period {
   }
 
   if (key.startsWith(RANGE_PREFIX)) {
-    const [fromIso, toIso] = key.slice(RANGE_PREFIX.length).split('..');
+    const [fromIso, toIso, extra] = key.slice(RANGE_PREFIX.length).split('..');
     const from = parseDay(fromIso ?? '');
     const to = parseDay(toIso ?? '');
-    if (from && to && from.getTime() <= to.getTime()) {
+    if (from && to && extra === undefined && from.getTime() <= to.getTime()) {
       const start = from.getTime();
       const endExclusive = addDays(to, 1).getTime();
       // Math.round absorbs the ±1h a DST boundary puts into the span.

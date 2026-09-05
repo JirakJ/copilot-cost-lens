@@ -194,3 +194,23 @@ describe('creditsToUsd', () => {
     expect(creditsToUsd(150)).toBeCloseTo(1.5);
   });
 });
+
+it('treats inherited property names as unknown models', () => {
+  for (const model of ['constructor', '__proto__', 'toString']) {
+    expect(rateFor(model)).toEqual(FALLBACK_RATE);
+    expect(Number.isFinite(priceUsage(raw({ model, inputTokens: 1 })).credits)).toBe(true);
+  }
+});
+
+it('preserves explicitly billed zero and ignores non-finite billing fields', () => {
+  expect(priceUsage(raw({ nanoCredits: 0, inputTokens: 1000000 }))).toEqual({ credits: 0, costSource: 'billed' });
+  expect(priceUsage(raw({ premiumRequests: 0, inputTokens: 1000000 }))).toEqual({ credits: 0, costSource: 'billed' });
+  expect(priceUsage(raw({ nanoCredits: Infinity, inputTokens: 1 })).costSource).toBe('computed');
+});
+
+it('counts cache creation toward the long-context threshold', () => {
+  const rate = { input: 1, cachedInput: 0, cacheWrite: 1, output: 1,
+    longContext: { threshold: 100, input: 2, cachedInput: 0, cacheWrite: 2, output: 2 } };
+  expect(priceTokensUsd({ inputTokens: 50, cachedTokens: 0, cacheWriteTokens: 51, outputTokens: 0 }, rate))
+    .toBeCloseTo(202 / 1000000, 10);
+});

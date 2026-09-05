@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.24.0] — 2026-09-05
+
+### Security
+
+- Restrict VSIX contents to runtime files and Marketplace documentation; local agent state, configuration and development files cannot enter the package.
+- Validate dashboard messages at the extension-host boundary, disable webview local-resource access, and restrict folder opening to the selected repository.
+- Neutralize spreadsheet formulas in CSV exports, escape session identifiers and tooltip repository names, and exclude credentials/query strings from git remote names.
+- Reject unsafe mutation keys and sparse-array growth; stream JSONL input with a 64 MiB record limit. Invalid usage records and file errors are reported without including log content.
+- Run PR verification on isolated GitHub-hosted Linux, Windows and macOS runners. Pin actions to reviewed commit IDs, scan secrets and dependencies, and schedule dependency updates.
+
+### Fixed
+
+- Apply custom date ranges consistently to repository details, project charts, receipts and raw exports; use portable export filenames.
+- Recompute cached estimates after configuration changes, finish concurrent scans with the latest configuration, track changes to migration fallback files, and release deleted file cache entries.
+- Handle watcher errors, restart background scanning after configuration changes, validate refresh intervals and dispose pending timers/listeners.
+- Preserve explicitly billed zero costs, guard inherited object properties, and include cache creation in long-context pricing thresholds.
+- Base savings comparisons on recorded spend instead of treating monthly token totals as one large request; honor price overrides and the observed token mix.
+- Calculate cache share from disjoint token buckets, support keyboard use of filters/sorting/stars, and keep nested controls from activating their parent repository row.
+- Preserve nonce-protected scripts while allowing the dashboard's chart style attributes; escape localized script data and show scan errors even when totals do not change.
+- Target the Node 16 extension host declared by the VS Code 1.75 minimum.
+
+### Release process
+
+- Require passing verification and Marketplace credentials before publishing. Publish the already-built VSIX, attach its SHA-256 checksum, and reject release tags that disagree with the package version or point outside main history.
+- Add a manual Release workflow for the merged main commit. Missing credentials or a failed publish now fail the release instead of silently skipping Marketplace publication.
+
 ## [1.23.1] — 2026-08-17
 
 ### Fixed

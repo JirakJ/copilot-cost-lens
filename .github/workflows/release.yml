@@ -1,44 +1,82 @@
 name: Release
 
-# Pushing a v* tag verifies the build, publishes to the VS Code Marketplace
-# and creates a GitHub release with the VSIX attached.
-# Requires the VSCE_PAT repository secret (Azure DevOps PAT, Marketplace → Manage).
+# Publish the merged main commit via Run workflow, or push its matching v* tag.
+# VSCE_PAT is required; missing credentials fail instead of reporting success.
 on:
+  workflow_dispatch:
   push:
-    tags:
-      - 'v*'
+    tags: ['v*']
 
 permissions:
-  contents: write
+  contents: read
+
+concurrency:
+  group: marketplace-release
+  cancel-in-progress: false
 
 jobs:
   release:
-    runs-on: [self-hosted, rpi]   # RPI self-hosted — no GHA minutes
+    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: write
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          node-version: 20
-          # no remote cache on self-hosted: ~/.npm persists locally between runs
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
+      - name: Validate release commit and version
+        run: |
+          git merge-base --is-ancestor "$GITHUB_SHA" origin/main
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync, appendFileSync, writeFileSync } from 'node:fs';
+          import { spawnSync } from 'node:child_process';
+          const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
+          assert(/^\d+\.\d+\.\d+$/.test(version), 'Release requires a stable version');
+          const tag = `v${version}`;
+          if (process.env.GITHUB_REF_TYPE === 'tag') assert.equal(process.env.GITHUB_REF_NAME, tag);
+          const changelog = readFileSync('CHANGELOG.md', 'utf8');
+          assert(changelog.includes(`## [${version}]`), 'Missing release notes');
+          const notes = changelog.split(`## [${version}]`)[1].split('\n## [')[0];
+          const existing = spawnSync('git', ['rev-parse', '--verify', '--quiet', `refs/tags/${tag}^{commit}`], { encoding: 'utf8' });
+          if (existing.status === 0) assert.equal(existing.stdout.trim(), process.env.GITHUB_SHA, 'Existing tag points to another commit');
+          else assert.equal(existing.status, 1, 'Unable to verify release tag');
+          writeFileSync(`${process.env.RUNNER_TEMP}/release-notes.md`, notes.slice(notes.indexOf('\n')).trim());
+          appendFileSync(process.env.GITHUB_ENV, `RELEASE_TAG=${tag}\nVSIX=copilot-cost-lens-${version}.vsix\n`);
+          JS
+      - name: Require Marketplace credentials
+        env:
+          VSCE_PAT: ${{ secrets.VSCE_PAT }}
+        run: test -n "$VSCE_PAT" || { echo '::error::VSCE_PAT is missing'; exit 1; }
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npx @vscode/vsce package --no-dependencies
-      - name: Publish to VS Code Marketplace
+      - run: npm audit --audit-level=low
+      - run: npm run vsix
+      - run: npm run verify-package
+      - name: Record artifact checksum
+        run: sha256sum "$VSIX" > "$VSIX.sha256"
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
+        with:
+          name: marketplace-vsix
+          path: |
+            *.vsix
+            *.vsix.sha256
+          if-no-files-found: error
+      - name: Publish verified VSIX to Visual Studio Marketplace
         env:
           VSCE_PAT: ${{ secrets.VSCE_PAT }}
-        run: |
-          if [ -z "$VSCE_PAT" ]; then
-            echo "::warning::VSCE_PAT secret is not set — skipping Marketplace publish"
-          else
-            npx @vscode/vsce publish --no-dependencies -p "$VSCE_PAT"
-          fi
+        run: npx --no-install vsce publish --packagePath "$VSIX"
       - name: Create GitHub release
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$GITHUB_REF_NAME" *.vsix \
-            --title "$GITHUB_REF_NAME" \
-            --notes "See [CHANGELOG.md](https://github.com/${GITHUB_REPOSITORY}/blob/main/CHANGELOG.md)." \
-            --verify-tag
+          gh release create "$RELEASE_TAG" "$VSIX" "$VSIX.sha256" \
+            --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
+            --notes-file "$RUNNER_TEMP/release-notes.md"

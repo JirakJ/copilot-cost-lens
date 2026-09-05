@@ -57,7 +57,7 @@ describe('savingsHeadroom', () => {
     // 100k stays under gpt-5.5's 272k long-context threshold, so base rates apply.
     // gpt-5.5: input 5.0, output 30.0 → 0.1M in + 0.1M out = $3.50
     // cheapest of the gpt family is gpt-5.6-luna: input 0.2, output 1.2 → $0.14
-    const r = savingsHeadroom([model({ model: 'gpt-5.5', inputTokens: 100_000, outputTokens: 100_000 })]);
+    const r = savingsHeadroom([model({ model: 'gpt-5.5', usd: 3.5, inputTokens: 100_000, outputTokens: 100_000 })]);
     expect(r.rows).toHaveLength(1);
     expect(r.rows[0]?.cheapest).toBe('gpt-5.6-luna');
     expect(r.rows[0]?.actualUsd).toBeCloseTo(3.5);
@@ -68,7 +68,7 @@ describe('savingsHeadroom', () => {
 
   it('omits a model that is already the cheapest in its family', () => {
     const r = savingsHeadroom([
-      model({ model: 'gpt-5.6-luna', inputTokens: 100_000, outputTokens: 100_000 }),
+      model({ model: 'gpt-5.6-luna', usd: 0.14, inputTokens: 100_000, outputTokens: 100_000 }),
     ]);
     expect(r.rows).toHaveLength(0);
     expect(r.actualUsd).toBeCloseTo(0.14);
@@ -76,7 +76,7 @@ describe('savingsHeadroom', () => {
   });
 
   it('keeps families apart', () => {
-    const r = savingsHeadroom([model({ model: 'claude-opus-4.8', inputTokens: M })]);
+    const r = savingsHeadroom([model({ model: 'claude-opus-4.8', usd: 5, inputTokens: M })]);
     expect(r.rows[0]?.cheapest).toBe('claude-haiku-4');
   });
 
@@ -88,11 +88,26 @@ describe('savingsHeadroom', () => {
 
   it('sorts rows by absolute headroom, largest first', () => {
     const r = savingsHeadroom([
-      model({ model: 'claude-opus-4.8', inputTokens: M }), // 5.0 → 1.0, headroom 4.0
+      model({ model: 'claude-opus-4.8', usd: 5, inputTokens: M }), // 5.0 → 1.0, headroom 4.0
       // 10M input crosses gpt-5.5's 272k threshold, so it bills at the 10.0 tier:
       // $100 actual; gpt-5.4-nano has no long-context tier → $2. Headroom 98.
-      model({ model: 'gpt-5.5', inputTokens: 10 * M }),
+      model({ model: 'gpt-5.5', usd: 100, inputTokens: 10 * M }),
     ]);
     expect(r.rows.map((x) => x.model)).toEqual(['gpt-5.5', 'claude-opus-4.8']);
   });
+});
+
+it('preserves actual billed spend and does not reprice monthly totals as one large request', () => {
+  const result = savingsHeadroom([model({ model: 'gpt-5.5', usd: 1.5, inputTokens: 300000, requestCount: 3 })]);
+  expect(result.actualUsd).toBe(1.5);
+  expect(result.counterfactualUsd).toBeCloseTo(0.06);
+  expect(savingsHeadroom([model({ model: 'gpt-5.5', usd: 0, inputTokens: M })]).rows).toEqual([]);
+});
+
+it('honors user overrides in savings comparisons', () => {
+  const result = savingsHeadroom([model({ model: 'gpt-5.5', usd: 3.5, inputTokens: 100000, outputTokens: 100000 })], {
+    overrides: { 'gpt-5-mini': { input: 0, output: 0 } },
+  });
+  expect(result.rows[0]!.cheapest).toBe('gpt-5-mini');
+  expect(result.counterfactualUsd).toBe(0);
 });

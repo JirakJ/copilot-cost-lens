@@ -12,7 +12,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 <head>
 <meta charset="UTF-8">
 <meta http-equiv="Content-Security-Policy"
-  content="default-src 'none'; style-src 'nonce-${nonce}'; script-src 'nonce-${nonce}';">
+  content="default-src 'none'; style-src 'nonce-${nonce}'; style-src-attr 'unsafe-inline'; script-src 'nonce-${nonce}'; base-uri 'none'; form-action 'none';">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Copilot Cost Lens</title>
 <style nonce="${nonce}">
@@ -162,7 +162,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
 
 <script nonce="${nonce}">
   const vscode = acquireVsCodeApi();
-  const S = ${JSON.stringify(strings)};
+  const S = ${JSON.stringify(strings).replace(/</g, '\\u003c')};
   const app = document.getElementById('app');
   const foot = document.getElementById('foot');
   const monthSel = document.getElementById('month');
@@ -220,7 +220,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       }
       // skip the rebuild when nothing changed → no flicker on idle auto-refresh
       if (msg.currency) CUR = msg.currency;
-      const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig, msg.currency, msg.hiddenCount]);
+      const key = JSON.stringify([msg.selectedMonth, msg.report, msg.detail, msg.groupDetail, msg.starred, msg.groupsConfig, msg.currency, msg.hiddenCount, msg.stats && msg.stats.errors]);
       if (key === lastRenderKey) return;
       lastRenderKey = key;
       // same view (just refreshed data) → keep scroll; navigation → back to top
@@ -357,6 +357,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         repoProvider = repoProvider === chip.dataset.provider ? null : chip.dataset.provider;
         renderOverview(lastMsg.report, lastMsg.selectedMonth);
       };
+      keyable(chip);
     }
 
     const filterInput = document.getElementById('repoFilter');
@@ -369,6 +370,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         else repoSort = { key, dir: key === 'name' ? 1 : -1 };
         renderOverview(lastMsg.report, lastMsg.selectedMonth);
       };
+      keyable(th);
     }
     refreshRepoTbody();
     bindRepoRows();
@@ -387,9 +389,8 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
       '<div class="row"><span class="dot" style="background:var(--c1)"></span><span class="name">' +
       esc(PROVIDER_NAMES[p.provider] || p.provider) + '</span><span class="val">' + usd(p.usd) + ' · ' + p.requestCount + '×</span></div>').join('');
 
-    // share of context read from cache; Copilot reports cache reads as a
-    // subset of input, Claude Code reports them separately
-    const denom = s.inputTokens >= s.cachedTokens ? s.inputTokens : s.inputTokens + s.cachedTokens;
+    // All source parsers normalize token buckets to disjoint counts.
+    const denom = s.inputTokens + s.cachedTokens + s.cacheWriteTokens;
     const cacheShare = denom > 0 ? (s.cachedTokens / denom) * 100 : 0;
 
     const sessionsRows = (d.topSessions || []).map((sess) =>
@@ -572,7 +573,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
     row.tabIndex = 0;
     row.setAttribute('role', 'button');
     row.onkeydown = (e) => {
-      if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); row.onclick(); }
+      if (e.target === row && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); row.click(); }
     };
   }
 
@@ -832,6 +833,7 @@ export function renderDashboardHtml(strings: Record<string, string>): string {
         event.stopPropagation();
         vscode.postMessage({ type: 'toggleStar', repo: cell.dataset.star });
       };
+      keyable(cell);
     }
   }
 

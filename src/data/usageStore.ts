@@ -37,8 +37,7 @@ export interface ScanStats {
 }
 
 interface FileCacheEntry {
-  mtimeMs: number;
-  size: number;
+  fingerprint: string;
   usages: RawUsage[];
 }
 
@@ -55,6 +54,8 @@ export class UsageStore {
   private scanning?: Promise<UsageEvent[]>;
   private listeners = new Set<() => void>();
   private firstScanDone = false;
+  private parsedCharsPerToken?: number;
+  private disposed = false;
   private stats: ScanStats = {
     providers: {},
     newestTimestamp: 0,
@@ -77,6 +78,13 @@ export class UsageStore {
 
   updateConfig(config: StoreConfig): void {
     this.config = config;
+  }
+
+  dispose(): void {
+    this.disposed = true;
+    this.listeners.clear();
+    this.fileCache.clear();
+    this.events = [];
   }
 
   getEvents(): UsageEvent[] {
@@ -102,21 +110,51 @@ export class UsageStore {
   }
 
   async refresh(): Promise<UsageEvent[]> {
+    if (this.disposed) {
+      return this.events;
+    }
     if (!this.scanning) {
-      this.scanning = this.scan().finally(() => {
+      this.scanning = this.scanLatestConfig().finally(() => {
         this.scanning = undefined;
       });
     }
     return this.scanning;
   }
 
-  private async scan(): Promise<UsageEvent[]> {
+  private async scanLatestConfig(): Promise<UsageEvent[]> {
+    let config: StoreConfig;
+    do {
+      config = this.config;
+      await this.scan(config);
+    } while (!this.disposed && config !== this.config);
+    return this.events;
+  }
+
+  private async scan(config: StoreConfig): Promise<void> {
+    if (this.parsedCharsPerToken !== config.charsPerToken) {
+      this.fileCache.clear();
+      this.parsedCharsPerToken = config.charsPerToken;
+    }
+    this.workspaceIndex = new WorkspaceIndex();
     const started = Date.now();
     const exact: RawUsage[] = [];
     const estimated: RawUsage[] = [];
     const errors: string[] = [];
     const scannedRoots: string[] = [];
     let filesParsed = 0;
+    const seenFiles = new Set<string>();
+    const read = async (file: string, parse: () => Promise<RawUsage[]>): Promise<RawUsage[]> => {
+      if (this.disposed || seenFiles.has(file)) {
+        return [];
+      }
+      seenFiles.add(file);
+      try {
+        return await this.parseCached(file, parse);
+      } catch (error) {
+        errors.push(`Could not read ${file} (${error instanceof Error ? error.name : 'Error'})`);
+        return [];
+      }
+    };
     const push = (usages: RawUsage[]) => {
       filesParsed += 1;
       for (const usage of usages) {
@@ -126,7 +164,11 @@ export class UsageStore {
     // publish what we have after each source so the dashboard paints the first
     // results immediately instead of waiting for the whole (slow) scan
     const publish = async () => {
-      this.events = await this.toEvents(dedupeBySession(exact, estimated));
+      const events = await this.toEvents(dedupeBySession(exact, estimated), config, errors);
+      if (this.disposed || config !== this.config) {
+        return;
+      }
+      this.events = events;
       const providers: Record<string, number> = {};
       let newestTimestamp = 0;
       for (const event of this.events) {
@@ -153,19 +195,19 @@ export class UsageStore {
     };
 
     await guard('vscode', async () => {
-      const roots = await detectStorageRoots(this.config.extraStorageRoots);
+      const roots = await detectStorageRoots(config.extraStorageRoots);
       scannedRoots.push(...roots);
       for (const root of roots) {
         for (const wsDir of await listWorkspaceStorageDirs(root)) {
           for (const file of await findJsonlFiles(wsDir)) {
-            push(await this.parseCached(file.filePath, () => parseJsonlUsage(file, wsDir)));
+            push(await read(file.filePath, () => parseJsonlUsage(file, wsDir)));
           }
-          if (this.config.estimationEnabled) {
+          if (config.estimationEnabled) {
             for (const sessionFile of await findChatSessionFiles(wsDir)) {
               push(
-                await this.parseCached(sessionFile, () =>
+                await read(sessionFile, () =>
                   parseChatSessionUsage(sessionFile, wsDir, {
-                    charsPerToken: this.config.charsPerToken,
+                    charsPerToken: config.charsPerToken,
                   }),
                 ),
               );
@@ -175,49 +217,53 @@ export class UsageStore {
       }
     });
 
-    if (this.config.claudeCodeEnabled) {
+    if (config.claudeCodeEnabled) {
       await guard('claude-code', async () => {
         scannedRoots.push(defaultClaudeCodeRoot());
         for (const file of await findClaudeCodeFiles(defaultClaudeCodeRoot())) {
-          push(await this.parseCached(file, () => parseClaudeCodeUsage(file)));
+          push(await read(file, () => parseClaudeCodeUsage(file)));
         }
       });
     }
 
-    if (this.config.copilotCliEnabled) {
+    if (config.copilotCliEnabled) {
       await guard('copilot-cli', async () => {
         scannedRoots.push(defaultCopilotCliRoot());
         for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
           push(
-            await this.parseCached(file.filePath, () =>
-              parseCopilotCliUsage(file, { charsPerToken: this.config.charsPerToken }),
+            await read(file.filePath, () =>
+              parseCopilotCliUsage(file, { charsPerToken: config.charsPerToken }),
             ),
           );
         }
       });
     }
 
-    if (this.config.codexEnabled) {
+    if (config.codexEnabled) {
       await guard('codex', async () => {
         scannedRoots.push(defaultCodexRoot());
         for (const file of await findCodexFiles(defaultCodexRoot())) {
-          push(await this.parseCached(file, () => parseCodexUsage(file)));
+          push(await read(file, () => parseCodexUsage(file)));
         }
       });
     }
 
-    if (this.config.jetbrainsCopilotEnabled) {
+    if (config.jetbrainsCopilotEnabled) {
       await guard('copilot-jetbrains', async () => {
         scannedRoots.push(defaultJetBrainsCopilotRoot());
         for (const db of await findJetBrainsCopilotDbs(defaultJetBrainsCopilotRoot())) {
-          push(await this.parseCached(db, () => parseJetBrainsUsage(db, { charsPerToken: this.config.charsPerToken })));
+          push(await read(db, () => parseJetBrainsUsage(db, { charsPerToken: config.charsPerToken })));
         }
       });
     }
 
     await publish(); // one final publish (the only one on non-first scans)
+    for (const file of this.fileCache.keys()) {
+      if (this.disposed || !seenFiles.has(file)) {
+        this.fileCache.delete(file);
+      }
+    }
     this.firstScanDone = true;
-    return this.events;
   }
 
   private async parseCached(
@@ -232,24 +278,52 @@ export class UsageStore {
       return [];
     }
 
+    if (!stat.isFile()) {
+      return [];
+    }
+    const fallback = filePath.endsWith('.jsonl') && filePath.includes('chatSessions')
+      ? await fs.stat(filePath.replace(/\.jsonl$/, '.json')).catch(() => undefined)
+      : undefined;
+    const fingerprint = `${stat.mtimeMs}:${stat.size}:${fallback?.mtimeMs}:${fallback?.size}`;
     const cached = this.fileCache.get(filePath);
-    if (cached && cached.mtimeMs === stat.mtimeMs && cached.size === stat.size) {
+    if (cached && cached.fingerprint === fingerprint) {
       return cached.usages;
     }
 
     const usages = await parse();
-    this.fileCache.set(filePath, { mtimeMs: stat.mtimeMs, size: stat.size, usages });
+    if (!this.disposed) {
+      this.fileCache.set(filePath, { fingerprint, usages });
+    }
     return usages;
   }
 
-  private async toEvents(raw: RawUsage[]): Promise<UsageEvent[]> {
+  private async toEvents(raw: RawUsage[], config: StoreConfig, errors: string[]): Promise<UsageEvent[]> {
     const events: UsageEvent[] = [];
+    const invalid = () => {
+      const message = 'Ignored usage records with invalid dates, token counts or costs.';
+      if (!errors.includes(message)) errors.push(message);
+    };
     for (const usage of raw) {
-      const { credits, costSource } = priceUsage(usage, this.config.pricing);
+      if (this.disposed) {
+        break;
+      }
+      // Log files are untrusted input. Invalid dates/counts must never poison
+      // an entire report or crash Date.toISOString during an export.
+      if (!Number.isFinite(usage.timestamp) || !Number.isFinite(new Date(usage.timestamp).getTime()) ||
+          [usage.inputTokens, usage.outputTokens, usage.cachedTokens, usage.cacheWriteTokens]
+            .some((n) => !Number.isFinite(n) || n < 0 || n > Number.MAX_SAFE_INTEGER)) {
+        invalid();
+        continue;
+      }
+      const { credits, costSource } = priceUsage(usage, config.pricing);
+      if (!Number.isFinite(credits) || credits < 0 || credits > Number.MAX_SAFE_INTEGER) {
+        invalid();
+        continue;
+      }
       events.push({
         sessionId: usage.sessionId,
         provider: usage.provider,
-        repo: await this.resolveRepo(usage),
+        repo: await this.resolveRepo(usage, config),
         timestamp: usage.timestamp,
         model: normalizeModelId(usage.model),
         inputTokens: usage.inputTokens,
@@ -264,9 +338,9 @@ export class UsageStore {
     return events;
   }
 
-  private async resolveRepo(usage: RawUsage): Promise<RepoRef> {
+  private async resolveRepo(usage: RawUsage, config: StoreConfig): Promise<RepoRef> {
     const base = await this.baseRepo(usage);
-    const alias = this.config.repoAliases[base.name];
+    const alias = Object.hasOwn(config.repoAliases, base.name) ? config.repoAliases[base.name] : undefined;
     return alias ? { ...base, name: alias } : base;
   }
 
@@ -289,7 +363,8 @@ export class UsageStore {
  * any exact usage drops all of its estimated records.
  */
 export function dedupeBySession(exact: RawUsage[], estimated: RawUsage[]): RawUsage[] {
-  const exactSessions = new Set(exact.map((u) => u.sessionId));
-  const kept = estimated.filter((u) => !exactSessions.has(u.sessionId));
+  const key = (u: RawUsage) => JSON.stringify([u.provider, u.workspaceStorageDir, u.sessionId]);
+  const exactSessions = new Set(exact.map(key));
+  const kept = estimated.filter((u) => !exactSessions.has(key(u)));
   return [...exact, ...kept];
 }

@@ -11,7 +11,7 @@ const options = {
   external: ['vscode'],
   format: 'cjs',
   platform: 'node',
-  target: 'node20',
+  target: 'node16', // VS Code 1.75 extension host (engines.vscode)
   sourcemap: !production,
   minify: production,
   logLevel: 'info',

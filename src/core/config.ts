@@ -20,15 +20,15 @@ export function sanitizeNumberArray(raw: unknown): number[] {
 }
 
 export function sanitizePriceOverrides(raw: unknown): Record<string, Partial<ModelRate>> {
-  const out: Record<string, Partial<ModelRate>> = {};
-  if (!raw || typeof raw !== 'object') {
+  const out: Record<string, Partial<ModelRate>> = Object.create(null);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return out;
   }
   for (const [model, value] of Object.entries(raw as Record<string, unknown>)) {
     if (!value || typeof value !== 'object') {
       continue;
     }
-    const clean: Partial<ModelRate> = {};
+    const clean: Partial<ModelRate> = Object.create(null);
     for (const key of ['input', 'cachedInput', 'cacheWrite', 'output'] as const) {
       const v = (value as Record<string, unknown>)[key];
       if (typeof v === 'number' && Number.isFinite(v) && v >= 0) {
@@ -44,8 +44,8 @@ export function sanitizePriceOverrides(raw: unknown): Record<string, Partial<Mod
 
 /** Parse a {name: positive number} map (per-project budgets), dropping bad entries. */
 export function sanitizeBudgetMap(raw: unknown): Record<string, number> {
-  const out: Record<string, number> = {};
-  if (!raw || typeof raw !== 'object') {
+  const out: Record<string, number> = Object.create(null);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return out;
   }
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -71,8 +71,8 @@ export function sanitizeCurrency(codeRaw: unknown, rateRaw: unknown): { code: st
 
 /** Parse the repo-alias map (original name → display name), dropping malformed entries. */
 export function sanitizeRepoAliases(raw: unknown): Record<string, string> {
-  const out: Record<string, string> = {};
-  if (!raw || typeof raw !== 'object') {
+  const out: Record<string, string> = Object.create(null);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return out;
   }
   for (const [key, value] of Object.entries(raw as Record<string, unknown>)) {
@@ -85,8 +85,8 @@ export function sanitizeRepoAliases(raw: unknown): Record<string, string> {
 
 /** Parse a project-groups config object, dropping malformed entries. */
 export function sanitizeProjectGroups(raw: unknown): Record<string, string[]> {
-  const groups: Record<string, string[]> = {};
-  if (!raw || typeof raw !== 'object') {
+  const groups: Record<string, string[]> = Object.create(null);
+  if (!raw || typeof raw !== 'object' || Array.isArray(raw)) {
     return groups;
   }
   for (const [name, members] of Object.entries(raw as Record<string, unknown>)) {
@@ -96,4 +96,9 @@ export function sanitizeProjectGroups(raw: unknown): Record<string, string[]> {
     }
   }
   return groups;
+}
+
+/** Validate numeric settings before using them in timers, budgets or pricing. */
+export function sanitizeNumber(raw: unknown, fallback: number, min = 0, max = Number.MAX_SAFE_INTEGER): number {
+  return typeof raw === 'number' && Number.isFinite(raw) && raw >= min && raw <= max ? raw : fallback;
 }

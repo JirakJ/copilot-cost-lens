@@ -97,7 +97,8 @@ async function readWorkspaceUri(workspaceStorageDir: string): Promise<string | u
   try {
     const raw = await fs.readFile(path.join(workspaceStorageDir, 'workspace.json'), 'utf8');
     const parsed = JSON.parse(raw) as { folder?: string; workspace?: string; configuration?: string };
-    return parsed.folder ?? parsed.workspace ?? parsed.configuration;
+    const uri = parsed.folder ?? parsed.workspace ?? parsed.configuration;
+    return typeof uri === 'string' ? uri : undefined;
   } catch {
     return undefined;
   }
@@ -107,7 +108,12 @@ function filePathFromWorkspaceUri(uri: string): string | undefined {
   if (!uri.startsWith('file://')) {
     return undefined;
   }
-  const fsPath = decodeURIComponent(uri.replace(/^file:\/\//, ''));
+  let fsPath: string;
+  try {
+    fsPath = decodeURIComponent(uri.replace(/^file:\/\//, ''));
+  } catch {
+    return undefined;
+  }
   // Windows: file:///c%3A/dev/repo → /c:/dev/repo → c:/dev/repo
   const normalized = /^\/[a-zA-Z]:\//.test(fsPath) ? fsPath.slice(1) : fsPath;
   return normalized.replace(/\.code-workspace$/, '');
@@ -204,6 +210,13 @@ export function parseRemoteSlug(gitConfig: string): string | undefined {
     return undefined;
   }
   // git@github.com:owner/repo.git | https://github.com/owner/repo.git | ssh://git@host/owner/repo
-  const match = /(?:[:/])([^:/]+\/[^:/]+?)(?:\.git)?\/?$/.exec(anyUrl);
+  // Never include URL credentials, query strings or fragments in a report.
+  let remotePath: string;
+  try {
+    remotePath = new URL(anyUrl).pathname;
+  } catch {
+    remotePath = /^[^\s/@]+@[^\s/:]+:(.+)$/.exec(anyUrl)?.[1] ?? '';
+  }
+  const match = /(?:^|\/)([^:/]+\/[^:/]+?)(?:\.git)?\/?$/.exec(remotePath);
   return match?.[1];
 }
