@@ -478,7 +478,7 @@
     "qs": "6.16.0"
   },
   "devDependencies": {
-    "@types/node": "^20.14.0",
+    "@types/node": "^26.4.1",
     "@types/vscode": "^1.75.0",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
