@@ -2,7 +2,7 @@
   "name": "copilot-cost-lens",
   "displayName": "Copilot Cost Lens — AI Usage & Spend Tracker",
   "description": "Track GitHub Copilot, ChatGPT Codex and Claude Code spend per repository — local, private, real-time. Cost dashboard, model & cache analytics, budgets, forecasts, PDF receipts.",
-  "version": "1.23.1",
+  "version": "1.24.0",
   "publisher": "JakubJirak",
   "license": "MIT",
   "icon": "media/icon.png",
@@ -333,7 +333,8 @@
             "type": "string"
           },
           "default": [],
-          "description": "%cfg.extraRoots%"
+          "description": "%cfg.extraRoots%",
+          "scope": "machine"
         },
         "copilotCostLens.claudeCode.enabled": {
           "type": "boolean",
@@ -392,7 +393,8 @@
           "type": "number",
           "default": 120,
           "minimum": 10,
-          "description": "%cfg.refreshInterval%"
+          "description": "%cfg.refreshInterval%",
+          "maximum": 86400
         },
         "copilotCostLens.starredRepos": {
           "type": "array",
@@ -465,11 +467,15 @@
     "test": "vitest run",
     "icon": "node scripts/gen-icon.mjs",
     "vscode:prepublish": "npm run package",
-    "vsix": "vsce package"
+    "vsix": "vsce package --no-dependencies",
+    "verify-package": "node scripts/verify-package.mjs"
   },
   "overrides": {
     "undici": "^7.28.0",
-    "form-data": "^4.0.6"
+    "form-data": "^4.0.6",
+    "nanoid": "3.3.18",
+    "fast-uri": "3.1.6",
+    "qs": "6.16.0"
   },
   "devDependencies": {
     "@types/node": "^20.14.0",

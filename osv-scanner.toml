@@ -1,4 +1,0 @@
-[[IgnoredVulns]]
-id = "GHSA-mh99-v99m-4gvg"
-ignoreUntil = 2026-10-01T00:00:00Z
-reason = "brace-expansion 1.x/2.x dev-only transitive via minimatch; no patched release in its major line, fix only in 5.0.8 which is outside every dependent's semver range (checked 2026-07-25)"

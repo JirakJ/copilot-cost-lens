@@ -12,7 +12,7 @@ export async function exportSummary(report: MonthReport): Promise<void> {
     return;
   }
   const uri = await vscode.window.showSaveDialog({
-    defaultUri: vscode.Uri.file(`ai-summary-${report.month}.csv`),
+    defaultUri: vscode.Uri.file(`ai-summary-${report.month.replace(/[^a-zA-Z0-9._-]/g, '-')}.csv`),
     filters: { CSV: ['csv'] },
   });
   if (!uri) {
@@ -47,4 +47,3 @@ export async function exportUsage(events: UsageEvent[], format: 'csv' | 'json'):
     vscode.l10n.t('Copilot Cost Lens: exported {0} records to {1}', events.length, uri.fsPath),
   );
 }
-

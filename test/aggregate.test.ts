@@ -416,6 +416,7 @@ describe('report insights', () => {
     const events = [
       event({
         model: 'claude-sonnet-4.5',
+        credits: 330,
         inputTokens: 1_000_000,
         outputTokens: 0,
         cachedTokens: 1_000_000,
@@ -431,4 +432,23 @@ describe('report insights', () => {
     expect(r.insights?.cache.saved).toBeCloseTo(2.7);
     expect(r.insights?.headroom.rows[0]?.cheapest).toBe('claude-haiku-4');
   });
+});
+
+it('uses the same custom range in totals, repository detail and project receipts', () => {
+  const events: UsageEvent[] = [1, 2, 3, 4].map((day) => ({
+    sessionId: String(day), provider: 'copilot', repo: { name: 'acme/api' },
+    timestamp: new Date(2026, 5, day, 12).getTime(), model: 'gpt-5-mini',
+    inputTokens: 1, outputTokens: 0, cachedTokens: 0, cacheWriteTokens: 0,
+    credits: 100, costSource: 'computed',
+  }));
+  const month = 'range:2026-06-02..2026-06-03';
+  const report = buildMonthReport(events, { month, includedCredits: 0 });
+  const repo = buildRepoDetail(events, { month, repoName: 'acme/api' })!;
+  const group = buildGroupDetail(events, { month, name: 'Project', members: ['acme/api'] })!;
+  expect(report.totalUsd).toBe(2);
+  expect(repo.summary.usd).toBe(report.totalUsd);
+  expect(repo.topSessions).toHaveLength(2);
+  expect(group.group.usd).toBe(report.totalUsd);
+  expect(group.days.map((d) => d.day)).toEqual(['2026-06-02', '2026-06-03']);
+  expect(group.providers[0]!.usd).toBe(report.totalUsd);
 });

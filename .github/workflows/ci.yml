@@ -5,23 +5,52 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 jobs:
   verify:
-    runs-on: [self-hosted, rpi]   # RPI self-hosted — no GHA minutes
+    # Fork PRs must never execute on a persistent runner with release access.
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
-          node-version: 20
-          # no remote cache on self-hosted: ~/.npm persists locally between runs,
-          # and the Post cache-upload step hangs on the RPI's home uplink
+          persist-credentials: false
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: 24
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
       - run: npm test
-      - run: npm run package
-      - run: npx @vscode/vsce package --no-dependencies
-      - uses: actions/upload-artifact@v4
+      - run: npm audit --audit-level=low
+      - run: npm run vsix
+      - run: npm run verify-package
+      - uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f # v6
         with:
-          name: vsix
+          name: vsix-${{ matrix.os }}
           path: '*.vsix'
+          if-no-files-found: error
+          retention-days: 14
+
+  secrets:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: gitleaks/gitleaks-action@ff98106e4c7b2bc287b24eaf42907196329070c7 # v2
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GITLEAKS_ENABLE_COMMENTS: 'false'

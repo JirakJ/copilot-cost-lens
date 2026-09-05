@@ -4,6 +4,7 @@ import { webviewStrings } from './strings';
 import { GroupDetail, RepoDetail } from '../core/aggregate';
 import { ScanStats } from '../data/usageStore';
 import { MonthReport } from '../types';
+import { parsePeriod } from '../core/period';
 
 export interface DashboardDelegate {
   getReport(month: string): MonthReport;
@@ -44,8 +45,8 @@ export interface DashboardDelegate {
 interface IncomingMessage {
   type: string;
   month?: string;
-  repo?: string;
-  group?: string;
+  repo?: string | null;
+  group?: string | null;
   format?: 'csv' | 'json';
   value?: number | 'custom';
   originalName?: string;
@@ -53,6 +54,45 @@ interface IncomingMessage {
   members?: string[];
   path?: string;
   all?: boolean;
+}
+
+/** Messages cross the webview/extension-host trust boundary at runtime. */
+export function isIncomingMessage(value: unknown): value is IncomingMessage {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    return false;
+  }
+  const m = value as Record<string, unknown>;
+  const text = (v: unknown): v is string => typeof v === 'string' && v.length > 0 && v.length <= 4096;
+  const optionalText = (v: unknown) => v === undefined || text(v);
+  switch (m.type) {
+    case 'ready': case 'refresh': case 'addStorageRoot': case 'manageHidden': case 'openSettings':
+      return true;
+    case 'selectMonth':
+      return text(m.month) && parsePeriod(m.month).key === m.month;
+    case 'selectRepo':
+      return m.repo == null || text(m.repo);
+    case 'selectGroup':
+      return m.group == null || text(m.group);
+    case 'toggleStar': case 'renameRepo': case 'toggleHidden':
+      return text(m.repo);
+    case 'deleteGroup':
+      return text(m.group);
+    case 'openRepo':
+      return text(m.path);
+    case 'export':
+      return m.format === 'csv' || m.format === 'json';
+    case 'exportReceipt':
+      return optionalText(m.repo) && optionalText(m.group) &&
+        (m.all === undefined || typeof m.all === 'boolean') &&
+        [!!m.repo, !!m.group, m.all === true].filter(Boolean).length === 1;
+    case 'setAllowance':
+      return m.value === 'custom' || (typeof m.value === 'number' && Number.isSafeInteger(m.value) && m.value >= 0);
+    case 'saveGroup':
+      return optionalText(m.originalName) && text(m.name) && m.name.trim().length > 0 &&
+        Array.isArray(m.members) && m.members.length > 0 && m.members.length <= 10_000 && m.members.every(text);
+    default:
+      return false;
+  }
 }
 
 /**
@@ -68,104 +108,112 @@ export class DashboardController {
   constructor(private delegate: DashboardDelegate) {}
 
   attach(webview: vscode.Webview): vscode.Disposable {
-    webview.options = { enableScripts: true };
+    webview.options = { enableScripts: true, localResourceRoots: [] };
     webview.html = renderDashboardHtml(webviewStrings());
     this.webviews.add(webview);
 
-    const subscription = webview.onDidReceiveMessage(async (message: IncomingMessage) => {
-      switch (message.type) {
-        case 'ready':
-          this.postData(webview);
-          break;
-        case 'selectMonth':
-          this.selectedMonth = message.month;
-          this.selectedRepo = undefined;
-          this.selectedGroup = undefined;
-          this.postAll();
-          break;
-        case 'selectRepo':
-          this.selectedRepo = message.repo || undefined;
-          this.selectedGroup = undefined;
-          this.postAll();
-          break;
-        case 'selectGroup':
-          this.selectedGroup = message.group || undefined;
-          this.selectedRepo = undefined;
-          this.postAll();
-          break;
-        case 'refresh':
-          await this.delegate.refresh();
-          this.postAll();
-          break;
-        case 'export':
-          await this.delegate.exportData(message.format ?? 'csv', this.currentMonth());
-          break;
-        case 'exportReceipt':
-          if (message.repo || message.group || message.all) {
-            await this.delegate.exportReceipt(
-              { repo: message.repo, group: message.group, all: message.all },
-              this.currentMonth(),
-            );
-          }
-          break;
-        case 'addStorageRoot':
-          await this.delegate.addStorageRoot();
-          break;
-        case 'openRepo':
-          if (message.path) {
-            await this.delegate.openRepo(message.path);
-          }
-          break;
-        case 'toggleStar':
-          if (message.repo) {
-            await this.delegate.toggleStar(message.repo);
-            this.postAll();
-          }
-          break;
-        case 'renameRepo':
-          if (message.repo) {
-            // the config write triggers a rescan + postAll on its own
-            await this.delegate.renameRepo(message.repo);
-          }
-          break;
-        case 'toggleHidden':
-          if (message.repo) {
-            this.selectedRepo = undefined; // the detail view just vanished
-            await this.delegate.toggleHidden(message.repo);
-            this.postAll();
-          }
-          break;
-        case 'manageHidden':
-          await this.delegate.manageHidden();
-          this.postAll();
-          break;
-        case 'saveGroup':
-          if (message.name && Array.isArray(message.members) && message.members.length > 0) {
-            await this.delegate.saveGroup(message.originalName, message.name, message.members);
-            this.selectedGroup = message.name;
+    const subscription = webview.onDidReceiveMessage(async (message: unknown) => {
+      if (!isIncomingMessage(message)) {
+        return;
+      }
+      try {
+        switch (message.type) {
+          case 'ready':
+            this.postData(webview);
+            break;
+          case 'selectMonth':
+            this.selectedMonth = message.month;
             this.selectedRepo = undefined;
-            this.postAll();
-          }
-          break;
-        case 'deleteGroup':
-          if (message.group) {
-            await this.delegate.deleteGroup(message.group);
             this.selectedGroup = undefined;
             this.postAll();
-          }
-          break;
-        case 'setAllowance':
-          if (message.value !== undefined) {
-            await this.delegate.setAllowance(message.value);
+            break;
+          case 'selectRepo':
+            this.selectedRepo = message.repo || undefined;
+            this.selectedGroup = undefined;
             this.postAll();
-          }
-          break;
-        case 'openSettings':
-          void vscode.commands.executeCommand(
-            'workbench.action.openSettings',
-            '@ext:JakubJirak.copilot-cost-lens',
-          );
-          break;
+            break;
+          case 'selectGroup':
+            this.selectedGroup = message.group || undefined;
+            this.selectedRepo = undefined;
+            this.postAll();
+            break;
+          case 'refresh':
+            await this.delegate.refresh();
+            this.postAll();
+            break;
+          case 'export':
+            await this.delegate.exportData(message.format ?? 'csv', this.currentMonth());
+            break;
+          case 'exportReceipt':
+            if (message.repo || message.group || message.all) {
+              await this.delegate.exportReceipt(
+                { repo: message.repo ?? undefined, group: message.group ?? undefined, all: message.all },
+                this.currentMonth(),
+              );
+            }
+            break;
+          case 'addStorageRoot':
+            await this.delegate.addStorageRoot();
+            break;
+          case 'openRepo':
+            if (message.path && this.selectedRepo &&
+                this.delegate.getRepoDetail(this.selectedRepo, this.currentMonth())?.summary.repo.folderPath === message.path) {
+              await this.delegate.openRepo(message.path);
+            }
+            break;
+          case 'toggleStar':
+            if (message.repo) {
+              await this.delegate.toggleStar(message.repo);
+              this.postAll();
+            }
+            break;
+          case 'renameRepo':
+            if (message.repo) {
+              // the config write triggers a rescan + postAll on its own
+              await this.delegate.renameRepo(message.repo);
+            }
+            break;
+          case 'toggleHidden':
+            if (message.repo) {
+              this.selectedRepo = undefined; // the detail view just vanished
+              await this.delegate.toggleHidden(message.repo);
+              this.postAll();
+            }
+            break;
+          case 'manageHidden':
+            await this.delegate.manageHidden();
+            this.postAll();
+            break;
+          case 'saveGroup':
+            if (message.name && Array.isArray(message.members) && message.members.length > 0) {
+              await this.delegate.saveGroup(message.originalName, message.name, message.members);
+              this.selectedGroup = message.name;
+              this.selectedRepo = undefined;
+              this.postAll();
+            }
+            break;
+          case 'deleteGroup':
+            if (message.group) {
+              await this.delegate.deleteGroup(message.group);
+              this.selectedGroup = undefined;
+              this.postAll();
+            }
+            break;
+          case 'setAllowance':
+            if (message.value !== undefined) {
+              await this.delegate.setAllowance(message.value);
+              this.postAll();
+            }
+            break;
+          case 'openSettings':
+            void vscode.commands.executeCommand(
+              'workbench.action.openSettings',
+              '@ext:JakubJirak.copilot-cost-lens',
+            );
+            break;
+        }
+      } catch {
+        void vscode.window.showErrorMessage(vscode.l10n.t('Copilot Cost Lens: action failed. Check file permissions and try again.'));
       }
     });
 

@@ -79,7 +79,9 @@ export class CostStatusBar implements vscode.Disposable {
     if (report.repos.length > 0) {
       md.appendMarkdown(`---\n\n`);
       for (const repo of report.repos.slice(0, 3)) {
-        md.appendMarkdown(`$(repo) ${repo.repo.name}: **${money(repo.usd, options.currency)}**\n\n`);
+        md.appendMarkdown('$(repo) ');
+        md.appendText(repo.repo.name);
+        md.appendMarkdown(`: **${money(repo.usd, options.currency)}**\n\n`);
       }
     }
     if (report.hasEstimates) {

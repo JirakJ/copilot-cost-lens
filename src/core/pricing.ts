@@ -124,8 +124,9 @@ export interface PricingOptions {
 
 export function rateFor(model: string, options: PricingOptions = {}): ModelRate {
   const id = normalizeModelId(model);
-  const base = DEFAULT_RATES[id] ?? bestPrefixMatch(id) ?? options.fallbackRate ?? FALLBACK_RATE;
-  const override = options.overrides?.[id];
+  const base = (Object.hasOwn(DEFAULT_RATES, id) ? DEFAULT_RATES[id] : undefined) ??
+    bestPrefixMatch(id) ?? options.fallbackRate ?? FALLBACK_RATE;
+  const override = options.overrides && Object.hasOwn(options.overrides, id) ? options.overrides[id] : undefined;
   return override ? { ...base, ...override } : base;
 }
 
@@ -159,8 +160,8 @@ export function priceTokensUsd(
   const output = Math.max(0, usage.outputTokens);
 
   // long-context tier: the whole request bills at the higher rate once the
-  // context (fresh input + cache reads) crosses the model's threshold
-  const context = freshInput + cached;
+  // context (fresh input + cache reads + cache creation) crosses the model's threshold
+  const context = freshInput + cached + cacheWrite;
   const tier =
     rate.longContext && context > rate.longContext.threshold
       ? { ...rate, ...rate.longContext }
@@ -185,10 +186,10 @@ export interface PricedUsage {
  * exact tokens → estimate.
  */
 export function priceUsage(raw: RawUsage, options: PricingOptions = {}): PricedUsage {
-  if (raw.nanoCredits !== undefined && raw.nanoCredits > 0) {
+  if (raw.nanoCredits !== undefined && Number.isFinite(raw.nanoCredits) && raw.nanoCredits >= 0) {
     return { credits: raw.nanoCredits / 1_000_000_000, costSource: 'billed' };
   }
-  if (raw.premiumRequests !== undefined && raw.premiumRequests > 0) {
+  if (raw.premiumRequests !== undefined && Number.isFinite(raw.premiumRequests) && raw.premiumRequests >= 0) {
     return {
       credits: (raw.premiumRequests * USD_PER_PREMIUM_REQUEST) / USD_PER_CREDIT,
       costSource: 'billed',

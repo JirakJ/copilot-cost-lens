@@ -1,4 +1,4 @@
-import { creditsToUsd } from './pricing';
+import { creditsToUsd, PricingOptions } from './pricing';
 import { cacheEconomics, savingsHeadroom } from './insights';
 import { ALL_TIME, dayKey, monthKey, parsePeriod, Period, previousMonthKey } from './period';
 import {
@@ -37,6 +37,7 @@ export interface ReportOptions {
   /** YYYY-MM, ALL_TIME, or a `range:` key — see parsePeriod(). */
   month: string;
   includedCredits: number;
+  pricing?: PricingOptions;
   groups?: ProjectGroups;
   now?: Date;
 }
@@ -132,7 +133,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
     prevMonth,
     prevMonthUsd,
     compare: buildCompare(events, period, now),
-    insights: { cache: cacheEconomics(models), headroom: savingsHeadroom(models) },
+    insights: { cache: cacheEconomics(models, options.pricing), headroom: savingsHeadroom(models, options.pricing) },
     allowanceExhaustion: allowanceExhaustion(options.month, copilotCredits, includedCredits, now),
     monthsSeries: buildMonthsSeries(events),
     heatmap: buildHeatmap(events, now),
@@ -162,7 +163,7 @@ function buildCompare(events: UsageEvent[], period: Period, now: Date): CompareB
     credits += e.credits;
     repoCredits.set(e.repo.name, (repoCredits.get(e.repo.name) ?? 0) + e.credits);
   }
-  const repos: Record<string, number> = {};
+  const repos: Record<string, number> = Object.create(null);
   for (const [name, c] of repoCredits) {
     repos[name] = creditsToUsd(c);
   }
@@ -343,10 +344,11 @@ export function buildGroupDetail(
   }
 
   const memberNames = new Set(group.repos.map((r) => r.repo.name));
+  const period = parsePeriod(options.month);
   const inScope = events.filter(
     (e) =>
       memberNames.has(e.repo.name) &&
-      (options.month === ALL_TIME || monthKey(e.timestamp) === options.month),
+      period.match(e.timestamp),
   );
 
   const dayMap = new Map<string, DayPoint>();
@@ -395,10 +397,11 @@ export function buildRepoDetail(
   events: UsageEvent[],
   options: { repoName: string; month: string },
 ): RepoDetail | undefined {
+  const period = parsePeriod(options.month);
   const filtered = events.filter(
     (e) =>
       e.repo.name === options.repoName &&
-      (options.month === ALL_TIME || monthKey(e.timestamp) === options.month),
+      period.match(e.timestamp),
   );
   if (filtered.length === 0) {
     return undefined;

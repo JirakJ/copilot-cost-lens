@@ -155,3 +155,25 @@ describe('findRepoRoot / refForFolder', () => {
     expect(ref.name).toBe('leaf');
   });
 });
+
+it('never puts remote URL credentials or query tokens into repository names', () => {
+  for (const remote of [
+    'https://user:password@example.test/owner/repo.git?token=secret#fragment',
+    'ssh://user:password@example.test:2222/owner/repo.git',
+  ]) {
+    expect(parseRemoteSlug('[remote "origin"]\nurl = ' + remote)).toBe('owner/repo');
+  }
+  expect(parseRemoteSlug('[remote "origin"]\nurl = https://user:password@example.test/repo')).toBeUndefined();
+});
+
+it('falls back safely for malformed workspace metadata', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'wi-malformed-'));
+  try {
+    for (const folder of [42, {}, 'file:///bad%ZZ/path']) {
+      await fs.writeFile(path.join(dir, 'workspace.json'), JSON.stringify({ folder }));
+      expect((await new WorkspaceIndex().resolve(dir)).name).toMatch(/^\(unknown\)/);
+    }
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});

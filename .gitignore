@@ -3,3 +3,8 @@ dist/
 *.vsix
 .DS_Store
 coverage/
+
+.claude/
+.claude-flow/
+.code-review-graph/
+*.vsix.sha256

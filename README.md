@@ -181,13 +181,20 @@ Because the question you actually ask is "what does this repository cost me in A
 ## Development
 
 ```bash
-npm install
+npm ci
 npm run build        # bundle with esbuild
 npm test             # vitest unit tests
 npm run typecheck
 npm run lint
 npm run vsix         # package .vsix
+npm run verify-package # assert the shipping file allowlist
 ```
+
+CI checks Linux, Windows and macOS with Node 24, including dependency and secret scanning. The bundled extension targets the Node 16 runtime used by VS Code 1.75; build tooling runs on a current LTS Node version.
+
+After merging a version bump and its changelog, run the **Release** workflow on `main` (or push the matching `vX.Y.Z` tag). It verifies the commit, rebuilds and checks the VSIX, publishes that exact artifact to Visual Studio Marketplace, then creates the GitHub release with the VSIX and SHA-256 checksum. The repository's `VSCE_PAT` secret is required. A failed or skipped publication is not a completed release.
+
+JSONL records and legacy JSON sessions larger than 64 MiB are rejected to bound parser memory; scan diagnostics identify affected files. Exports include repository names and usage metadata, so review them before sharing. JSON exports also include locally resolved folder paths.
 
 Press <kbd>F5</kbd> in VS Code to launch the Extension Development Host.
 

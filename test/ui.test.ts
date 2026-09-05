@@ -113,7 +113,7 @@ describe('renderDashboardHtml', () => {
 
   it('injects the string catalog as JSON', () => {
     const html = renderDashboardHtml(strings);
-    expect(html).toContain('"projects":"Projects & <markup>"');
+    expect(JSON.parse(/const S = (.*);/.exec(html)![1]!)).toEqual(strings);
   });
 
   it('uses a strict CSP with a fresh nonce on every render', () => {
@@ -185,4 +185,24 @@ describe('period selector and insights', () => {
     expect(html).toContain('function insightCards');
     expect(html).toContain('vs previous');
   });
+});
+
+it('neutralizes spreadsheet formulas and escapes session identifiers', () => {
+  for (const value of ['=1+1', '+1', '-1', '@SUM(A1)', '  =1', '\t1', '\r1', '\n1']) {
+    expect(csvField(value).replace(/^"/, '').startsWith("'")).toBe(true);
+  }
+  expect(csvField('line\rbreak')).toBe('"line\rbreak"');
+  const csv = toCsv([{
+    sessionId: '=SUM(1,2)', provider: 'copilot', repo: { name: 'repo' },
+    timestamp: 0, model: 'model', inputTokens: 0, outputTokens: 0,
+    cachedTokens: 0, cacheWriteTokens: 0, credits: 0, costSource: 'billed',
+  }]);
+  expect(csv).toContain('"\'=SUM(1,2)"');
+});
+
+it('keeps a closing script tag inside the localized string catalog', () => {
+  const catalog = { refresh: '</script><img src="https://invalid.test/leak">' };
+  const html = renderDashboardHtml(catalog);
+  expect((html.match(/<\/script>/g) ?? []).length).toBe(1);
+  expect(JSON.parse(/const S = (.*);/.exec(html)![1]!)).toEqual(catalog);
 });

@@ -228,7 +228,10 @@ describe('chatSessionSource', () => {
           },
         }),
         JSON.stringify({ kind: 2, k: ['requests'], i: 500_000_000 }), // growth via truncate index
-        JSON.stringify({ kind: 1, k: ['requests', 'length'], v: 500_000_000 }), // growth via length set
+        JSON.stringify({ kind: 1, k: ['requests', 'length'], v: 500_000_000 }),
+        JSON.stringify({ kind: 1, k: ['requests', 500_000_000], v: {} }),
+        JSON.stringify({ kind: 2, k: ['requests', 500_000_000], v: [{}] }),
+        JSON.stringify({ kind: 1, k: [['__proto__'], 'polluted'], v: true }), // growth via length set
         '',
       ].join('\n'),
     );
@@ -292,4 +295,14 @@ describe('dedupeBySession', () => {
     expect(merged.filter((u) => u.sessionId === 'a')).toHaveLength(1);
     expect(merged.find((u) => u.sessionId === 'a')!.estimated).toBe(false);
   });
+});
+
+it('does not drop unrelated estimates when session IDs collide', () => {
+  const exact: RawUsage = { sessionId: 'same', provider: 'copilot', workspaceStorageDir: '/one', timestamp: 1,
+    model: 'gpt-5-mini', inputTokens: 1, outputTokens: 0, cachedTokens: 0, cacheWriteTokens: 0, estimated: false };
+  const estimated = [
+    { ...exact, estimated: true, provider: 'copilot-cli' as const },
+    { ...exact, estimated: true, workspaceStorageDir: '/two' },
+  ];
+  expect(dedupeBySession([exact], estimated)).toHaveLength(3);
 });

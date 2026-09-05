@@ -4,6 +4,7 @@ import {
   sanitizeBudgetMap,
   sanitizeCurrency,
   sanitizeNumberArray,
+  sanitizeNumber,
   sanitizePriceOverrides,
   sanitizeProjectGroups,
   sanitizeRepoAliases,
@@ -108,4 +109,20 @@ describe('sanitizeCurrency + money', () => {
     expect(money(12.345, { code: 'USD', rate: 1 })).toBe('$12.35');
     expect(money(10, { code: 'CZK', rate: 23.5 })).toBe('235.00 CZK');
   });
+});
+
+it('keeps user-named dictionaries free of inherited properties', () => {
+  const groups = sanitizeProjectGroups(JSON.parse('{"__proto__":["repo"],"constructor":["other"]}'));
+  expect(Object.getPrototypeOf(groups)).toBeNull();
+  expect(groups['__proto__']).toEqual(['repo']);
+  expect(groups['constructor']).toEqual(['other']);
+  expect(sanitizeRepoAliases({})['toString']).toBeUndefined();
+  expect(sanitizeProjectGroups([['repo']])).toEqual({});
+});
+
+it('bounds numeric settings before they reach timers and money formatting', () => {
+  for (const bad of [NaN, Infinity, -1, '100', null, 2 ** 31]) {
+    expect(sanitizeNumber(bad, 120, 10, 86400)).toBe(120);
+  }
+  expect(sanitizeNumber(10, 120, 10, 86400)).toBe(10);
 });

@@ -7,14 +7,15 @@ import {
   buildMonthReport,
   buildRepoDetail,
   currentMonthKey,
-  monthKey,
   ProjectGroups,
   sessionCosts,
 } from './core/aggregate';
 import { PLAN_CREDITS } from './core/pricing';
+import { parsePeriod } from './core/period';
 import {
   clampCharsPerToken,
   sanitizeNumberArray,
+  sanitizeNumber,
   sanitizeBudgetMap,
   sanitizeCurrency,
   sanitizePriceOverrides,
@@ -73,10 +74,16 @@ export function activate(context: vscode.ExtensionContext): void {
   const panel = new DashboardPanel(controller);
 
   const output = vscode.window.createOutputChannel('Copilot Cost Lens');
+  const refreshInBackground = () => {
+    void store.refresh().catch(() => output.appendLine('Usage scan failed; retrying on the next refresh.'));
+  };
+  let background: vscode.Disposable | undefined;
 
   context.subscriptions.push(
+    store,
     statusBar,
     panel,
+    { dispose: () => background?.dispose() },
     output,
     vscode.window.registerWebviewViewProvider(DashboardViewProvider.viewId, new DashboardViewProvider(controller)),
     vscode.commands.registerCommand('copilotCostLens.openDashboard', () => panel.show()),
@@ -137,7 +144,9 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('copilotCostLens')) {
         store.updateConfig(readStoreConfig());
-        void store.refresh();
+        background?.dispose();
+        background = startBackgroundScanning(store, refreshInBackground);
+        refreshInBackground();
       }
     }),
   );
@@ -172,8 +181,8 @@ export function activate(context: vscode.ExtensionContext): void {
     }
   });
 
-  startBackgroundScanning(context, store);
-  void store.refresh();
+  background = startBackgroundScanning(store, refreshInBackground);
+  refreshInBackground();
 }
 
 export function deactivate(): void {
@@ -202,9 +211,9 @@ function includedCredits(): number {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   const plan = config.get<string>('plan', 'business');
   if (plan === 'custom') {
-    return config.get<number>('includedCreditsPerMonth', 1900);
+    return sanitizeNumber(config.get('includedCreditsPerMonth'), 1900);
   }
-  return PLAN_CREDITS[plan] ?? 1900;
+  return Object.hasOwn(PLAN_CREDITS, plan) ? PLAN_CREDITS[plan]! : 1900;
 }
 
 /** Persist an allowance chosen from the dashboard UI. */
@@ -241,7 +250,7 @@ function statusBarOptions(): {
   const mode = config.get<string>('statusBar.mode', 'spend');
   return {
     enabled: config.get<boolean>('statusBar.enabled', true),
-    warnAtPercent: config.get<number>('warnAtPercent', 80),
+    warnAtPercent: sanitizeNumber(config.get('warnAtPercent'), 80, 1, 100),
     currency: displayCurrency(),
     mode: mode === 'remaining' || mode === 'today' ? mode : 'spend',
   };
@@ -262,6 +271,7 @@ function buildReport(store: UsageStore, month: string): MonthReport {
     month,
     includedCredits: includedCredits(),
     groups: projectGroups(),
+    pricing: readStoreConfig().pricing,
   });
 }
 
@@ -444,7 +454,7 @@ function checkSessionAlerts(context: vscode.ExtensionContext, store: UsageStore)
 function checkProjectBudgets(context: vscode.ExtensionContext, report: MonthReport): void {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   const budgets = sanitizeBudgetMap(config.get('projectBudgetsUsd', {}));
-  const warnAt = config.get<number>('warnAtPercent', 80);
+  const warnAt = sanitizeNumber(config.get('warnAtPercent'), 80, 1, 100);
   const today = new Date().toISOString().slice(0, 10);
 
   for (const group of report.groups) {
@@ -478,11 +488,8 @@ function checkProjectBudgets(context: vscode.ExtensionContext, report: MonthRepo
 }
 
 function eventsInPeriod(store: UsageStore, month: string) {
-  const events = store.getEvents();
-  if (month === ALL_TIME) {
-    return events;
-  }
-  return events.filter((e) => monthKey(e.timestamp) === month);
+  const period = parsePeriod(month);
+  return store.getEvents().filter((e) => period.match(e.timestamp));
 }
 
 async function openRepoFolder(folderPath: string): Promise<void> {
@@ -527,7 +534,7 @@ async function exportReceipt(
 
   const pdf = buildReceiptPdf(data, receiptStrings(documentLocale()));
   const safeName = name.replace(/[^a-zA-Z0-9._-]+/g, '-');
-  const period = month === ALL_TIME ? 'all-time' : month;
+  const period = month === ALL_TIME ? 'all-time' : month.replace(/[^a-zA-Z0-9._-]/g, '-');
   const uri = await vscode.window.showSaveDialog({
     defaultUri: vscode.Uri.file(`receipt-${safeName}-${period}.pdf`),
     filters: { PDF: ['pdf'] },
@@ -618,7 +625,7 @@ async function saveGroupAs(
   members: string[],
 ): Promise<void> {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const groups = { ...projectGroups() };
+  const groups = Object.assign(Object.create(null) as ProjectGroups, projectGroups());
   if (originalName && originalName !== name) {
     delete groups[originalName];
   }
@@ -687,7 +694,7 @@ async function renameRepo(currentName: string): Promise<void> {
     return;
   }
 
-  const next = { ...aliases };
+  const next = Object.assign(Object.create(null) as Record<string, string>, aliases);
   const trimmed = input.trim();
   if (!trimmed || trimmed === baseKey) {
     delete next[baseKey];
@@ -723,7 +730,7 @@ async function deleteGroup(name: string): Promise<void> {
   if (choice !== remove) {
     return;
   }
-  const groups = { ...projectGroups() };
+  const groups = Object.assign(Object.create(null) as ProjectGroups, projectGroups());
   delete groups[name];
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   await config.update('projectGroups', groups, vscode.ConfigurationTarget.Global);
@@ -733,46 +740,60 @@ async function deleteGroup(name: string): Promise<void> {
  * Watch detected storage roots for log changes (best effort — recursive
  * fs.watch is unavailable on some platforms) and rescan periodically.
  */
-function startBackgroundScanning(context: vscode.ExtensionContext, store: UsageStore): void {
+function startBackgroundScanning(store: UsageStore, refresh: () => void): vscode.Disposable {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const intervalSec = Math.max(10, config.get<number>('refreshIntervalSeconds', 120));
-
-  const timer = setInterval(() => void store.refresh(), intervalSec * 1000);
-  context.subscriptions.push({ dispose: () => clearInterval(timer) });
-
+  const intervalSec = sanitizeNumber(config.get('refreshIntervalSeconds'), 120, 10, 86_400);
+  const watchers: fs.FSWatcher[] = [];
+  let disposed = false;
   let debounce: NodeJS.Timeout | undefined;
+  const timer = setInterval(refresh, intervalSec * 1000);
   const scheduleRefresh = () => {
+    if (disposed) {
+      return;
+    }
     if (debounce) {
       clearTimeout(debounce);
     }
-    debounce = setTimeout(() => void store.refresh(), 2500);
+    debounce = setTimeout(refresh, 2500);
   };
 
   void store.getWatchDirs().then((dirs) => {
+    if (disposed) {
+      return;
+    }
     for (const dir of dirs) {
       try {
         const watcher = fs.watch(dir, { recursive: true }, scheduleRefresh);
-        context.subscriptions.push({ dispose: () => watcher.close() });
+        // Watchers can fail asynchronously (deleted roots, OS watch limits).
+        watcher.on('error', () => watcher.close());
+        watchers.push(watcher);
       } catch {
-        // recursive watch unsupported — the interval rescan still covers us
+        // Recursive watch unsupported; periodic refresh still covers us.
       }
     }
-  });
+  }).catch(() => { /* Periodic refresh covers failed root discovery. */ });
 
-  context.subscriptions.push(
-    vscode.window.onDidChangeWindowState((state) => {
-      if (state.focused) {
-        scheduleRefresh();
-      }
-    }),
-  );
+  const focus = vscode.window.onDidChangeWindowState((state) => {
+    if (state.focused) {
+      scheduleRefresh();
+    }
+  });
+  return new vscode.Disposable(() => {
+    disposed = true;
+    clearInterval(timer);
+    clearTimeout(debounce);
+    focus.dispose();
+    for (const watcher of watchers) {
+      watcher.close();
+    }
+  });
 }
 
 /** Warn at most once per day when usage crosses the configured threshold. */
 function maybeWarnBudget(context: vscode.ExtensionContext, report: MonthReport): void {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
-  const warnAt = config.get<number>('warnAtPercent', 80);
-  const budgetUsd = config.get<number>('monthlyBudgetUsd', 0);
+  const warnAt = sanitizeNumber(config.get('warnAtPercent'), 80, 1, 100);
+  const budgetUsd = sanitizeNumber(config.get('monthlyBudgetUsd'), 0);
 
   const overAllowance = report.includedCredits > 0 && report.usedPercent >= warnAt;
   const overBudget = budgetUsd > 0 && report.totalUsd >= (budgetUsd * warnAt) / 100;

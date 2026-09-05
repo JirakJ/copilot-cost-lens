@@ -21,7 +21,7 @@ export function toCsv(events: UsageEvent[]): string {
       e.provider,
       csvField(e.repo.name),
       csvField(e.model),
-      e.sessionId,
+      csvField(e.sessionId),
       e.inputTokens,
       e.outputTokens,
       e.cachedTokens,
@@ -35,7 +35,11 @@ export function toCsv(events: UsageEvent[]): string {
 }
 
 export function csvField(value: string): string {
-  if (/[",\n]/.test(value)) {
+  // Spreadsheet applications execute formulas even inside quoted CSV fields.
+  if (/^\s*[=+@-]|^[\t\r\n]/.test(value)) {
+    value = `'${value}`;
+  }
+  if (/[",\r\n]/.test(value)) {
     return `"${value.replace(/"/g, '""')}"`;
   }
   return value;
