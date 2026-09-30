@@ -3,6 +3,13 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [Unreleased]
+
+### Fixed
+
+- Price the GPT-6 family (GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol). They previously fell back to the generic $2/$10 rate, under-counting GPT-6 Astra 5×.
+- Sync the price table with GitHub's September 2026 rates: GPT-5.6 Sol ($4/$20), Claude Opus 5.5, Claude Fable 5.1, Gemini 3.8 Flash and Grok 4.7; GPT-5.6 Luna and Grok 4.5/4.6 switch to long-context rates above 200K tokens.
+
 ## [1.24.0] — 2026-09-05
 
 ### Security
