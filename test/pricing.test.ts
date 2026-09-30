@@ -145,20 +145,54 @@ describe('priceTokensUsd', () => {
     }
   });
 
-  it('tracks the August 2026 GPT-5.6 repricing', () => {
-    // Luna dropped an order of magnitude; Sol and Terra gained cache-write
-    // and long-context tiers
+  it('tracks the GPT-5.6 repricing', () => {
+    // Luna's long-context tier starts at 200K, not 272K
     expect(DEFAULT_RATES['gpt-5.6-luna']).toEqual({
       input: 0.2,
       cachedInput: 0.02,
       cacheWrite: 0.25,
       output: 1.2,
-      longContext: { threshold: 272_000, input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
+      longContext: { threshold: 200_000, input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
     });
-    expect(DEFAULT_RATES['gpt-5.6-sol']!.cacheWrite).toBe(6.25);
-    expect(DEFAULT_RATES['gpt-5.6-sol']!.longContext!.output).toBe(45.0);
+    expect(DEFAULT_RATES['gpt-5.6-sol']).toEqual({
+      input: 4.0,
+      cachedInput: 0.4,
+      cacheWrite: 5.0,
+      output: 20.0,
+      longContext: { threshold: 272_000, input: 8.0, cachedInput: 0.8, cacheWrite: 10.0, output: 30.0 },
+    });
     expect(DEFAULT_RATES['gpt-5.6-terra']!.input).toBe(2.0);
     expect(DEFAULT_RATES['gpt-5.6-terra']!.output).toBe(12.0);
+  });
+
+  it('prices the GPT-6 family instead of silently falling back', () => {
+    // Astra is 5× the fallback rate — unpriced, it under-counted spend 5×
+    expect(rateFor('gpt-6-astra')).toEqual({
+      input: 10.0,
+      cachedInput: 1.0,
+      cacheWrite: 12.5,
+      output: 50.0,
+      longContext: { threshold: 272_000, input: 20.0, cachedInput: 2.0, cacheWrite: 25.0, output: 75.0 },
+    });
+    // 6.1 Sol halves 6 Sol's cached-input rate
+    expect(rateFor('gpt-6.1-sol').cachedInput).toBe(0.1);
+    expect(rateFor('gpt-6-sol').cachedInput).toBe(0.2);
+    expect(rateFor('gpt-6-luna').output).toBe(0.5);
+    // BYOK / custom-endpoint ids carry a vendor prefix
+    expect(rateFor('customendpoint/My Azure/gpt-6-astra')).toEqual(rateFor('gpt-6-astra'));
+    for (const id of ['gpt-6-astra', 'gpt-6-sol', 'gpt-6-luna', 'gpt-6.1-sol']) {
+      expect(rateFor(id)).not.toEqual(FALLBACK_RATE);
+    }
+  });
+
+  it('prices point releases that differ from their family catch-all', () => {
+    expect(rateFor('claude-opus-5-5')).toEqual({ input: 4.0, cachedInput: 0.2, cacheWrite: 5.0, output: 20.0 });
+    expect(rateFor('claude-fable-5-1').cachedInput).toBe(0.25);
+    expect(rateFor('claude-fable-5').cachedInput).toBe(1.0);
+    expect(rateFor('gemini-3.8-flash')).toEqual(DEFAULT_RATES['gemini-3.7-flash']);
+    for (const id of ['grok-4.5', 'grok-4.6', 'grok-4.7']) {
+      expect(rateFor(id).longContext!.threshold).toBe(200_000);
+    }
   });
 });
 

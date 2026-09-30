@@ -8,7 +8,7 @@ export const USD_PER_PREMIUM_REQUEST = 0.04;
 
 /**
  * Built-in price table, USD per 1M tokens.
- * Source: GitHub Copilot "Models and pricing" reference (checked 2026-08-17):
+ * Source: GitHub Copilot "Models and pricing" reference (checked 2026-09-30):
  * https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing
  * Keys are normalized model ids — see normalizeModelId().
  */
@@ -33,8 +33,8 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
     longContext: { threshold: 272_000, input: 10.0, cachedInput: 1.0, output: 45.0 },
   },
   'gpt-5.6-sol': {
-    input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 30.0,
-    longContext: { threshold: 272_000, input: 10.0, cachedInput: 1.0, cacheWrite: 12.5, output: 45.0 },
+    input: 4.0, cachedInput: 0.4, cacheWrite: 5.0, output: 20.0,
+    longContext: { threshold: 272_000, input: 8.0, cachedInput: 0.8, cacheWrite: 10.0, output: 30.0 },
   },
   'gpt-5.6-terra': {
     input: 2.0, cachedInput: 0.2, cacheWrite: 2.5, output: 12.0,
@@ -42,7 +42,23 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   },
   'gpt-5.6-luna': {
     input: 0.2, cachedInput: 0.02, cacheWrite: 0.25, output: 1.2,
-    longContext: { threshold: 272_000, input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
+    longContext: { threshold: 200_000, input: 0.4, cachedInput: 0.04, cacheWrite: 0.5, output: 1.8 },
+  },
+  'gpt-6-astra': {
+    input: 10.0, cachedInput: 1.0, cacheWrite: 12.5, output: 50.0,
+    longContext: { threshold: 272_000, input: 20.0, cachedInput: 2.0, cacheWrite: 25.0, output: 75.0 },
+  },
+  'gpt-6-sol': {
+    input: 2.0, cachedInput: 0.2, cacheWrite: 2.5, output: 10.0,
+    longContext: { threshold: 272_000, input: 4.0, cachedInput: 0.4, cacheWrite: 5.0, output: 15.0 },
+  },
+  'gpt-6-luna': {
+    input: 0.1, cachedInput: 0.01, cacheWrite: 0.125, output: 0.5,
+    longContext: { threshold: 272_000, input: 0.2, cachedInput: 0.02, cacheWrite: 0.25, output: 0.75 },
+  },
+  'gpt-6.1-sol': {
+    input: 2.0, cachedInput: 0.1, cacheWrite: 2.5, output: 10.0,
+    longContext: { threshold: 272_000, input: 4.0, cachedInput: 0.2, cacheWrite: 5.0, output: 15.0 },
   },
   'claude-haiku-4': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-haiku-4.5': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
@@ -59,7 +75,9 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'claude-opus-4.8': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
   // likewise the catch-all for 5.x Opus ids ("claude-opus-5[1m]", dated builds)
   'claude-opus-5': { input: 5.0, cachedInput: 0.5, cacheWrite: 6.25, output: 25.0 },
+  'claude-opus-5.5': { input: 4.0, cachedInput: 0.2, cacheWrite: 5.0, output: 20.0 },
   'claude-fable-5': { input: 10.0, cachedInput: 1.0, cacheWrite: 12.5, output: 50.0 },
+  'claude-fable-5.1': { input: 10.0, cachedInput: 0.25, cacheWrite: 12.5, output: 50.0 },
   'gemini-2.5-pro': { input: 1.25, cachedInput: 0.125, output: 10.0 },
   'gemini-3-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
   'gemini-3-flash': { input: 0.5, cachedInput: 0.05, output: 3.0 },
@@ -70,14 +88,19 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'gemini-3.5-flash': { input: 1.5, cachedInput: 0.15, output: 9.0 },
   'gemini-3.6-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
   'gemini-3.7-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
+  'gemini-3.8-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
   'grok-code-fast-1': { input: 0.2, cachedInput: 0.02, output: 1.5 },
   'grok-4.5': {
     input: 2.0, cachedInput: 0.5, output: 6.0,
-    longContext: { threshold: 272_000, input: 4.0, cachedInput: 1.0, output: 12.0 },
+    longContext: { threshold: 200_000, input: 4.0, cachedInput: 1.0, output: 12.0 },
   },
   'grok-4.6': {
     input: 2.0, cachedInput: 0.5, output: 6.0,
-    longContext: { threshold: 272_000, input: 4.0, cachedInput: 1.0, output: 12.0 },
+    longContext: { threshold: 200_000, input: 4.0, cachedInput: 1.0, output: 12.0 },
+  },
+  'grok-4.7': {
+    input: 2.0, cachedInput: 0.5, output: 6.0,
+    longContext: { threshold: 200_000, input: 4.0, cachedInput: 1.0, output: 12.0 },
   },
   'kimi-k2.7-code': { input: 0.95, cachedInput: 0.19, output: 4.0 },
   'kimi-k3': { input: 3.0, cachedInput: 0.3, output: 15.0 },

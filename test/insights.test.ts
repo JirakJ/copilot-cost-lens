@@ -56,23 +56,23 @@ describe('savingsHeadroom', () => {
   it('reprices an expensive model at the cheapest of its family', () => {
     // 100k stays under gpt-5.5's 272k long-context threshold, so base rates apply.
     // gpt-5.5: input 5.0, output 30.0 → 0.1M in + 0.1M out = $3.50
-    // cheapest of the gpt family is gpt-5.6-luna: input 0.2, output 1.2 → $0.14
+    // cheapest of the gpt family is gpt-6-luna: input 0.1, output 0.5 → $0.06
     const r = savingsHeadroom([model({ model: 'gpt-5.5', usd: 3.5, inputTokens: 100_000, outputTokens: 100_000 })]);
     expect(r.rows).toHaveLength(1);
-    expect(r.rows[0]?.cheapest).toBe('gpt-5.6-luna');
+    expect(r.rows[0]?.cheapest).toBe('gpt-6-luna');
     expect(r.rows[0]?.actualUsd).toBeCloseTo(3.5);
-    expect(r.rows[0]?.counterfactualUsd).toBeCloseTo(0.14);
+    expect(r.rows[0]?.counterfactualUsd).toBeCloseTo(0.06);
     expect(r.actualUsd).toBeCloseTo(3.5);
-    expect(r.counterfactualUsd).toBeCloseTo(0.14);
+    expect(r.counterfactualUsd).toBeCloseTo(0.06);
   });
 
   it('omits a model that is already the cheapest in its family', () => {
     const r = savingsHeadroom([
-      model({ model: 'gpt-5.6-luna', usd: 0.14, inputTokens: 100_000, outputTokens: 100_000 }),
+      model({ model: 'gpt-6-luna', usd: 0.06, inputTokens: 100_000, outputTokens: 100_000 }),
     ]);
     expect(r.rows).toHaveLength(0);
-    expect(r.actualUsd).toBeCloseTo(0.14);
-    expect(r.counterfactualUsd).toBeCloseTo(0.14);
+    expect(r.actualUsd).toBeCloseTo(0.06);
+    expect(r.counterfactualUsd).toBeCloseTo(0.06);
   });
 
   it('keeps families apart', () => {
@@ -100,7 +100,8 @@ describe('savingsHeadroom', () => {
 it('preserves actual billed spend and does not reprice monthly totals as one large request', () => {
   const result = savingsHeadroom([model({ model: 'gpt-5.5', usd: 1.5, inputTokens: 300000, requestCount: 3 })]);
   expect(result.actualUsd).toBe(1.5);
-  expect(result.counterfactualUsd).toBeCloseTo(0.06);
+  // 3 × 100k requests at gpt-6-luna's base 0.1 rate — not one 300k long-context request
+  expect(result.counterfactualUsd).toBeCloseTo(0.03);
   expect(savingsHeadroom([model({ model: 'gpt-5.5', usd: 0, inputTokens: M })]).rows).toEqual([]);
 });
 

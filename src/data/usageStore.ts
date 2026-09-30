@@ -363,7 +363,10 @@ export class UsageStore {
  * any exact usage drops all of its estimated records.
  */
 export function dedupeBySession(exact: RawUsage[], estimated: RawUsage[]): RawUsage[] {
-  const key = (u: RawUsage) => JSON.stringify([u.provider, u.workspaceStorageDir, u.sessionId]);
+  // BYOK and Copilot-billed requests share one Copilot Chat session: exact
+  // data for either suppresses that session's estimates
+  const provider = (u: RawUsage) => (u.provider === 'copilot-byok' ? 'copilot' : u.provider);
+  const key = (u: RawUsage) => JSON.stringify([provider(u), u.workspaceStorageDir, u.sessionId]);
   const exactSessions = new Set(exact.map(key));
   const kept = estimated.filter((u) => !exactSessions.has(key(u)));
   return [...exact, ...kept];

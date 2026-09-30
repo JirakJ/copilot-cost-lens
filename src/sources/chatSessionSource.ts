@@ -105,7 +105,7 @@ async function parseOneFormat(
     if ((exactInput ?? 0) > 0 || (exactOutput ?? 0) > 0 || (credits ?? 0) > 0) {
       usages.push({
         sessionId,
-        provider: 'copilot',
+        provider: isByokModelId(model) && !((credits ?? 0) > 0) ? 'copilot-byok' : 'copilot',
         workspaceStorageDir,
         timestamp,
         model,
@@ -129,7 +129,7 @@ async function parseOneFormat(
 
     usages.push({
       sessionId,
-      provider: 'copilot',
+      provider: isByokModelId(model) ? 'copilot-byok' : 'copilot',
       workspaceStorageDir,
       timestamp,
       model,
@@ -142,6 +142,16 @@ async function parseOneFormat(
   }
 
   return usages;
+}
+
+/**
+ * Chat sessions record the picked model as `<vendor>/<id>`; any vendor other
+ * than `copilot` (e.g. `customendpoint/My Azure/gpt-6-astra`, `ollama/…`) is
+ * a bring-your-own-key model.
+ */
+export function isByokModelId(modelId: string): boolean {
+  const slash = modelId.indexOf('/');
+  return slash > 0 && modelId.slice(0, slash).trim().toLowerCase() !== 'copilot';
 }
 
 /**
