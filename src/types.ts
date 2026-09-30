@@ -1,5 +1,10 @@
 /** Where a usage event came from. */
-export type Provider = 'copilot' | 'copilot-cli' | 'claude-code' | 'codex';
+/**
+ * `copilot-byok` is Copilot Chat routed to the user's own endpoint (BYOK /
+ * custom endpoint): billed by that provider, not GitHub, so it never counts
+ * toward the AI-credit allowance.
+ */
+export type Provider = 'copilot' | 'copilot-byok' | 'copilot-cli' | 'claude-code' | 'codex';
 
 /** How the cost of a usage event was determined. */
 export type CostSource =

@@ -10,6 +10,7 @@ import { RawUsage } from '../types';
  *
  * Records of interest carry per-request token counts and, when present,
  * `copilotUsageNanoAiu` — billed AI-credit nano units (1e9 = 1 credit).
+ * BYOK requests (see isByokRequest) are tagged `copilot-byok`.
  * The format is not a stable API, so parsing is field-tolerant: unknown
  * or malformed lines are skipped.
  */
@@ -61,6 +62,7 @@ export async function parseJsonlUsage(
     const cachedTokens = firstNumber(fields, ['cachedTokens', 'cached_tokens', 'usage_cached_tokens']);
     const cacheWriteTokens = firstNumber(fields, ['cacheWriteTokens', 'cache_write_tokens', 'cacheCreationTokens']);
     const nanoCredits = firstNumber(fields, ['copilotUsageNanoAiu', 'copilot_usage_nano_aiu']);
+    const debugName = firstString(fields, ['debugName']);
 
     const hasUsage =
       nanoCredits !== undefined || inputTokens !== undefined || outputTokens !== undefined;
@@ -75,7 +77,7 @@ export async function parseJsonlUsage(
 
     usages.push({
       sessionId: file.sessionId,
-      provider: 'copilot',
+      provider: isByokRequest(debugName, nanoCredits) ? 'copilot-byok' : 'copilot',
       workspaceStorageDir,
       timestamp: readTimestamp(fields) ?? Date.now(),
       model: model ?? 'unknown',
@@ -89,6 +91,16 @@ export async function parseJsonlUsage(
   });
 
   return usages;
+}
+
+/**
+ * BYOK / custom-endpoint models are served through Copilot's language-model
+ * wrapper and, not being billed by GitHub, never log `copilotUsageNanoAiu`.
+ * Requires both signals: extensions calling Copilot-hosted models through the
+ * same wrapper do log billed units.
+ */
+export function isByokRequest(debugName: string | undefined, nanoCredits: number | undefined): boolean {
+  return debugName === 'copilotLanguageModelWrapper' && nanoCredits === undefined;
 }
 
 function readTimestamp(fields: Record<string, unknown>): number | undefined {

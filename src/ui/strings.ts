@@ -108,6 +108,7 @@ export function webviewStrings(): Record<string, string> {
     effRateHint: t('Effective blended price per 1M tokens actually paid — compare with the official list rates to see your cache savings.'),
     projectsEmptyHint: t('Group several repositories (frontend, backend, tests…) into one project and export a combined receipt or invoice.'),
     providerCopilot: 'Copilot',
+    providerCopilotByok: 'Copilot (BYOK)',
     providerCopilotCli: 'Copilot CLI',
     providerClaudeCode: 'Claude Code',
     providerCodex: 'ChatGPT Codex',

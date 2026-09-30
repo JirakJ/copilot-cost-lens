@@ -129,6 +129,18 @@ describe('buildMonthReport', () => {
     expect(report.providers.map((p) => p.provider)).toEqual(['claude-code', 'codex', 'copilot', 'copilot-cli']);
   });
 
+  it('keeps BYOK spend out of the Copilot allowance', () => {
+    const events = [
+      event({ credits: 100, provider: 'copilot' }),
+      event({ credits: 400, provider: 'copilot-byok', sessionId: 's2' }),
+    ];
+    const report = buildMonthReport(events, { month: '2026-06', includedCredits: 1900, now });
+    expect(report.totalCredits).toBe(500);
+    expect(report.copilotCredits).toBe(100);
+    expect(report.usedPercent).toBeCloseTo((100 / 1900) * 100);
+    expect(report.providers.map((p) => p.provider)).toEqual(['copilot-byok', 'copilot']);
+  });
+
   it('sums cache tokens per repository', () => {
     const events = [
       event({ cachedTokens: 100, cacheWriteTokens: 40 }),
