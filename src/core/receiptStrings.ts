@@ -8,6 +8,7 @@ import { ReceiptStrings } from './receiptPdf';
 export function receiptStrings(locale: string): ReceiptStrings {
   const providerNames = {
     copilot: 'Copilot',
+    'copilot-byok': 'Copilot (BYOK)',
     'copilot-cli': 'Copilot CLI',
     'claude-code': 'Claude Code',
     codex: 'ChatGPT Codex',

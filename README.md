@@ -175,6 +175,9 @@ Yes — Copilot CLI sessions log the billed premium requests directly and Cost L
 **How do I unhide a hidden repository?**
 Open settings and remove its entry from `copilotCostLens.hiddenRepos` (the 🙈 Hide button in a repository's detail adds it there). Hidden repositories are excluded from the dashboard, status bar and receipts, but raw CSV/JSON exports and budget alerts still include them, so your totals never silently lie.
 
+**I use my own API key / custom endpoint (BYOK) in Copilot Chat. Is that counted?**
+Yes, as a separate **Copilot (BYOK)** provider that never counts toward the AI-credit allowance, since your endpoint's provider bills it, not GitHub. BYOK requests are recognized by the absence of billed AI-credit units (debug logs) or a non-`copilot` vendor prefix such as `customendpoint/…` (chat sessions). They're priced from the built-in table; if your provider charges different rates, set them with `copilotCostLens.priceOverrides`.
+
 **Why is Claude Code in a Copilot extension?**
 Because the question you actually ask is "what does this repository cost me in AI tools?" Claude Code spend is tracked separately from the Copilot allowance gauge and can be disabled with one setting.
 

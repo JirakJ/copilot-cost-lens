@@ -2,8 +2,8 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
-import { findChatSessionFiles, parseChatSessionUsage } from '../src/sources/chatSessionSource';
-import { findJsonlFiles, parseJsonlUsage } from '../src/sources/jsonlSource';
+import { findChatSessionFiles, isByokModelId, parseChatSessionUsage } from '../src/sources/chatSessionSource';
+import { findJsonlFiles, isByokRequest, parseJsonlUsage } from '../src/sources/jsonlSource';
 import { dedupeBySession } from '../src/data/usageStore';
 import { RawUsage } from '../src/types';
 
@@ -164,6 +164,87 @@ describe('jsonlSource', () => {
   });
 });
 
+describe('BYOK detection', () => {
+  let byokDir: string;
+
+  beforeAll(async () => {
+    byokDir = await fs.mkdtemp(path.join(os.tmpdir(), 'cost-lens-byok-'));
+    const debugDir = path.join(byokDir, 'GitHub.copilot-chat', 'debug-logs', 'session-byok');
+    await fs.mkdir(debugDir, { recursive: true });
+    const request = (attrs: Record<string, unknown>) =>
+      JSON.stringify({ type: 'llm_request', ts: 1750000010, attrs: { inputTokens: 1000, outputTokens: 10, ...attrs } });
+    await fs.writeFile(
+      path.join(debugDir, 'main.jsonl'),
+      [
+        // custom endpoint: wrapper, nothing billed by GitHub
+        request({ model: 'gpt-6-astra', debugName: 'copilotLanguageModelWrapper' }),
+        // Copilot-hosted model reached through the same wrapper: billed
+        request({ model: 'gpt-5.6-terra', debugName: 'copilotLanguageModelWrapper', copilotUsageNanoAiu: 5_000_000 }),
+        // regular chat request without a billed field (older logs)
+        request({ model: 'gpt-5.4', debugName: 'panel/editAgent' }),
+      ].join('\n'),
+    );
+
+    const chatDir = path.join(byokDir, 'chatSessions');
+    await fs.mkdir(chatDir, { recursive: true });
+    await fs.writeFile(
+      path.join(chatDir, 'session-byok.json'),
+      JSON.stringify({
+        sessionId: 'session-byok',
+        creationDate: 1750000000000,
+        requests: [
+          { modelId: 'customendpoint/My Azure/gpt-6-astra', message: { text: 'x'.repeat(400) }, response: [] },
+          { modelId: 'copilot/gpt-5.3-codex', message: { text: 'x'.repeat(400) }, response: [] },
+          { modelId: 'gpt-5-mini', message: { text: 'x'.repeat(400) }, response: [] },
+          { modelId: 'ollama/qwen3-coder', promptTokens: 100, completionTokens: 10 },
+          { modelId: 'customendpoint/My Azure/gpt-6-astra', promptTokens: 100, copilotCredits: 2 },
+        ],
+      }),
+    );
+  });
+
+  afterAll(async () => {
+    await fs.rm(byokDir, { recursive: true, force: true });
+  });
+
+  it('tags wrapper requests without billed units as copilot-byok', async () => {
+    const [file] = await findJsonlFiles(byokDir);
+    const usages = await parseJsonlUsage(file!, byokDir);
+    expect(usages.map((u) => [u.model, u.provider])).toEqual([
+      ['gpt-6-astra', 'copilot-byok'],
+      ['gpt-5.6-terra', 'copilot'],
+      ['gpt-5.4', 'copilot'],
+    ]);
+  });
+
+  it('tags chat-session models with a non-copilot vendor as copilot-byok unless billed', async () => {
+    const usages = await parseChatSessionUsage(path.join(byokDir, 'chatSessions', 'session-byok.json'), byokDir, {
+      charsPerToken: 4,
+    });
+    expect(usages.map((u) => [u.model, u.provider])).toEqual([
+      ['customendpoint/My Azure/gpt-6-astra', 'copilot-byok'],
+      ['copilot/gpt-5.3-codex', 'copilot'],
+      ['gpt-5-mini', 'copilot'],
+      ['ollama/qwen3-coder', 'copilot-byok'],
+      ['customendpoint/My Azure/gpt-6-astra', 'copilot'],
+    ]);
+  });
+
+  it('needs both signals on debug-log records', () => {
+    expect(isByokRequest('copilotLanguageModelWrapper', undefined)).toBe(true);
+    expect(isByokRequest('copilotLanguageModelWrapper', 0)).toBe(false);
+    expect(isByokRequest('panel/editAgent', undefined)).toBe(false);
+    expect(isByokRequest(undefined, undefined)).toBe(false);
+  });
+
+  it('reads the vendor from chat-session model ids', () => {
+    expect(isByokModelId('customendpoint/My Azure/gpt-6-astra')).toBe(true);
+    expect(isByokModelId('Copilot/gpt-5.3-codex')).toBe(false);
+    expect(isByokModelId('gpt-5-mini')).toBe(false);
+    expect(isByokModelId('/gpt-5-mini')).toBe(false);
+  });
+});
+
 describe('chatSessionSource', () => {
   it('discovers .json and .jsonl sessions, preferring .jsonl for the same id', async () => {
     const files = await findChatSessionFiles(wsDir);
@@ -294,6 +375,16 @@ describe('dedupeBySession', () => {
     expect(merged).toHaveLength(2);
     expect(merged.filter((u) => u.sessionId === 'a')).toHaveLength(1);
     expect(merged.find((u) => u.sessionId === 'a')!.estimated).toBe(false);
+  });
+
+  it('treats BYOK and Copilot-billed requests as one session', () => {
+    const byok = (u: RawUsage): RawUsage => ({ ...u, provider: 'copilot-byok' });
+    const merged = dedupeBySession([byok(mk('a', false))], [mk('a', true), byok(mk('b', true)), mk('b', true)]);
+    expect(merged.map((u) => [u.sessionId, u.estimated])).toEqual([
+      ['a', false],
+      ['b', true],
+      ['b', true],
+    ]);
   });
 });
 

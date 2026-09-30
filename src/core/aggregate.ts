@@ -58,6 +58,7 @@ export function buildMonthReport(events: UsageEvent[], options: ReportOptions): 
 
   for (const e of inMonth) {
     totalCredits += e.credits;
+    // copilot-byok is billed by the user's own endpoint, not the allowance
     if (e.provider === 'copilot' || e.provider === 'copilot-cli') {
       copilotCredits += e.credits;
     }
