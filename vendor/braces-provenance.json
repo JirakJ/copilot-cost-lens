@@ -1,0 +1,38 @@
+{
+  "package": "braces",
+  "upstream_version": "3.0.3",
+  "local_version": "3.0.4-security.1",
+  "registry_url": "https://registry.npmjs.org/braces/-/braces-3.0.3.tgz",
+  "registry_sha256": "1cd18e862c8640b4568b1425a7df4ee030ff201d45b2da8f9f222d2987494ffc",
+  "patch_commit": "d0d575e55e74a4e0218e5248fafb79efc3e54ebb",
+  "patch_url": "https://github.com/micromatch/braces/pull/72",
+  "patch_status": "open, unmerged; this is a local backport",
+  "license": "MIT",
+  "files": {
+    "lib/compile.js": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/lib/compile.js",
+      "sha256": "b651f7715e6db8942ce61d3394357b4d81c8ece88240aa31a458ea1165edd195"
+    },
+    "lib/constants.js": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/lib/constants.js",
+      "sha256": "f9fb688959232eee3e6ad7906a5b0e3234815db49ee857ef86983d65b917dc7c"
+    },
+    "lib/expand.js": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/lib/expand.js",
+      "sha256": "2974d5b8763a358d81dfa5b4b804329f525239f34429c396b93a540219504809"
+    },
+    "lib/parse.js": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/lib/parse.js",
+      "sha256": "bd02644bc5d4a64c7e67440f6653e7d28273310d3b9d597f1fa88842f4ab0c20"
+    },
+    "lib/stringify.js": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/lib/stringify.js",
+      "sha256": "645f13c68af685148e9fe8eca449ee2ebb88eee0f27de7b2125fbfc175b1584d"
+    },
+    "README.md": {
+      "url": "https://raw.githubusercontent.com/micromatch/braces/d0d575e55e74a4e0218e5248fafb79efc3e54ebb/README.md",
+      "sha256": "e2fe5795a892346314a01aabdde1b1e6d4cf778531b9cec820cd5ac115a88902"
+    }
+  },
+  "artifact_sha256": "b2d6f3da1251eb27b1f4f0a968b7aef159d52544752c9dd71ccd4caf76eec294"
+}
