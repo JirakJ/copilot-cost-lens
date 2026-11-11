@@ -79,7 +79,7 @@ Cost Lens combines these local sources:
 
 | Source | What it provides | Accuracy |
 |---|---|---|
-| VS Code: `GitHub.copilot-chat/transcripts/*.jsonl`, `debug-logs/**.jsonl` | exact token counts and billed AI-credit units per request | **exact** |
+| VS Code: `GitHub.copilot-chat/transcripts/*.jsonl`, `debug-logs/**.jsonl` (per-workspace, and `globalStorage/github.copilot-chat/debug-logs` since Copilot Chat 0.71) | exact token counts and billed AI-credit units per request | **exact** |
 | VS Code: `chatSessions/*.json` | model, timestamp and conversation content | **estimated** from content length |
 | Copilot CLI: `~/.copilot/session-state/**` | exact per-model tokens incl. cache read/write, billed premium requests / AI-credit units, repository slug | **exact** (estimation fallback for crashed sessions) |
 | Claude Code: `~/.claude/projects/**/*.jsonl` | exact per-request tokens incl. cache read/write, model, working directory | **exact** |
@@ -100,7 +100,7 @@ The built-in price table covers GPT, Claude, Gemini, Grok and more, and every ra
 
 Everything happens on your machine. Cost Lens:
 
-- reads only local files (VS Code `workspaceStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
+- reads only local files (VS Code `workspaceStorage` and Copilot Chat `globalStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
 - makes **no network requests**, collects **no telemetry**,
 - never executes git — repository names are read from `workspace.json` and `.git/config` as plain files.
 

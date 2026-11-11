@@ -5,8 +5,12 @@ import { defaultClaudeCodeRoot, findClaudeCodeFiles, parseClaudeCodeUsage } from
 import { defaultCopilotCliRoot, findCopilotCliFiles, parseCopilotCliUsage } from '../sources/copilotCliSource';
 import { defaultCodexRoot, findCodexFiles, parseCodexUsage } from '../sources/codexSource';
 import { defaultJetBrainsCopilotRoot, findJetBrainsCopilotDbs, parseJetBrainsUsage } from '../sources/jetbrainsSource';
-import { findJsonlFiles, parseJsonlUsage } from '../sources/jsonlSource';
-import { detectStorageRoots, listWorkspaceStorageDirs } from '../sources/storageRoots';
+import { findGlobalJsonlFiles, findJsonlFiles, indexChatSessionIds, parseJsonlUsage } from '../sources/jsonlSource';
+import {
+  detectCopilotGlobalStorageDirs,
+  detectStorageRoots,
+  listWorkspaceStorageDirs,
+} from '../sources/storageRoots';
 import { WorkspaceIndex } from '../sources/workspaceIndex';
 import { RawUsage, RepoRef, UsageEvent } from '../types';
 
@@ -94,6 +98,7 @@ export class UsageStore {
   /** Directories worth watching for new usage data. */
   async getWatchDirs(): Promise<string[]> {
     const dirs = await detectStorageRoots(this.config.extraStorageRoots);
+    dirs.push(...(await detectCopilotGlobalStorageDirs(dirs)));
     if (this.config.claudeCodeEnabled) {
       dirs.push(defaultClaudeCodeRoot());
     }
@@ -197,9 +202,13 @@ export class UsageStore {
     await guard('vscode', async () => {
       const roots = await detectStorageRoots(config.extraStorageRoots);
       scannedRoots.push(...roots);
+      const sessionToWorkspace = new Map<string, string>();
+      const workspaceLogSessions = new Set<string>();
       for (const root of roots) {
         for (const wsDir of await listWorkspaceStorageDirs(root)) {
+          await indexChatSessionIds(wsDir, sessionToWorkspace);
           for (const file of await findJsonlFiles(wsDir)) {
+            workspaceLogSessions.add(file.sessionId);
             push(await read(file.filePath, () => parseJsonlUsage(file, wsDir)));
           }
           if (config.estimationEnabled) {
@@ -213,6 +222,21 @@ export class UsageStore {
               );
             }
           }
+        }
+      }
+      // Copilot Chat >= 0.71 logs to global storage (#17). Attribute each
+      // session to the workspace that owns its chat session; a session that
+      // is already logged per-workspace (older Copilot Chat) is skipped so
+      // nothing is counted twice.
+      const globalDirs = await detectCopilotGlobalStorageDirs(roots);
+      scannedRoots.push(...globalDirs);
+      for (const globalDir of globalDirs) {
+        for (const file of await findGlobalJsonlFiles(globalDir)) {
+          if (workspaceLogSessions.has(file.sessionId)) {
+            continue;
+          }
+          const wsDir = sessionToWorkspace.get(file.sessionId);
+          push(await read(file.filePath, () => parseJsonlUsage(file, wsDir)));
         }
       }
     });
