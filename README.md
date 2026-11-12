@@ -101,7 +101,8 @@ The built-in price table covers GPT, Claude, Gemini, Grok and more, and every ra
 Everything happens on your machine. Cost Lens:
 
 - reads only local files (VS Code `workspaceStorage` and Copilot Chat `globalStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
-- makes **no network requests**, collects **no telemetry**,
+- makes exactly **one kind of network request**: once a day it downloads GitHub's public [Models and pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing) page so new models and price changes are priced without an extension update. Nothing about you or your usage is sent; turn it off with `copilotCostLens.pricing.autoUpdate: false` (the built-in table is used then),
+- collects **no telemetry**,
 - never executes git — repository names are read from `workspace.json` and `.git/config` as plain files.
 
 ## Getting started
@@ -123,6 +124,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.monthlyBudgetUsd` | `0` | Personal dollar budget (0 = off). |
 | `copilotCostLens.warnAtPercent` | `80` | Warning threshold for allowance/budget. |
 | `copilotCostLens.statusBar.enabled` | `true` | Status-bar spend ticker. |
+| `copilotCostLens.pricing.autoUpdate` | `true` | Sync model prices daily from GitHub's official price list (`priceOverrides` still win). Command: **Update Model Prices from GitHub**. |
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
@@ -174,6 +176,9 @@ Yes — Copilot CLI sessions log the billed premium requests directly and Cost L
 
 **How do I unhide a hidden repository?**
 Open settings and remove its entry from `copilotCostLens.hiddenRepos` (the 🙈 Hide button in a repository's detail adds it there). Hidden repositories are excluded from the dashboard, status bar and receipts, but raw CSV/JSON exports and budget alerts still include them, so your totals never silently lie.
+
+**I use my own API key / custom endpoint (BYOK) in Copilot Chat. Is that counted?**
+Yes, as a separate **Copilot (BYOK)** provider that never counts toward the AI-credit allowance, since your endpoint's provider bills it, not GitHub. BYOK requests are recognized by the absence of billed AI-credit units (debug logs) or a non-`copilot` vendor prefix such as `customendpoint/…` (chat sessions). They're priced from the built-in table; if your provider charges different rates, set them with `copilotCostLens.priceOverrides`.
 
 **Why is Claude Code in a Copilot extension?**
 Because the question you actually ask is "what does this repository cost me in AI tools?" Claude Code spend is tracked separately from the Copilot allowance gauge and can be disabled with one setting.

@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.25.0] — 2026-11-12
+
+### Added
+
+- **Automatic model prices.** Once a day Cost Lens downloads GitHub's official *Models and pricing* page and prices every listed model from it, so new models (and price changes) work without waiting for an extension release. The fetched list is cached, validated (bad or partial pages are ignored), layered over the built-in table, and `priceOverrides` still win. New setting `copilotCostLens.pricing.autoUpdate` (default on) and command **Update Model Prices from GitHub**; *Show Diagnostics* reports which price list is in use. This is the extension's only network request and carries no user data.
+- Built-in prices for Gemini 4 Argon and Gemini 4 Carbon (promotional $2/$0.10/$10 until 1 Dec 2026), GPT-6.1 Terra and Claude Fable 5.2.
+
+### Fixed
+
+- Report Copilot Chat bring-your-own-key / custom-endpoint requests as a separate **Copilot (BYOK)** provider, excluded from the AI-credit allowance. They were counted as GitHub-billed Copilot usage and inflated the allowance gauge.
+
+- Price the GPT-6 family (GPT-6 Astra, GPT-6 Sol, GPT-6 Luna, GPT-6.1 Sol). They previously fell back to the generic $2/$10 rate, under-counting GPT-6 Astra 5×.
+- Sync the price table with GitHub's September 2026 rates: GPT-5.6 Sol ($4/$20), Claude Opus 5.5, Claude Fable 5.1, Gemini 3.8 Flash and Grok 4.7; GPT-5.6 Luna and Grok 4.5/4.6 switch to long-context rates above 200K tokens.
+
 ## [1.24.1] — 2026-11-12
 
 ### Fixed

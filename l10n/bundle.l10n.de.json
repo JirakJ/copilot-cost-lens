@@ -135,5 +135,8 @@
   "Net": "Netto",
   "Savings headroom": "Einsparpotenzial",
   "A ceiling, not a target — some of this traffic needed the expensive model.": "Eine Obergrenze, kein Ziel — ein Teil dieses Verkehrs brauchte das teure Modell.",
-  "would cost": "würde kosten"
+  "would cost": "würde kosten",
+  "Automatic price updates are turned off (copilotCostLens.pricing.autoUpdate).": "Automatische Preisaktualisierung ist deaktiviert (copilotCostLens.pricing.autoUpdate).",
+  "Model prices updated: {0} models from GitHub Docs.": "Modellpreise aktualisiert: {0} Modelle aus GitHub Docs.",
+  "Could not download the GitHub price list; using the built-in prices.": "GitHub-Preisliste konnte nicht geladen werden; es werden die integrierten Preise verwendet."
 }

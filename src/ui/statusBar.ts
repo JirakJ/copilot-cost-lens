@@ -54,6 +54,7 @@ export class CostStatusBar implements vscode.Disposable {
     if (report.providers.length > 1) {
       const names: Record<string, string> = {
         copilot: 'Copilot',
+        'copilot-byok': 'Copilot (BYOK)',
         'copilot-cli': 'Copilot CLI',
         'claude-code': 'Claude Code',
         codex: 'ChatGPT Codex',

@@ -27,13 +27,26 @@ import { DisplayCurrency } from './core/money';
 import { buildReceiptPdf, receiptFromGroup, receiptFromRepo } from './core/receiptPdf';
 import { summaryMarkdown } from './core/summary';
 import { exportSummary, exportUsage } from './commands/export';
+import {
+  fetchRemotePricing,
+  isRemotePricingStale,
+  RemotePricing,
+  sanitizeRemotePricing,
+} from './data/remotePricing';
 import { StoreConfig, UsageStore } from './data/usageStore';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
 import { receiptStrings } from './core/receiptStrings';
 import { MonthReport, UsageEvent } from './types';
 
+const REMOTE_PRICING_KEY = 'remotePricing';
+const PRICE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
+
+/** Official price list fetched from GitHub Docs (cached in globalState). */
+let remotePricing: RemotePricing | undefined;
+
 export function activate(context: vscode.ExtensionContext): void {
+  remotePricing = sanitizeRemotePricing(context.globalState.get(REMOTE_PRICING_KEY));
   const store = new UsageStore(readStoreConfig());
   const statusBar = new CostStatusBar();
 
@@ -79,11 +92,45 @@ export function activate(context: vscode.ExtensionContext): void {
   };
   let background: vscode.Disposable | undefined;
 
+  /**
+   * Keep model prices in sync with GitHub's official table, so new models
+   * (and price changes) are picked up without an extension release.
+   */
+  let priceUpdate: Promise<void> | undefined;
+  const updatePrices = (force: boolean): Promise<void> => {
+    if (!autoUpdatePrices() || (!force && !isRemotePricingStale(remotePricing))) {
+      return Promise.resolve();
+    }
+    priceUpdate ??= (async () => {
+      try {
+        const fresh = await fetchRemotePricing();
+        remotePricing = fresh;
+        await context.globalState.update(REMOTE_PRICING_KEY, fresh);
+        output.appendLine(
+          `[${new Date().toISOString()}] model prices updated from GitHub Docs — ${Object.keys(fresh.rates).length} models`,
+        );
+        store.updateConfig(readStoreConfig());
+        refreshInBackground();
+      } catch (error) {
+        output.appendLine(
+          `[${new Date().toISOString()}] model price update failed (${error instanceof Error ? error.message : String(error)}); ` +
+            `using ${remotePricing ? 'the cached' : 'the built-in'} price list.`,
+        );
+        if (force) throw error;
+      } finally {
+        priceUpdate = undefined;
+      }
+    })();
+    return priceUpdate;
+  };
+  const priceTimer = setInterval(() => void updatePrices(false), PRICE_CHECK_INTERVAL_MS);
+
   context.subscriptions.push(
     store,
     statusBar,
     panel,
     { dispose: () => background?.dispose() },
+    { dispose: () => clearInterval(priceTimer) },
     output,
     vscode.window.registerWebviewViewProvider(DashboardViewProvider.viewId, new DashboardViewProvider(controller)),
     vscode.commands.registerCommand('copilotCostLens.openDashboard', () => panel.show()),
@@ -108,6 +155,24 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:JakubJirak.copilot-cost-lens'),
     ),
+    vscode.commands.registerCommand('copilotCostLens.updatePrices', async () => {
+      if (!autoUpdatePrices()) {
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t('Automatic price updates are turned off (copilotCostLens.pricing.autoUpdate).'),
+        );
+        return;
+      }
+      try {
+        await updatePrices(true);
+        void vscode.window.showInformationMessage(
+          vscode.l10n.t('Model prices updated: {0} models from GitHub Docs.', Object.keys(remotePricing?.rates ?? {}).length),
+        );
+      } catch {
+        void vscode.window.showWarningMessage(
+          vscode.l10n.t('Could not download the GitHub price list; using the built-in prices.'),
+        );
+      }
+    }),
     vscode.commands.registerCommand('copilotCostLens.showDiagnostics', async () => {
       await store.refresh();
       const s = store.getStats();
@@ -128,6 +193,11 @@ export function activate(context: vscode.ExtensionContext): void {
           : 'No events found.',
       );
       output.appendLine(`Scan took ${s.scanMs} ms.`);
+      output.appendLine(
+        autoUpdatePrices() && remotePricing
+          ? `Prices: GitHub Docs, ${Object.keys(remotePricing.rates).length} models, fetched ${new Date(remotePricing.fetchedAt).toISOString()} (built-in table for the rest)`
+          : `Prices: built-in table${autoUpdatePrices() ? ' (official list not downloaded yet)' : ' (auto-update off)'}`,
+      );
       if (s.errors.length > 0) {
         output.appendLine('Errors:');
         for (const error of s.errors) {
@@ -143,6 +213,9 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.workspace.onDidChangeConfiguration((event) => {
       if (event.affectsConfiguration('copilotCostLens')) {
+        if (event.affectsConfiguration('copilotCostLens.pricing.autoUpdate')) {
+          void updatePrices(false);
+        }
         store.updateConfig(readStoreConfig());
         background?.dispose();
         background = startBackgroundScanning(store, refreshInBackground);
@@ -183,6 +256,11 @@ export function activate(context: vscode.ExtensionContext): void {
 
   background = startBackgroundScanning(store, refreshInBackground);
   refreshInBackground();
+  void updatePrices(false);
+}
+
+function autoUpdatePrices(): boolean {
+  return vscode.workspace.getConfiguration('copilotCostLens').get<boolean>('pricing.autoUpdate', true);
 }
 
 export function deactivate(): void {
@@ -203,6 +281,7 @@ function readStoreConfig(): StoreConfig {
     charsPerToken: clampCharsPerToken(config.get('estimation.charsPerToken', 4)),
     pricing: {
       overrides: sanitizePriceOverrides(config.get('priceOverrides', {})),
+      ...(remotePricing && config.get<boolean>('pricing.autoUpdate', true) ? { rates: remotePricing.rates } : {}),
     },
   };
 }
