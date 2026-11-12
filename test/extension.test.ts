@@ -54,7 +54,14 @@ vi.mock('vscode', () => {
   };
 });
 
-let context: { subscriptions: vscode.Disposable[] };
+// never touch the network from unit tests
+vi.mock('../src/data/remotePricing', () => ({
+  fetchRemotePricing: vi.fn(async () => { throw new Error('offline'); }),
+  isRemotePricingStale: () => true,
+  sanitizeRemotePricing: () => undefined,
+}));
+
+let context: { subscriptions: vscode.Disposable[]; globalState: { get: () => undefined; update: () => Promise<void> } };
 afterEach(() => {
   for (const subscription of context?.subscriptions ?? []) subscription.dispose();
   vi.useRealTimers();
@@ -62,7 +69,7 @@ afterEach(() => {
   state.settings = {};
 });
 function start() {
-  context = { subscriptions: [] };
+  context = { subscriptions: [], globalState: { get: () => undefined, update: async () => undefined } };
   activate(context as unknown as vscode.ExtensionContext);
 }
 

@@ -8,7 +8,7 @@ export const USD_PER_PREMIUM_REQUEST = 0.04;
 
 /**
  * Built-in price table, USD per 1M tokens.
- * Source: GitHub Copilot "Models and pricing" reference (checked 2026-09-30):
+ * Source: GitHub Copilot "Models and pricing" reference (checked 2026-11-12):
  * https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing
  * Keys are normalized model ids — see normalizeModelId().
  */
@@ -60,6 +60,10 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
     input: 2.0, cachedInput: 0.1, cacheWrite: 2.5, output: 10.0,
     longContext: { threshold: 272_000, input: 4.0, cachedInput: 0.2, cacheWrite: 5.0, output: 15.0 },
   },
+  'gpt-6.1-terra': {
+    input: 1.0, cachedInput: 0.05, cacheWrite: 1.25, output: 5.0,
+    longContext: { threshold: 272_000, input: 2.0, cachedInput: 0.1, cacheWrite: 2.5, output: 7.5 },
+  },
   'claude-haiku-4': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-haiku-4.5': { input: 1.0, cachedInput: 0.1, cacheWrite: 1.25, output: 5.0 },
   'claude-sonnet-4': { input: 3.0, cachedInput: 0.3, cacheWrite: 3.75, output: 15.0 },
@@ -78,6 +82,7 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'claude-opus-5.5': { input: 4.0, cachedInput: 0.2, cacheWrite: 5.0, output: 20.0 },
   'claude-fable-5': { input: 10.0, cachedInput: 1.0, cacheWrite: 12.5, output: 50.0 },
   'claude-fable-5.1': { input: 10.0, cachedInput: 0.25, cacheWrite: 12.5, output: 50.0 },
+  'claude-fable-5.2': { input: 8.0, cachedInput: 0.2, cacheWrite: 10.0, output: 40.0 },
   'gemini-2.5-pro': { input: 1.25, cachedInput: 0.125, output: 10.0 },
   'gemini-3-pro': { input: 2.0, cachedInput: 0.2, output: 12.0 },
   'gemini-3-flash': { input: 0.5, cachedInput: 0.05, output: 3.0 },
@@ -89,6 +94,10 @@ export const DEFAULT_RATES: Record<string, ModelRate> = {
   'gemini-3.6-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
   'gemini-3.7-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
   'gemini-3.8-flash': { input: 0.75, cachedInput: 0.075, output: 3.75 },
+  // promotional rates until 2026-12-01 (Carbon then $4/$0.20/$20; the daily
+  // price-list sync picks the change up automatically)
+  'gemini-4-argon': { input: 2.0, cachedInput: 0.1, output: 10.0 },
+  'gemini-4-carbon': { input: 2.0, cachedInput: 0.1, output: 10.0 },
   'grok-code-fast-1': { input: 0.2, cachedInput: 0.02, output: 1.5 },
   'grok-4.5': {
     input: 2.0, cachedInput: 0.5, output: 6.0,
@@ -143,20 +152,31 @@ export function normalizeModelId(raw: string): string {
 export interface PricingOptions {
   overrides?: Record<string, Partial<ModelRate>>;
   fallbackRate?: ModelRate;
+  /**
+   * Rates fetched from GitHub's official price list. They take precedence
+   * over the built-in table (newer), user overrides still win over both.
+   */
+  rates?: Record<string, ModelRate>;
+}
+
+/** Built-in table with the fetched official rates layered on top. */
+export function effectiveRates(options: PricingOptions = {}): Record<string, ModelRate> {
+  return options.rates ? { ...DEFAULT_RATES, ...options.rates } : DEFAULT_RATES;
 }
 
 export function rateFor(model: string, options: PricingOptions = {}): ModelRate {
   const id = normalizeModelId(model);
-  const base = (Object.hasOwn(DEFAULT_RATES, id) ? DEFAULT_RATES[id] : undefined) ??
-    bestPrefixMatch(id) ?? options.fallbackRate ?? FALLBACK_RATE;
+  const table = effectiveRates(options);
+  const base = (Object.hasOwn(table, id) ? table[id] : undefined) ??
+    bestPrefixMatch(id, table) ?? options.fallbackRate ?? FALLBACK_RATE;
   const override = options.overrides && Object.hasOwn(options.overrides, id) ? options.overrides[id] : undefined;
   return override ? { ...base, ...override } : base;
 }
 
 /** "gpt-5.3-codex-experimental" still matches "gpt-5.3-codex". */
-function bestPrefixMatch(id: string): ModelRate | undefined {
+function bestPrefixMatch(id: string, table: Record<string, ModelRate>): ModelRate | undefined {
   let best: { key: string; rate: ModelRate } | undefined;
-  for (const [key, rate] of Object.entries(DEFAULT_RATES)) {
+  for (const [key, rate] of Object.entries(table)) {
     if (id.startsWith(key) && (!best || key.length > best.key.length)) {
       best = { key, rate };
     }

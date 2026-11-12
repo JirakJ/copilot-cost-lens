@@ -101,7 +101,8 @@ The built-in price table covers GPT, Claude, Gemini, Grok and more, and every ra
 Everything happens on your machine. Cost Lens:
 
 - reads only local files (VS Code `workspaceStorage` and Copilot Chat `globalStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
-- makes **no network requests**, collects **no telemetry**,
+- makes exactly **one kind of network request**: once a day it downloads GitHub's public [Models and pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing) page so new models and price changes are priced without an extension update. Nothing about you or your usage is sent; turn it off with `copilotCostLens.pricing.autoUpdate: false` (the built-in table is used then),
+- collects **no telemetry**,
 - never executes git — repository names are read from `workspace.json` and `.git/config` as plain files.
 
 ## Getting started
@@ -123,6 +124,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.monthlyBudgetUsd` | `0` | Personal dollar budget (0 = off). |
 | `copilotCostLens.warnAtPercent` | `80` | Warning threshold for allowance/budget. |
 | `copilotCostLens.statusBar.enabled` | `true` | Status-bar spend ticker. |
+| `copilotCostLens.pricing.autoUpdate` | `true` | Sync model prices daily from GitHub's official price list (`priceOverrides` still win). Command: **Update Model Prices from GitHub**. |
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |

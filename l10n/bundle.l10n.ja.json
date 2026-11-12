@@ -135,5 +135,8 @@
   "Net": "差引",
   "Savings headroom": "削減余地",
   "A ceiling, not a target — some of this traffic needed the expensive model.": "これは上限であり目標ではありません — 一部は高価なモデルを必要としていました。",
-  "would cost": "の場合の費用"
+  "would cost": "の場合の費用",
+  "Automatic price updates are turned off (copilotCostLens.pricing.autoUpdate).": "価格の自動更新はオフです (copilotCostLens.pricing.autoUpdate)。",
+  "Model prices updated: {0} models from GitHub Docs.": "モデル価格を更新しました: GitHub Docs から {0} モデル。",
+  "Could not download the GitHub price list; using the built-in prices.": "GitHub の価格表を取得できませんでした。組み込みの価格を使用します。"
 }

@@ -57,5 +57,7 @@
   "cfg.docLang.cs": "Czech (transliterated — PDF core fonts carry no diacritics)",
   "cfg.docLang.de": "German (transliterated)",
   "cmd.showDiagnostics": "Show Diagnostics",
-  "cfg.jetbrainsCopilot": "Include GitHub Copilot usage from the JetBrains IDE plugin (~/.config/github-copilot). The JetBrains plugin does not store token counts locally, so cost is estimated from chat content and always marked ~est. Off by default."
+  "cfg.jetbrainsCopilot": "Include GitHub Copilot usage from the JetBrains IDE plugin (~/.config/github-copilot). The JetBrains plugin does not store token counts locally, so cost is estimated from chat content and always marked ~est. Off by default.",
+  "cmd.updatePrices": "Update Model Prices from GitHub",
+  "cfg.pricingAutoUpdate": "Download GitHub's official Copilot price list (docs.github.com) once a day so new models and price changes are priced correctly without an extension update. Only the public docs page is requested; no usage data leaves your machine. `priceOverrides` still take precedence."
 }

@@ -135,5 +135,8 @@
   "Net": "Čistě",
   "Savings headroom": "Prostor pro úsporu",
   "A ceiling, not a target — some of this traffic needed the expensive model.": "Strop, ne cíl — část tohoto provozu drahý model potřebovala.",
-  "would cost": "by stálo"
+  "would cost": "by stálo",
+  "Automatic price updates are turned off (copilotCostLens.pricing.autoUpdate).": "Automatická aktualizace cen je vypnutá (copilotCostLens.pricing.autoUpdate).",
+  "Model prices updated: {0} models from GitHub Docs.": "Ceny modelů aktualizovány: {0} modelů z GitHub Docs.",
+  "Could not download the GitHub price list; using the built-in prices.": "Ceník GitHubu se nepodařilo stáhnout; používají se vestavěné ceny."
 }

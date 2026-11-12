@@ -1,5 +1,5 @@
 import {
-  DEFAULT_RATES,
+  effectiveRates,
   normalizeModelId,
   priceTokensUsd,
   PricingOptions,
@@ -79,8 +79,9 @@ export function savingsHeadroom(
 
     let cheapest = id;
     let counterfactual = actual;
-    if (Object.hasOwn(DEFAULT_RATES, id)) {
-      for (const candidate of Object.keys(DEFAULT_RATES)) {
+    const table = effectiveRates(options);
+    if (Object.hasOwn(table, id)) {
+      for (const candidate of Object.keys(table)) {
         if (familyOf(candidate) !== familyOf(id) || candidate === id) continue;
         // Aggregated tokens cannot establish a per-request context tier.
         const rate = { ...rateFor(candidate, options), longContext: undefined };
