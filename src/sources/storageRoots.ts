@@ -57,3 +57,27 @@ export async function listWorkspaceStorageDirs(root: string): Promise<string[]> 
     return [];
   }
 }
+
+/**
+ * Copilot Chat global-storage dirs next to the given workspaceStorage roots
+ * (`<User>/globalStorage/github.copilot-chat`). Only existing ones.
+ */
+export async function detectCopilotGlobalStorageDirs(workspaceStorageRoots: string[]): Promise<string[]> {
+  const found: string[] = [];
+  for (const root of workspaceStorageRoots) {
+    const globalStorage = path.join(path.dirname(root), 'globalStorage');
+    let names: string[];
+    try {
+      names = await fs.readdir(globalStorage);
+    } catch {
+      continue;
+    }
+    // extension ids are case-insensitive; the folder is lower-case today
+    for (const name of names) {
+      if (name.toLowerCase() === 'github.copilot-chat') {
+        found.push(path.join(globalStorage, name));
+      }
+    }
+  }
+  return [...new Set(found)];
+}

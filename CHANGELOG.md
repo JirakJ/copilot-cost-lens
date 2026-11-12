@@ -3,6 +3,12 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.24.1] — 2026-11-12
+
+### Fixed
+
+- Copilot Chat usage after ~21 Oct 2026 was missing (#17). Copilot Chat 0.71 writes its debug logs to `<User>/globalStorage/github.copilot-chat/debug-logs/<session>/*.jsonl` instead of the per-workspace storage. Those logs are now scanned and watched too, attributed to the repository that owns the chat session, and never counted twice when a session also exists in the old location. Sessions whose workspace cannot be determined show up as `(unknown)` instead of being dropped.
+
 ## [1.24.0] — 2026-09-05
 
 ### Security

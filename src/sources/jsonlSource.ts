@@ -14,7 +14,42 @@ import { RawUsage } from '../types';
  * or malformed lines are skipped.
  */
 export async function findJsonlFiles(workspaceStorageDir: string): Promise<JsonlFile[]> {
-  const base = path.join(workspaceStorageDir, 'GitHub.copilot-chat');
+  return findCopilotChatLogs(path.join(workspaceStorageDir, 'GitHub.copilot-chat'));
+}
+
+/**
+ * Copilot Chat >= 0.71 writes its debug logs to the extension's *global*
+ * storage instead of the per-workspace one:
+ *   <User>/globalStorage/github.copilot-chat/debug-logs/<sessionId>/main.jsonl
+ *   <User>/globalStorage/github.copilot-chat/debug-logs/<sessionId>/<label>-<childId>.jsonl
+ * The record format is unchanged (`llm_request` with `attrs.inputTokens`),
+ * but the files no longer sit next to `workspace.json`, so the caller
+ * attributes them to a workspace by session id (see `indexChatSessionIds`).
+ */
+export async function findGlobalJsonlFiles(globalStorageDir: string): Promise<JsonlFile[]> {
+  return findCopilotChatLogs(globalStorageDir);
+}
+
+/**
+ * Map chat session id -> workspaceStorage dir, from the session files VS Code
+ * keeps per workspace (`chatSessions/<id>.json[l]`, `chatEditingSessions/<id>`).
+ * The first workspace that claims an id wins.
+ */
+export async function indexChatSessionIds(
+  workspaceStorageDir: string,
+  into: Map<string, string>,
+): Promise<void> {
+  for (const sub of ['chatSessions', 'chatEditingSessions']) {
+    for (const name of await safeReaddir(path.join(workspaceStorageDir, sub))) {
+      const id = name.replace(/\.jsonl?$/, '');
+      if (id && !into.has(id)) {
+        into.set(id, workspaceStorageDir);
+      }
+    }
+  }
+}
+
+async function findCopilotChatLogs(base: string): Promise<JsonlFile[]> {
   const files: JsonlFile[] = [];
 
   const transcriptsDir = path.join(base, 'transcripts');
@@ -47,7 +82,7 @@ export interface JsonlFile {
 
 export async function parseJsonlUsage(
   file: JsonlFile,
-  workspaceStorageDir: string,
+  workspaceStorageDir: string | undefined,
 ): Promise<RawUsage[]> {
   const usages: RawUsage[] = [];
 

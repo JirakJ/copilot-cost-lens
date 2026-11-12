@@ -1,7 +1,7 @@
 import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
-import { afterEach, beforeEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreConfig, UsageStore } from '../src/data/usageStore';
 import * as jsonlSource from '../src/sources/jsonlSource';
 
@@ -102,4 +102,71 @@ it('does not publish or retain data after disposal during a scan', async () => {
   expect(await store.refresh()).toEqual([]);
   expect(await store.refresh()).toEqual([]);
   expect(changed).toHaveBeenCalledTimes(1);
+});
+
+describe('Copilot Chat global-storage debug logs (#17)', () => {
+  let base: string;
+  let wsRoot: string;
+  let wsA: string;
+  let global: string;
+  let s: UsageStore;
+  const llm = (ts: number, inputTokens: number) => JSON.stringify({
+    v: 1, ts, sid: 'x', type: 'llm_request', name: 'chat:gpt-5-mini',
+    attrs: { model: 'gpt-5-mini', inputTokens, outputTokens: 5 },
+  });
+  const start = JSON.stringify({
+    v: 1, ts: 1761000000000, type: 'session_start',
+    attrs: { copilotVersion: '0.71.0', vscodeVersion: '1.143.1' },
+  });
+  beforeEach(async () => {
+    base = await fs.mkdtemp(path.join(os.tmpdir(), 'cost-global-'));
+    wsRoot = path.join(base, 'User', 'workspaceStorage');
+    wsA = path.join(wsRoot, 'a');
+    global = path.join(base, 'User', 'globalStorage', 'github.copilot-chat');
+    await fs.mkdir(path.join(wsA, 'chatSessions'), { recursive: true });
+    await fs.writeFile(path.join(wsA, 'workspace.json'), JSON.stringify({ folder: 'file:///work/alpha' }));
+    s = new UsageStore({ ...config, extraStorageRoots: [wsRoot] });
+  });
+  afterEach(async () => {
+    s.dispose();
+    await fs.rm(base, { recursive: true, force: true });
+  });
+  async function globalLog(sessionId: string, file: string, lines: string[]) {
+    const dir = path.join(global, 'debug-logs', sessionId);
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, file), lines.join('\n') + '\n');
+  }
+
+  it('reads sessions logged after Copilot Chat moved debug logs to global storage', async () => {
+    await fs.writeFile(path.join(wsA, 'chatSessions', 's1.json'), JSON.stringify({
+      sessionId: 's1', creationDate: 1761000000000,
+      requests: [{ message: 'x'.repeat(400), modelId: 'gpt-5-mini' }],
+    }));
+    await globalLog('s1', 'main.jsonl', [start, llm(1762000000000, 100)]);
+    await globalLog('s1', 'runSubagent-child1.jsonl', [start, llm(1762000001000, 50)]);
+    await fs.writeFile(path.join(global, 'debug-logs', 's1', 'models.json'), '[]');
+    const events = await s.refresh();
+    // exact global records win; the 100-token chatSessions estimate is dropped
+    expect(events.map((e) => e.inputTokens)).toEqual([100, 50]);
+    expect(events.every((e) => e.sessionId === 's1')).toBe(true);
+    expect(events[0]!.repo.name).toBe('alpha');
+    expect(s.getStats().newestTimestamp).toBe(1762000001000);
+    expect(s.getStats().scannedRoots).toContain(global);
+    expect(await s.getWatchDirs()).toContain(global);
+  });
+
+  it('does not count a session twice when it is logged in both locations', async () => {
+    const dir = path.join(wsA, 'GitHub.copilot-chat', 'debug-logs', 's2');
+    await fs.mkdir(dir, { recursive: true });
+    await fs.writeFile(path.join(dir, 'main.jsonl'), llm(1761500000000, 70) + '\n');
+    await globalLog('s2', 'main.jsonl', [llm(1761500000000, 70)]);
+    expect((await s.refresh()).map((e) => e.inputTokens)).toEqual([70]);
+  });
+
+  it('keeps a global session without a known workspace instead of dropping it', async () => {
+    await globalLog('orphan', 'main.jsonl', [llm(1762000000000, 10)]);
+    const events = await s.refresh();
+    expect(events).toHaveLength(1);
+    expect(events[0]!.repo.name).toBe('(unknown)');
+  });
 });
