@@ -503,7 +503,7 @@
     "@typescript-eslint/parser": "^8.72.1",
     "@vscode/vsce": "^3.9.2",
     "esbuild": "^0.28.1",
-    "eslint": "^9.17.0",
+    "eslint": "^10.14.0",
     "typescript": "^5.7.2",
     "vitest": "4.1.12",
     "braces": "file:vendor/braces-3.0.4-security.1.tgz"
