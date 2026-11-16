@@ -3,6 +3,17 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
+## [1.25.1] — 2026-11-17
+
+### Fixed
+
+- Copilot Chat usage was still missing when working in a remote window — Remote SSH, WSL, dev containers, Codespaces (#17). There Copilot Chat runs on the remote machine and logs under the VS Code Server data folder (`~/.vscode-server/data/User/…`), which was never scanned. Cost Lens now scans and watches the VS Code Server folders (stable, Insiders, VSCodium, Cursor, Windsurf) and, in every setup, the storage of the VS Code instance it is running in — so custom `--user-data-dir` / `--server-data-dir` locations and portable installs work without `extraStorageRoots`.
+- Workspaces on a remote host are named after their folder instead of `(unknown) <hash>`.
+
+### Changed
+
+- Cost Lens now prefers to run on the remote machine when it is installed there (`extensionKind` is `workspace` first), because that is where the usage logs of a remote window live. Install it via *Install in SSH: …* in the Extensions view; the `remote.extensionKind` workaround is no longer needed. Installed only locally, it keeps running locally as before.
+
 ## [1.25.0] — 2026-11-12
 
 ### Added

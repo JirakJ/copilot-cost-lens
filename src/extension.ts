@@ -34,6 +34,7 @@ import {
   sanitizeRemotePricing,
 } from './data/remotePricing';
 import { StoreConfig, UsageStore } from './data/usageStore';
+import { hostWorkspaceStorageRoot } from './sources/storageRoots';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
 import { receiptStrings } from './core/receiptStrings';
@@ -45,7 +46,12 @@ const PRICE_CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000;
 /** Official price list fetched from GitHub Docs (cached in globalState). */
 let remotePricing: RemotePricing | undefined;
 
+/** workspaceStorage root of the VS Code (or VS Code Server) hosting this extension. */
+let hostStorageRoots: string[] = [];
+
 export function activate(context: vscode.ExtensionContext): void {
+  hostStorageRoots =
+    context.globalStorageUri?.scheme === 'file' ? [hostWorkspaceStorageRoot(context.globalStorageUri.fsPath)] : [];
   remotePricing = sanitizeRemotePricing(context.globalState.get(REMOTE_PRICING_KEY));
   const store = new UsageStore(readStoreConfig());
   const statusBar = new CostStatusBar();
@@ -271,7 +277,7 @@ function readStoreConfig(): StoreConfig {
   const config = vscode.workspace.getConfiguration('copilotCostLens');
   return {
     // tolerate malformed user config — never let a bad value break the scan
-    extraStorageRoots: sanitizeStringArray(config.get('extraStorageRoots', [])),
+    extraStorageRoots: [...hostStorageRoots, ...sanitizeStringArray(config.get('extraStorageRoots', []))],
     repoAliases: sanitizeRepoAliases(config.get('repoAliases', {})),
     claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
     copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),

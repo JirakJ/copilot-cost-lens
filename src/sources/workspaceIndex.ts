@@ -44,7 +44,23 @@ export class WorkspaceIndex {
         return remoteRef;
       }
     }
+    // A remote extension host has no workspace.json (the desktop writes that
+    // one); it leaves a meta.json carrying the workspace name instead.
+    const name = await readRemoteWorkspaceName(workspaceStorageDir);
+    if (name) {
+      return { name };
+    }
     return { name: `(unknown) ${path.basename(workspaceStorageDir).slice(0, 8)}` };
+  }
+}
+
+async function readRemoteWorkspaceName(workspaceStorageDir: string): Promise<string | undefined> {
+  try {
+    const raw = await fs.readFile(path.join(workspaceStorageDir, 'meta.json'), 'utf8');
+    const name = (JSON.parse(raw) as { name?: unknown }).name;
+    return typeof name === 'string' && name.trim() ? name.trim() : undefined;
+  } catch {
+    return undefined;
   }
 }
 

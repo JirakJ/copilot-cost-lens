@@ -6,6 +6,21 @@ import * as path from 'node:path';
 const PRODUCT_DIRS = ['Code', 'Code - Insiders', 'VSCodium', 'Cursor', 'Windsurf'];
 
 /**
+ * VS Code Server data folders in the home directory of a remote host (SSH,
+ * WSL, dev container, Codespaces). In a remote window Copilot Chat runs in the
+ * remote extension host and logs under `<folder>/data/User/` there — not under
+ * the desktop product directory (#17).
+ */
+const SERVER_DIRS = [
+  '.vscode-server',
+  '.vscode-server-insiders',
+  '.vscode-remote',
+  '.vscodium-server',
+  '.cursor-server',
+  '.windsurf-server',
+];
+
+/**
  * Candidate workspaceStorage roots for this platform, including every
  * known VS Code variant. Only existing directories are returned.
  */
@@ -30,6 +45,9 @@ export async function detectStorageRoots(extraRoots: string[] = []): Promise<str
   const candidates = bases.flatMap((base) =>
     PRODUCT_DIRS.map((product) => path.join(base, product, 'User', 'workspaceStorage')),
   );
+  candidates.push(
+    ...SERVER_DIRS.map((server) => path.join(home, server, 'data', 'User', 'workspaceStorage')),
+  );
   candidates.push(...extraRoots);
 
   const existing: string[] = [];
@@ -44,6 +62,16 @@ export async function detectStorageRoots(extraRoots: string[] = []): Promise<str
     }
   }
   return [...new Set(existing)];
+}
+
+/**
+ * The workspaceStorage root of the VS Code instance this extension host
+ * belongs to, derived from the extension's own global storage folder
+ * (`<User>/globalStorage/<extension-id>`). Covers data folders no convention
+ * can guess: `--user-data-dir`, `--server-data-dir`, portable installs.
+ */
+export function hostWorkspaceStorageRoot(extensionGlobalStoragePath: string): string {
+  return path.join(path.dirname(path.dirname(extensionGlobalStoragePath)), 'workspaceStorage');
 }
 
 /** List the per-workspace storage directories under a workspaceStorage root. */

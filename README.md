@@ -168,6 +168,9 @@ Expected. Sessions without exact token logs are estimated from content length, c
 **I see `~est` everywhere.**
 Your Copilot Chat version isn't writing token-level transcripts yet. Estimates still give you a faithful *relative* picture across repos; exact data is used automatically the moment it appears.
 
+**I work over Remote SSH / WSL / a dev container and see no new usage. Why?**
+In a remote window Copilot (and Claude Code, Codex, Copilot CLI) run on the remote machine and write their logs there, so a Cost Lens that runs on your local machine cannot read them. Install Cost Lens on the remote too (Extensions view → *Install in SSH: …* / *Install in WSL: …*). It then runs next to the logs and reads the VS Code Server storage (`~/.vscode-server/data/User/…`) and `~/.copilot/session-state` of that machine. Each machine shows its own usage: history recorded on your local machine stays in local windows.
+
 **Can I rename a remote repository from my local VS Code window?**
 Yes. Cost Lens recognizes `vscode-remote://` workspace metadata and shows the remote folder name instead of an opaque workspace hash. You can rename that entry directly from the local dashboard; you no longer need to connect to the remote machine first.
 
