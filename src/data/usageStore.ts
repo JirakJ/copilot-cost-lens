@@ -71,7 +71,7 @@ export class UsageStore {
     scannedRoots: [],
   };
 
-  constructor(private config: StoreConfig, private remoteReader?: RemoteCopilotReader) {}
+  constructor(private config: StoreConfig, private remoteCopilot?: RemoteCopilotReader) {}
 
   getStats(): ScanStats {
     return this.stats;
@@ -90,7 +90,7 @@ export class UsageStore {
     this.disposed = true;
     this.listeners.clear();
     this.fileCache.clear();
-    this.remoteReader?.dispose();
+    this.remoteCopilot?.dispose();
     this.events = [];
   }
 
@@ -163,8 +163,8 @@ export class UsageStore {
         return [];
       }
     };
-    const push = (usages: RawUsage[], countFile = true) => {
-      if (countFile) filesParsed += 1;
+    const push = (usages: RawUsage[]) => {
+      filesParsed += 1;
       for (const usage of usages) {
         (usage.estimated ? estimated : exact).push(usage);
       }
@@ -254,39 +254,39 @@ export class UsageStore {
     }
 
     if (config.copilotCliEnabled) {
-      const copies = new Map<string, { usages: RawUsage[]; newest: number; remote: boolean }>();
-      const select = (usages: RawUsage[], remote: boolean) => {
-        filesParsed += 1;
-        if (!usages.length) return;
-        const sessionId = usages[0]!.sessionId;
-        const newest = usages.reduce((timestamp, usage) => Math.max(timestamp, usage.timestamp), -Infinity);
-        const previous = copies.get(sessionId);
-        if (!previous || newest > previous.newest ||
-            (newest === previous.newest && remote && !previous.remote)) {
-          copies.set(sessionId, { usages, newest, remote });
-        }
+      const sessions = new Map<string, RawUsage[]>();
+      const addSession = (usages: RawUsage[]) => {
+        const id = usages[0]?.sessionId;
+        if (!id) return;
+        const previous = sessions.get(id);
+        const newest = (items: RawUsage[]) => items.reduce((max, u) => Math.max(max, u.timestamp), 0);
+        if (!previous || newest(usages) >= newest(previous)) sessions.set(id, usages);
       };
       await guard('copilot-cli', async () => {
         scannedRoots.push(defaultCopilotCliRoot());
         for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
-          select(
+          filesParsed += 1;
+          addSession(
             await read(file.filePath, () =>
               parseCopilotCliUsage(file, { charsPerToken: config.charsPerToken }),
             ),
-            false,
           );
         }
       });
-      const remoteReader = this.remoteReader;
-      if (remoteReader) {
-        await guard('remote-copilot-cli', async () => {
-          const remote = await remoteReader.scan(config.remoteCopilotRoots ?? [], config.charsPerToken);
-          scannedRoots.push(...remote.scannedRoots);
+      const remoteCopilot = this.remoteCopilot;
+      const remoteRoots = config.remoteCopilotRoots;
+      if (remoteCopilot && remoteRoots?.length) {
+        await guard('remote-copilot', async () => {
+          const remote = await remoteCopilot.scan(remoteRoots, config.charsPerToken);
+          scannedRoots.push(...remoteRoots);
           errors.push(...remote.errors);
-          for (const file of remote.files) select(file.usages, true);
+          filesParsed += remote.files.length;
+          for (const file of remote.files) addSession(file.usages);
         });
       }
-      for (const copy of copies.values()) push(copy.usages, false);
+      for (const usages of sessions.values()) {
+        for (const usage of usages) (usage.estimated ? estimated : exact).push(usage);
+      }
     }
 
     if (config.codexEnabled) {
