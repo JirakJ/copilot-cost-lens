@@ -57,6 +57,7 @@ export async function parseCopilotCliUsage(
 ): Promise<RawUsage[]> {
   const shutdownUsages: RawUsage[] = [];
   const requestUsages = new Map<string, RawUsage>();
+  const identityAliases = new Map<string, string>();
 
   let cwd: string | undefined;
   let repoSlug: string | undefined;
@@ -118,12 +119,33 @@ export async function parseCopilotCliUsage(
         const usage = asRecord(data.usage);
         if (typeof usage.inputTokens !== 'number' || typeof usage.outputTokens !== 'number' ||
             !Number.isFinite(usage.inputTokens) || !Number.isFinite(usage.outputTokens)) break;
-        const identity = str(asRecord(usage.accounting).usageId) ?? str(usage.apiCallId) ?? str(record.id);
+        const aliases = [...new Set([
+          str(asRecord(usage.accounting).usageId),
+          str(usage.apiCallId),
+          str(record.id),
+        ].filter((alias): alias is string => alias !== undefined))];
+        const identity = aliases[0];
         if (!identity) throw new Error('Copilot usage record has no request identity');
+        const matchingIdentities = [...new Set(
+          aliases.map((alias) => identityAliases.get(alias)).filter(
+            (alias): alias is string => alias !== undefined,
+          ),
+        )];
+        const requestIdentity = matchingIdentities[0] ?? identity;
+        for (const matchedIdentity of matchingIdentities) {
+          if (matchedIdentity === requestIdentity) continue;
+          requestUsages.delete(matchedIdentity);
+          for (const [alias, target] of identityAliases) {
+            if (target === matchedIdentity) identityAliases.set(alias, requestIdentity);
+          }
+        }
+        for (const alias of aliases) {
+          identityAliases.set(alias, requestIdentity);
+        }
         const cacheRead = num(usage.cacheReadTokens);
         const cacheWrite = num(usage.cacheWriteTokens);
         const nanoCredits = asRecord(usage.copilotUsage).totalNanoAiu;
-        requestUsages.set(identity, {
+        requestUsages.set(requestIdentity, {
           sessionId: file.sessionId,
           provider: usage.isByok === true ? 'copilot-byok' : 'copilot-cli',
           folderPath: cwd,

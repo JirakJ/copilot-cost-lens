@@ -145,17 +145,26 @@ it('selects one whole local/remote CLI copy by newest timestamp, with remote win
   expect(remote.dispose).toHaveBeenCalledOnce();
 });
 
-it('does not scan remote roots when CLI is disabled and isolates reader failures', async () => {
-  const remote = { scan: vi.fn(async () => { throw new Error('Remote unavailable'); }), dispose: vi.fn() };
+it('clears remote cache when collection is disabled or roots are empty and isolates failures', async () => {
+  const remote = {
+    scan: vi.fn(async (roots: string[]) => {
+      if (roots.length) throw new Error('Remote unavailable');
+      return { scannedRoots: [], files: [], errors: [] };
+    }),
+    dispose: vi.fn(),
+  };
   store.dispose();
   store = new UsageStore({ ...config, remoteCopilotRoots: ['remote'] }, remote);
   await session();
   expect(await store.refresh()).toHaveLength(1);
-  expect(remote.scan).not.toHaveBeenCalled();
+  expect(remote.scan).toHaveBeenLastCalledWith([], 4);
   vi.spyOn(copilotCliSource, 'findCopilotCliFiles').mockResolvedValue([]);
-  store.updateConfig({ ...config, copilotCliEnabled: true });
+  store.updateConfig({ ...config, copilotCliEnabled: true, remoteCopilotRoots: [] });
   expect(await store.refresh()).toHaveLength(1);
-  expect(store.getStats().errors).toContain('remote-copilot-cli: Remote unavailable');
+  expect(remote.scan).toHaveBeenLastCalledWith([], 4);
+  store.updateConfig({ ...config, copilotCliEnabled: true, remoteCopilotRoots: ['remote'] });
+  expect(await store.refresh()).toHaveLength(1);
+  expect(store.getStats().errors).toContain('remote-copilot: Remote unavailable');
 });
 
 describe('Copilot Chat global-storage debug logs (#17)', () => {

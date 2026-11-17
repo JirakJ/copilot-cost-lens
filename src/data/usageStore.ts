@@ -253,6 +253,7 @@ export class UsageStore {
       });
     }
 
+    const remoteCopilot = this.remoteCopilot;
     if (config.copilotCliEnabled) {
       const sessions = new Map<string, RawUsage[]>();
       const addSession = (usages: RawUsage[]) => {
@@ -273,12 +274,11 @@ export class UsageStore {
           );
         }
       });
-      const remoteCopilot = this.remoteCopilot;
       const remoteRoots = config.remoteCopilotRoots;
-      if (remoteCopilot && remoteRoots?.length) {
+      if (remoteCopilot) {
         await guard('remote-copilot', async () => {
-          const remote = await remoteCopilot.scan(remoteRoots, config.charsPerToken);
-          scannedRoots.push(...remoteRoots);
+          const remote = await remoteCopilot.scan(remoteRoots ?? [], config.charsPerToken);
+          if (remoteRoots) scannedRoots.push(...remoteRoots);
           errors.push(...remote.errors);
           filesParsed += remote.files.length;
           for (const file of remote.files) addSession(file.usages);
@@ -287,6 +287,10 @@ export class UsageStore {
       for (const usages of sessions.values()) {
         for (const usage of usages) (usage.estimated ? estimated : exact).push(usage);
       }
+    } else if (remoteCopilot) {
+      await guard('remote-copilot', async () => {
+        await remoteCopilot.scan([], config.charsPerToken);
+      });
     }
 
     if (config.codexEnabled) {

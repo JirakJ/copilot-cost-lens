@@ -223,6 +223,19 @@ describe('copilotCliSource', () => {
     expect(usages[1]!.timestamp).toBe(Date.parse('2026-06-02T10:00:00Z'));
   });
 
+  it('retains request identity aliases when an update gains a usage ID', async () => {
+    const usages = await parseRecords([
+      start,
+      request('event1', { apiCallId: 'api-1', outputTokens: 10 }),
+      request('event2', {
+        accounting: { usageId: 'bill-1' }, apiCallId: 'api-1', outputTokens: 20,
+      }),
+      request('event3', { apiCallId: 'api-1', outputTokens: 30 }),
+    ]);
+    expect(usages).toHaveLength(1);
+    expect(usages[0]!.outputTokens).toBe(30);
+  });
+
   it('rejects usable requests without identity but ignores incomplete usage', async () => {
     await expect(parseRecords([{ type: 'session.usage_record', data: { usage: {
       inputTokens: 1, outputTokens: 2,
