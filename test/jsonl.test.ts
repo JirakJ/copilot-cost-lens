@@ -2,7 +2,16 @@ import * as fs from 'node:fs/promises';
 import * as os from 'node:os';
 import * as path from 'node:path';
 import { expect, it } from 'vitest';
-import { MAX_JSON_RECORD_BYTES, readJsonlRecords } from '../src/sources/jsonl';
+import { MAX_JSON_RECORD_BYTES, readJsonlChunks, readJsonlRecords } from '../src/sources/jsonl';
+
+it('shares parsing rules across synchronous and asynchronous text chunks', async () => {
+  const chunks = ['{"text":"ž', 'luť"}\r', '\n{bad}\n[]\nnull\n', '{"last":true}'];
+  for (const source of [chunks, (async function* () { yield* chunks; })()]) {
+    const records: unknown[] = [];
+    await readJsonlChunks(source, (record) => records.push(record));
+    expect(records).toEqual([{ text: 'žluť' }, { last: true }]);
+  }
+});
 
 it('streams split UTF-8 records, malformed lines and the final unterminated line', async () => {
   const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'jsonl-'));

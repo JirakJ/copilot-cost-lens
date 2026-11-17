@@ -50,6 +50,8 @@ export interface RepoRef {
 export interface RawUsage {
   sessionId: string;
   provider: Provider;
+  /** Repository already resolved by a source that cannot use local paths. */
+  repo?: RepoRef;
   /** VS Code workspaceStorage dir — repo resolved via workspace.json. */
   workspaceStorageDir?: string;
   /** Direct workspace folder path — repo resolved via .git/config. */
