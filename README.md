@@ -81,7 +81,7 @@ Cost Lens combines these local sources:
 |---|---|---|
 | VS Code: `GitHub.copilot-chat/transcripts/*.jsonl`, `debug-logs/**.jsonl` (per-workspace, and `globalStorage/github.copilot-chat/debug-logs` since Copilot Chat 0.71) | exact token counts and billed AI-credit units per request | **exact** |
 | VS Code: `chatSessions/*.json` | model, timestamp and conversation content | **estimated** from content length |
-| Copilot CLI: `~/.copilot/session-state/**` | exact per-model tokens incl. cache read/write, billed premium requests / AI-credit units, repository slug | **exact** (estimation fallback for crashed sessions) |
+| Copilot CLI / SDK: `~/.copilot/session-state/**` | exact per-request tokens (including active SDK sessions), legacy per-model shutdown totals, cache read/write, billed units, repository slug | **exact** (estimation fallback when exact usage is absent) |
 | Claude Code: `~/.claude/projects/**/*.jsonl` | exact per-request tokens incl. cache read/write, model, working directory | **exact** |
 | ChatGPT Codex: `~/.codex/sessions/**/*.jsonl` | exact per-request input, cached and output tokens, model, working directory | **exact** |
 | JetBrains Copilot: `~/.config/github-copilot/<ide>/**` (opt-in) | repository + models recovered; cost estimated from content (plugin stores no token counts) | **estimated** |
@@ -100,8 +100,9 @@ The built-in price table covers GPT, Claude, Gemini, Grok and more, and every ra
 
 Everything happens on your machine. Cost Lens:
 
-- reads only local files (VS Code `workspaceStorage` and Copilot Chat `globalStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
-- makes exactly **one kind of network request**: once a day it downloads GitHub's public [Models and pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing) page so new models and price changes are priced without an extension update. Nothing about you or your usage is sent; turn it off with `copilotCostLens.pricing.autoUpdate: false` (the built-in table is used then),
+- reads local files by default (VS Code `workspaceStorage` and Copilot Chat `globalStorage`, and the Copilot CLI / ChatGPT Codex / Claude Code / JetBrains Copilot stores in your home directory),
+- optionally reads explicitly configured remote Copilot CLI/SDK logs over your existing VS Code remote connection (see below). **Whole logs, including any prompts and tool output, transfer to the local extension host** for parsing; usage is not uploaded to a service,
+- downloads GitHub's public [Models and pricing](https://docs.github.com/en/copilot/reference/copilot-billing/models-and-pricing) page so new models and price changes are priced without an extension update. Nothing about you or your usage is sent; turn it off with `copilotCostLens.pricing.autoUpdate: false` (the built-in table is used then). Apart from opt-in remote reads, this is the only network request,
 - collects **no telemetry**,
 - never executes git — repository names are read from `workspace.json` and `.git/config` as plain files.
 
@@ -112,6 +113,16 @@ Everything happens on your machine. Cost Lens:
 3. Open the **Copilot Cost Lens** view in the activity bar, or run `Copilot Cost Lens: Open Dashboard`.
 
 Data appears automatically as you use Copilot Chat. Historical sessions already on disk are picked up on first scan.
+
+### Remote Copilot CLI / SDK sessions (opt-in)
+
+With Cost Lens installed **locally**, connect to a remote workspace using VS Code (SSH, WSL, a dev container or Codespaces). Run **Copilot Cost Lens: Add Remote Copilot Root…**, enter the absolute remote session-state directory (for example `/home/user/.copilot/session-state`), and grant access only to logs you want transferred. No remote Cost Lens installation or separate credentials are needed. The command checks directory access, saves its `vscode-remote://<authority>/...` URI globally, verifies the effective setting, then refreshes.
+
+`copilotCostLens.remoteCopilotRoots` defaults to `[]` and is machine-scoped. Only authorities in the current window's remote workspace folders are read, and only while `copilotCostLens.copilotCli.enabled` is enabled. Disconnected roots report diagnostics rather than opening a connection to another host. Both flat `<session>.jsonl` files and `<session>/events.jsonl` directories work.
+
+Remote reads use `workspace.fs` over the existing connection. Each file is transferred whole, with a **64 MiB maximum** checked against both its advertised and actual size; larger files are skipped with a diagnostic. Parsed results are cached in memory by URI, modification time, size and estimation ratio; unchanged files are not retransferred. Removed or failed files leave the cache, which is cleared on disposal. Refreshes and workspace-folder changes rescan configured roots.
+
+Local and remote copies are deduplicated by session ID: the **entire copy with the newest usage timestamp** wins, with remote preferred on ties (copies are never merged request-by-request). Repository names use session metadata, then the working-folder basename; remote paths never become local “Open in VS Code” targets. Request usage updates replace earlier records by usage ID, API-call ID or event ID; checkpoints and shutdown summaries after request records are not double-counted. Legacy shutdown accounting and estimation remain available for older logs.
 
 ## Settings
 
@@ -126,6 +137,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 | `copilotCostLens.statusBar.enabled` | `true` | Status-bar spend ticker. |
 | `copilotCostLens.pricing.autoUpdate` | `true` | Sync model prices daily from GitHub's official price list (`priceOverrides` still win). Command: **Update Model Prices from GitHub**. |
 | `copilotCostLens.extraStorageRoots` | `[]` | Additional `workspaceStorage` roots to scan. |
+| `copilotCostLens.remoteCopilotRoots` | `[]` | Opt-in remote Copilot CLI/SDK session-state URIs; requires a connected remote workspace. Whole-log transfer, 64 MiB/file maximum. |
 | `copilotCostLens.claudeCode.enabled` | `true` | Include Claude Code usage in per-repo costs. |
 | `copilotCostLens.copilotCli.enabled` | `true` | Include GitHub Copilot CLI usage. |
 | `copilotCostLens.codex.enabled` | `true` | Include ChatGPT Codex CLI/Desktop usage. |
@@ -146,6 +158,7 @@ Data appears automatically as you use Copilot Chat. Historical sessions already 
 
 ## Commands
 
+- `Copilot Cost Lens: Add Remote Copilot Root…`
 - `Copilot Cost Lens: Open Dashboard`
 - `Copilot Cost Lens: Refresh Usage Data`
 - `Copilot Cost Lens: Export Usage as CSV` / `as JSON`

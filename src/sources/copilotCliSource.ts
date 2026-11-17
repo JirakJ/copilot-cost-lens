@@ -10,7 +10,9 @@ import { RawUsage } from '../types';
  *   ~/.copilot/session-state/<sessionId>.jsonl          (older layout)
  *   ~/.copilot/session-state/<sessionId>/events.jsonl   (newer layout)
  *
- * `session.shutdown` events carry exact per-model metrics for the finished
+ * `session.usage_record` events carry exact request usage, including active SDK
+ * sessions. Updates replace earlier records by their stable usage identity.
+ * Legacy `session.shutdown` events carry exact per-model metrics for the finished
  * run (tokens incl. cache read/write, billed premium requests, nano AI-credit
  * units). Metrics are per-run, so multiple shutdowns in a resumed session are
  * summed. Sessions that never reached a shutdown fall back to per-message
@@ -51,8 +53,10 @@ export interface CopilotCliOptions {
 export async function parseCopilotCliUsage(
   file: CopilotCliFile,
   options: CopilotCliOptions,
+  readJsonl: typeof readJsonlRecords = readJsonlRecords,
 ): Promise<RawUsage[]> {
   const shutdownUsages: RawUsage[] = [];
+  const requestUsages = new Map<string, RawUsage>();
 
   let cwd: string | undefined;
   let repoSlug: string | undefined;
@@ -62,7 +66,7 @@ export async function parseCopilotCliUsage(
   // fallback accumulators (used only when no shutdown event exists)
   const fallbackByModel = new Map<string, { inputChars: number; outputTokens: number }>();
 
-  await readJsonlRecords(file.filePath, (record) => {
+  await readJsonl(file.filePath, (record) => {
     const type = typeof record.type === 'string' ? record.type : '';
     const data = asRecord(record.data);
     const ts = typeof record.timestamp === 'string' ? Date.parse(record.timestamp) : NaN;
@@ -72,6 +76,7 @@ export async function parseCopilotCliUsage(
 
     switch (type) {
       case 'session.start': {
+        currentModel = str(data.selectedModel) ?? currentModel;
         const context = asRecord(data.context);
         cwd ??= str(context.cwd);
         const repository = str(context.repository);
@@ -109,7 +114,33 @@ export async function parseCopilotCliUsage(
               );
         break;
       }
+      case 'session.usage_record': {
+        const usage = asRecord(data.usage);
+        if (typeof usage.inputTokens !== 'number' || typeof usage.outputTokens !== 'number' ||
+            !Number.isFinite(usage.inputTokens) || !Number.isFinite(usage.outputTokens)) break;
+        const identity = str(asRecord(usage.accounting).usageId) ?? str(usage.apiCallId) ?? str(record.id);
+        if (!identity) throw new Error('Copilot usage record has no request identity');
+        const cacheRead = num(usage.cacheReadTokens);
+        const cacheWrite = num(usage.cacheWriteTokens);
+        const nanoCredits = asRecord(usage.copilotUsage).totalNanoAiu;
+        requestUsages.set(identity, {
+          sessionId: file.sessionId,
+          provider: usage.isByok === true ? 'copilot-byok' : 'copilot-cli',
+          folderPath: cwd,
+          repoSlug,
+          timestamp: Number.isNaN(ts) ? lastTimestamp || Date.now() : ts,
+          model: str(usage.model) ?? currentModel,
+          inputTokens: Math.max(0, usage.inputTokens - cacheRead - cacheWrite),
+          outputTokens: usage.outputTokens,
+          cachedTokens: cacheRead,
+          cacheWriteTokens: cacheWrite,
+          nanoCredits: typeof nanoCredits === 'number' && Number.isFinite(nanoCredits) ? nanoCredits : undefined,
+          estimated: false,
+        });
+        break;
+      }
       case 'session.shutdown': {
+        if (requestUsages.size > 0) break;
         const metrics = asRecord(data.modelMetrics);
         for (const [model, value] of Object.entries(metrics)) {
           const usage = asRecord(asRecord(value).usage);
@@ -141,8 +172,8 @@ export async function parseCopilotCliUsage(
     }
   });
 
-  if (shutdownUsages.length > 0) {
-    return shutdownUsages;
+  if (shutdownUsages.length > 0 || requestUsages.size > 0) {
+    return [...shutdownUsages, ...requestUsages.values()];
   }
 
   // No shutdown (crashed or still-running session) — estimate per model.

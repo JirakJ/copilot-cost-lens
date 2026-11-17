@@ -35,6 +35,7 @@ import {
 } from './data/remotePricing';
 import { StoreConfig, UsageStore } from './data/usageStore';
 import { hostWorkspaceStorageRoot } from './sources/storageRoots';
+import { remoteCopilotRoot, VscodeRemoteCopilotReader } from './sources/remoteCopilotSource';
 import { DashboardController, DashboardPanel, DashboardViewProvider } from './ui/dashboard';
 import { CostStatusBar } from './ui/statusBar';
 import { receiptStrings } from './core/receiptStrings';
@@ -53,7 +54,7 @@ export function activate(context: vscode.ExtensionContext): void {
   hostStorageRoots =
     context.globalStorageUri?.scheme === 'file' ? [hostWorkspaceStorageRoot(context.globalStorageUri.fsPath)] : [];
   remotePricing = sanitizeRemotePricing(context.globalState.get(REMOTE_PRICING_KEY));
-  const store = new UsageStore(readStoreConfig());
+  const store = new UsageStore(readStoreConfig(), new VscodeRemoteCopilotReader());
   const statusBar = new CostStatusBar();
 
   const controller = new DashboardController({
@@ -147,6 +148,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('copilotCostLens.createProject', () => createGroup(store)),
     vscode.commands.registerCommand('copilotCostLens.manageHidden', () => manageHiddenRepos()),
     vscode.commands.registerCommand('copilotCostLens.addStorageRoot', () => addStorageRoot()),
+    vscode.commands.registerCommand('copilotCostLens.addRemoteCopilotRoot', () => addRemoteCopilotRoot(store, output)),
     vscode.commands.registerCommand('copilotCostLens.copySummary', async () => {
       await vscode.env.clipboard.writeText(
         summaryMarkdown(buildReport(store, currentMonthKey()), displayCurrency()),
@@ -228,6 +230,10 @@ export function activate(context: vscode.ExtensionContext): void {
         refreshInBackground();
       }
     }),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => {
+      store.updateConfig(readStoreConfig());
+      refreshInBackground();
+    }),
   );
 
   store.onDidChange(() => {
@@ -278,6 +284,7 @@ function readStoreConfig(): StoreConfig {
   return {
     // tolerate malformed user config — never let a bad value break the scan
     extraStorageRoots: [...hostStorageRoots, ...sanitizeStringArray(config.get('extraStorageRoots', []))],
+    remoteCopilotRoots: sanitizeStringArray(config.get('remoteCopilotRoots', [])),
     repoAliases: sanitizeRepoAliases(config.get('repoAliases', {})),
     claudeCodeEnabled: config.get<boolean>('claudeCode.enabled', true),
     copilotCliEnabled: config.get<boolean>('copilotCli.enabled', true),
@@ -399,6 +406,64 @@ async function addStorageRoot(): Promise<void> {
   void vscode.window.showInformationMessage(
     vscode.l10n.t('Copilot Cost Lens: storage root added: {0}', folder),
   );
+}
+
+async function addRemoteCopilotRoot(store: UsageStore, output: vscode.OutputChannel): Promise<void> {
+  try {
+    const folders = (vscode.workspace.workspaceFolders ?? [])
+      .filter((folder) => folder.uri.scheme === 'vscode-remote' && folder.uri.authority);
+    const connections = [...new Map(folders.map((folder) => [folder.uri.authority, folder.uri])).values()];
+    if (!connections.length) throw new Error('Connect to a remote workspace first.');
+    const connection = connections.length === 1 ? connections[0] : (await vscode.window.showQuickPick(
+      connections.map((uri) => ({ label: uri.authority, uri })),
+      { title: vscode.l10n.t('Select the remote connection') },
+    ))?.uri;
+    if (!connection) {
+      output.appendLine('Adding remote Copilot root cancelled.');
+      return;
+    }
+    const remotePath = await vscode.window.showInputBox({
+      title: vscode.l10n.t('Add Remote Copilot Root'),
+      prompt: vscode.l10n.t('Absolute remote session-state path (for example /home/user/.copilot/session-state). Full logs will be transferred over your VS Code connection.'),
+      validateInput: (value) => value.startsWith('/') && !value.includes('\0')
+        ? undefined : vscode.l10n.t('Enter an absolute remote path, not a URI or ~ path.'),
+    });
+    if (remotePath === undefined) {
+      output.appendLine('Adding remote Copilot root cancelled.');
+      return;
+    }
+    if (!remotePath.startsWith('/') || remotePath.includes('\0')) throw new Error('Expected an absolute remote path.');
+    const uri = remoteCopilotRoot(connection.with({ path: remotePath, query: '', fragment: '' }).toString());
+    const connected = () => (vscode.workspace.workspaceFolders ?? [])
+      .some((folder) => folder.uri.scheme === 'vscode-remote' && folder.uri.authority === uri.authority);
+    if (!connected()) throw new Error('Remote connection is no longer open.');
+    if (!((await vscode.workspace.fs.stat(uri)).type & vscode.FileType.Directory)) {
+      throw new Error('Remote root is not a directory.');
+    }
+    await vscode.workspace.fs.readDirectory(uri);
+    const config = vscode.workspace.getConfiguration('copilotCostLens');
+    const current = sanitizeStringArray(config.get('remoteCopilotRoots', []));
+    const key = uri.toString();
+    const canonical = (value: string) => {
+      try { return remoteCopilotRoot(value).toString(); } catch { return value; }
+    };
+    const next = [...new Set([...current.map(canonical), key])];
+    await config.update('remoteCopilotRoots', next, vscode.ConfigurationTarget.Global);
+    const effective = sanitizeStringArray(
+      vscode.workspace.getConfiguration('copilotCostLens').get('remoteCopilotRoots', []),
+    );
+    if (!effective.some((value) => canonical(value) === key)) {
+      throw new Error('The effective remoteCopilotRoots setting does not contain the saved root.');
+    }
+    if (!connected()) throw new Error('Remote connection is no longer open.');
+    store.updateConfig(readStoreConfig());
+    await store.refresh();
+    output.appendLine(`Remote Copilot root added and verified: ${key}`);
+    void vscode.window.showInformationMessage(vscode.l10n.t('Copilot Cost Lens: remote Copilot root added: {0}', key));
+  } catch (error) {
+    output.appendLine(`Could not add remote Copilot root: ${error instanceof Error ? error.message : String(error)}`);
+    void vscode.window.showWarningMessage(vscode.l10n.t('Could not add the remote Copilot root. See the Copilot Cost Lens output for details.'));
+  }
 }
 
 /** QuickPick to unhide repositories: unchecked entries are removed from hiddenRepos. */

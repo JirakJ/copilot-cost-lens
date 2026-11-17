@@ -9,6 +9,20 @@ export async function readJsonlRecords(
   onRecord: (record: Record<string, unknown>) => void,
 ): Promise<void> {
   const stream = createReadStream(filePath, { encoding: 'utf8' });
+  try {
+    await readJsonlChunks(stream, onRecord);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
+  } finally {
+    stream.destroy();
+  }
+}
+
+/** Parse streamed or already-transferred text with the same JSONL rules. */
+export async function readJsonlChunks(
+  chunks: Iterable<string> | AsyncIterable<string>,
+  onRecord: (record: Record<string, unknown>) => void,
+): Promise<void> {
   let pending = '';
   let pendingBytes = 0;
   const emit = () => {
@@ -22,30 +36,23 @@ export async function readJsonlRecords(
       onRecord(record as Record<string, unknown>);
     }
   };
-  try {
-    for await (const chunk of stream) {
-      const text = String(chunk);
-      let start = 0;
-      while (start < text.length) {
-        const newline = text.indexOf('\n', start);
-        const end = newline < 0 ? text.length : newline;
-        const piece = text.slice(start, end);
-        pendingBytes += Buffer.byteLength(piece, 'utf8');
-        if (pendingBytes > MAX_JSON_RECORD_BYTES) {
-          throw new RangeError('JSONL record exceeds the supported size');
-        }
-        pending += piece;
-        if (newline < 0) break;
-        emit();
-        pending = '';
-        pendingBytes = 0;
-        start = newline + 1;
+  for await (const text of chunks) {
+    let start = 0;
+    while (start < text.length) {
+      const newline = text.indexOf('\n', start);
+      const end = newline < 0 ? text.length : newline;
+      const piece = text.slice(start, end);
+      pendingBytes += Buffer.byteLength(piece, 'utf8');
+      if (pendingBytes > MAX_JSON_RECORD_BYTES) {
+        throw new RangeError('JSONL record exceeds the supported size');
       }
+      pending += piece;
+      if (newline < 0) break;
+      emit();
+      pending = '';
+      pendingBytes = 0;
+      start = newline + 1;
     }
-    if (pending.trim()) emit();
-  } catch (error) {
-    if ((error as NodeJS.ErrnoException).code !== 'ENOENT') throw error;
-  } finally {
-    stream.destroy();
   }
+  if (pending.trim()) emit();
 }

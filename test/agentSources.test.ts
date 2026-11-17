@@ -4,6 +4,7 @@ import * as path from 'node:path';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { findClaudeCodeFiles, parseClaudeCodeUsage } from '../src/sources/claudeCodeSource';
 import { findCopilotCliFiles, parseCopilotCliUsage } from '../src/sources/copilotCliSource';
+import { readJsonlChunks } from '../src/sources/jsonl';
 
 let root: string;
 
@@ -177,6 +178,73 @@ describe('claudeCodeSource', () => {
 });
 
 describe('copilotCliSource', () => {
+  const parseRecords = (records: Record<string, unknown>[]) => parseCopilotCliUsage(
+    { filePath: 'injected', sessionId: 'sdk' }, { charsPerToken: 4 },
+    (_file, onRecord) => readJsonlChunks(records.map((record) => JSON.stringify(record) + '\n'), onRecord),
+  );
+  const start = { type: 'session.start', data: { selectedModel: 'gpt-5-mini' } };
+  const request = (id: string, usage: Record<string, unknown> = {}, timestamp = '2026-06-01T10:00:00Z') => ({
+    type: 'session.usage_record', id, timestamp,
+    data: { usage: { inputTokens: 100, outputTokens: 20, ...usage } },
+  });
+
+  it('reads active SDK requests, normalizes cache buckets and retains exact zero billing', async () => {
+    const usages = await parseRecords([
+      start,
+      request('one', { cacheReadTokens: 30, cacheWriteTokens: 10, copilotUsage: { totalNanoAiu: 0 } }),
+      { type: 'session.model_change', data: { model: 'claude-fable-5' } },
+      request('two', { inputTokens: 5, cacheReadTokens: 10, cacheWriteTokens: 20, isByok: true }),
+      request('three', { model: 'gpt-6', copilotUsage: { totalNanoAiu: 123 } }),
+      { type: 'session.usage_checkpoint', data: { usage: { inputTokens: 9999, outputTokens: 9999 } } },
+    ]);
+    expect(usages).toHaveLength(3);
+    expect(usages[0]).toMatchObject({
+      model: 'gpt-5-mini', provider: 'copilot-cli', inputTokens: 60, outputTokens: 20,
+      cachedTokens: 30, cacheWriteTokens: 10, nanoCredits: 0, estimated: false,
+      timestamp: Date.parse('2026-06-01T10:00:00Z'),
+    });
+    expect(usages[1]).toMatchObject({ model: 'claude-fable-5', provider: 'copilot-byok', inputTokens: 0 });
+    expect(usages[2]).toMatchObject({ model: 'gpt-6', nanoCredits: 123 });
+  });
+
+  it('replaces request updates by identity priority across session resumes', async () => {
+    const usages = await parseRecords([
+      start,
+      request('event1', { accounting: { usageId: 'bill' }, apiCallId: 'api1' }),
+      request('event2', { accounting: { usageId: 'bill' }, apiCallId: 'api2', outputTokens: 40 }),
+      request('event3', { apiCallId: 'api3' }),
+      { type: 'session.resume' },
+      start,
+      request('event4', { apiCallId: 'api3', outputTokens: 60 }, '2026-06-02T10:00:00Z'),
+      request('event5'),
+      request('event5', { outputTokens: 80 }),
+    ]);
+    expect(usages.map((usage) => usage.outputTokens)).toEqual([40, 60, 80]);
+    expect(usages[1]!.timestamp).toBe(Date.parse('2026-06-02T10:00:00Z'));
+  });
+
+  it('rejects usable requests without identity but ignores incomplete usage', async () => {
+    await expect(parseRecords([{ type: 'session.usage_record', data: { usage: {
+      inputTokens: 1, outputTokens: 2,
+    } } }])).rejects.toThrow('identity');
+    expect(await parseRecords([
+      request('', { inputTokens: '1' }),
+      request('', { outputTokens: undefined }),
+    ])).toEqual([]);
+  });
+
+  it('keeps earlier legacy shutdowns but skips summaries after any request, across resumes', async () => {
+    const shutdown = { type: 'session.shutdown', data: { modelMetrics: {
+      legacy: { usage: { inputTokens: 10, outputTokens: 1 } },
+    } } };
+    const usages = await parseRecords([
+      shutdown, start, request('one'), shutdown, { type: 'session.resume' }, start, shutdown,
+    ]);
+    expect(usages.map((usage) => usage.model)).toEqual(['legacy', 'gpt-5-mini']);
+    expect(await parseRecords([start, { type: 'user.message', data: { content: '12345678' } }]))
+      .toMatchObject([{ model: 'gpt-5-mini', inputTokens: 2, estimated: true }]);
+  });
+
   it('discovers both directory and flat layouts', async () => {
     const files = await findCopilotCliFiles(path.join(root, 'copilot-session-state'));
     expect(files.map((f) => f.sessionId).sort()).toEqual(['cli-sess-1', 'cli-sess-2']);

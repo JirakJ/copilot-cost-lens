@@ -13,9 +13,11 @@ import {
 } from '../sources/storageRoots';
 import { WorkspaceIndex } from '../sources/workspaceIndex';
 import { RawUsage, RepoRef, UsageEvent } from '../types';
+import type { RemoteCopilotReader } from '../sources/remoteCopilotSource';
 
 export interface StoreConfig {
   extraStorageRoots: string[];
+  remoteCopilotRoots?: string[];
   /** Map of resolved repo name → user-chosen display name. */
   repoAliases: Record<string, string>;
   claudeCodeEnabled: boolean;
@@ -69,7 +71,7 @@ export class UsageStore {
     scannedRoots: [],
   };
 
-  constructor(private config: StoreConfig) {}
+  constructor(private config: StoreConfig, private remoteReader?: RemoteCopilotReader) {}
 
   getStats(): ScanStats {
     return this.stats;
@@ -88,6 +90,7 @@ export class UsageStore {
     this.disposed = true;
     this.listeners.clear();
     this.fileCache.clear();
+    this.remoteReader?.dispose();
     this.events = [];
   }
 
@@ -160,8 +163,8 @@ export class UsageStore {
         return [];
       }
     };
-    const push = (usages: RawUsage[]) => {
-      filesParsed += 1;
+    const push = (usages: RawUsage[], countFile = true) => {
+      if (countFile) filesParsed += 1;
       for (const usage of usages) {
         (usage.estimated ? estimated : exact).push(usage);
       }
@@ -251,16 +254,39 @@ export class UsageStore {
     }
 
     if (config.copilotCliEnabled) {
+      const copies = new Map<string, { usages: RawUsage[]; newest: number; remote: boolean }>();
+      const select = (usages: RawUsage[], remote: boolean) => {
+        filesParsed += 1;
+        if (!usages.length) return;
+        const sessionId = usages[0]!.sessionId;
+        const newest = usages.reduce((timestamp, usage) => Math.max(timestamp, usage.timestamp), -Infinity);
+        const previous = copies.get(sessionId);
+        if (!previous || newest > previous.newest ||
+            (newest === previous.newest && remote && !previous.remote)) {
+          copies.set(sessionId, { usages, newest, remote });
+        }
+      };
       await guard('copilot-cli', async () => {
         scannedRoots.push(defaultCopilotCliRoot());
         for (const file of await findCopilotCliFiles(defaultCopilotCliRoot())) {
-          push(
+          select(
             await read(file.filePath, () =>
               parseCopilotCliUsage(file, { charsPerToken: config.charsPerToken }),
             ),
+            false,
           );
         }
       });
+      const remoteReader = this.remoteReader;
+      if (remoteReader) {
+        await guard('remote-copilot-cli', async () => {
+          const remote = await remoteReader.scan(config.remoteCopilotRoots ?? [], config.charsPerToken);
+          scannedRoots.push(...remote.scannedRoots);
+          errors.push(...remote.errors);
+          for (const file of remote.files) select(file.usages, true);
+        });
+      }
+      for (const copy of copies.values()) push(copy.usages, false);
     }
 
     if (config.codexEnabled) {
@@ -369,6 +395,7 @@ export class UsageStore {
   }
 
   private async baseRepo(usage: RawUsage): Promise<RepoRef> {
+    if (usage.repo) return usage.repo;
     if (usage.repoSlug) {
       return { name: usage.repoSlug, folderPath: usage.folderPath, remoteSlug: usage.repoSlug };
     }

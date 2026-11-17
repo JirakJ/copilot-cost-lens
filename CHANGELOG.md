@@ -5,6 +5,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
 ## [1.25.1] — 2026-11-17
 
+### Added
+
+- Opt-in remote Copilot CLI/SDK session roots via `copilotCostLens.remoteCopilotRoots` and **Add Remote Copilot Root…**. A local installation reads full logs over VS Code's existing remote workspace connection, without a remote Cost Lens installation. Only connected workspace authorities are allowed; whole-file transfers are capped at 64 MiB (advertised and actual size). Unchanged files are cached by URI, mtime, size and estimation ratio; failed/deleted entries are evicted and disposal clears the cache. Local/remote session copies use the newest complete usage copy, preferring remote on timestamp ties. Remote paths are never offered as local folder targets.
+- Exact per-request usage from active Copilot SDK sessions, including cache reads/writes, explicit zero billed units and BYOK attribution. Session-wide identity deduplication replaces request updates, ignores checkpoints and avoids later shutdown double-counting while preserving legacy shutdown accounting and estimates.
+
 ### Fixed
 
 - Copilot Chat usage was still missing when working in a remote window — Remote SSH, WSL, dev containers, Codespaces (#17). There Copilot Chat runs on the remote machine and logs under the VS Code Server data folder (`~/.vscode-server/data/User/…`), which was never scanned. Cost Lens now scans and watches the VS Code Server folders (stable, Insiders, VSCodium, Cursor, Windsurf) and, in every setup, the storage of the VS Code instance it is running in — so custom `--user-data-dir` / `--server-data-dir` locations and portable installs work without `extraStorageRoots`.
