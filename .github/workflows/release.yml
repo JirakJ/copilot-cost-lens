@@ -1,11 +1,11 @@
 name: Release
 
-# Publish the merged main commit via Run workflow, or push its matching v* tag.
-# VSCE_PAT is required; missing credentials fail instead of reporting success.
+# Publish the merged main commit via Run workflow on main. The job runs in the
+# `marketplace` environment: it is limited to main and waits for the owner's
+# approval, and VSCE_PAT exists only there. The release tag is created by the
+# job itself. Missing credentials fail instead of reporting success.
 on:
   workflow_dispatch:
-  push:
-    tags: ['v*']
 
 permissions:
   contents: read
@@ -16,7 +16,8 @@ concurrency:
 
 jobs:
   release:
-    if: github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v')
+    if: github.ref == 'refs/heads/main'
+    environment: marketplace
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:
@@ -39,7 +40,6 @@ jobs:
           const { version } = JSON.parse(readFileSync('package.json', 'utf8'));
           assert(/^\d+\.\d+\.\d+$/.test(version), 'Release requires a stable version');
           const tag = `v${version}`;
-          if (process.env.GITHUB_REF_TYPE === 'tag') assert.equal(process.env.GITHUB_REF_NAME, tag);
           const changelog = readFileSync('CHANGELOG.md', 'utf8');
           assert(changelog.includes(`## [${version}]`), 'Missing release notes');
           const notes = changelog.split(`## [${version}]`)[1].split('\n## [')[0];
@@ -77,6 +77,11 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
-          gh release create "$RELEASE_TAG" "$VSIX" "$VSIX.sha256" \
-            --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
-            --notes-file "$RUNNER_TEMP/release-notes.md"
+          # a release cut by hand before the Marketplace upload keeps its notes
+          if gh release view "$RELEASE_TAG" > /dev/null 2>&1; then
+            gh release upload "$RELEASE_TAG" "$VSIX" "$VSIX.sha256" --clobber
+          else
+            gh release create "$RELEASE_TAG" "$VSIX" "$VSIX.sha256" \
+              --target "$GITHUB_SHA" --title "$RELEASE_TAG" \
+              --notes-file "$RUNNER_TEMP/release-notes.md"
+          fi
