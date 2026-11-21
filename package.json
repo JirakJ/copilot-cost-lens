@@ -519,7 +519,7 @@
     "esbuild": "^0.28.2",
     "eslint": "^10.14.0",
     "typescript": "^5.7.2",
-    "vitest": "5.1.0",
+    "vitest": "5.1.1",
     "braces": "file:vendor/braces-3.0.4-security.1.tgz"
   }
 }
