@@ -3,12 +3,18 @@
 All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/).
 
-## [1.25.1] — 2026-11-17
+## [1.26.0] — 2026-11-21
 
 ### Added
 
-- Opt-in remote Copilot CLI/SDK session roots via `copilotCostLens.remoteCopilotRoots` and **Add Remote Copilot Root…**. A local installation reads full logs over VS Code's existing remote workspace connection, without a remote Cost Lens installation. Only connected workspace authorities are allowed; whole-file transfers are capped at 64 MiB (advertised and actual size). Unchanged files are cached by URI, mtime, size and estimation ratio; failed/deleted entries are evicted and disposal clears the cache. Local/remote session copies use the newest complete usage copy, preferring remote on timestamp ties. Remote paths are never offered as local folder targets.
-- Exact per-request usage from active Copilot SDK sessions, including cache reads/writes, explicit zero billed units and BYOK attribution. Session-wide identity deduplication replaces request updates, ignores checkpoints and avoids later shutdown double-counting while preserving legacy shutdown accounting and estimates.
+- Opt-in remote Copilot CLI/SDK session roots via `copilotCostLens.remoteCopilotRoots` and **Add Remote Copilot Root…**. A local installation reads full logs over VS Code's existing remote workspace connection, without a remote Cost Lens installation. Only connected workspace authorities are allowed; whole-file transfers are capped at 64 MiB (advertised and actual size). Unchanged files are cached by URI, mtime, size and estimation ratio; failed/deleted entries are evicted and disposal clears the cache. Local/remote session copies use the newest complete usage copy, preferring remote on timestamp ties. Remote paths are never offered as local folder targets. (#31)
+- Exact per-request usage from active Copilot SDK sessions, including cache reads/writes, explicit zero billed units and BYOK attribution. Session-wide identity deduplication replaces request updates, ignores checkpoints and avoids later shutdown double-counting while preserving legacy shutdown accounting and estimates. (#31)
+
+### Changed
+
+- Dev dependencies updated: `@vscode/vsce` 4.1.0, `@typescript-eslint/eslint-plugin`, `@types/node` 20.19.43.
+
+## [1.25.1] — 2026-11-17
 
 ### Fixed
 
