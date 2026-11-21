@@ -131,6 +131,11 @@
         "category": "Copilot Cost Lens"
       },
       {
+        "command": "copilotCostLens.addRemoteCopilotRoot",
+        "title": "%cmd.addRemoteCopilotRoot%",
+        "category": "Copilot Cost Lens"
+      },
+      {
         "command": "copilotCostLens.copySummary",
         "title": "%cmd.copySummary%",
         "category": "Copilot Cost Lens"
@@ -339,6 +344,15 @@
           },
           "default": [],
           "description": "%cfg.extraRoots%",
+          "scope": "machine"
+        },
+        "copilotCostLens.remoteCopilotRoots": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "%cfg.remoteCopilotRoots%",
           "scope": "machine"
         },
         "copilotCostLens.claudeCode.enabled": {

@@ -4,6 +4,8 @@ import * as path from 'node:path';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { StoreConfig, UsageStore } from '../src/data/usageStore';
 import * as jsonlSource from '../src/sources/jsonlSource';
+import * as copilotCliSource from '../src/sources/copilotCliSource';
+import type { RawUsage } from '../src/types';
 
 // Never read the developer's real usage logs in tests.
 vi.mock('../src/sources/storageRoots', async (original) => ({
@@ -102,6 +104,67 @@ it('does not publish or retain data after disposal during a scan', async () => {
   expect(await store.refresh()).toEqual([]);
   expect(await store.refresh()).toEqual([]);
   expect(changed).toHaveBeenCalledTimes(1);
+});
+
+it('selects one whole local/remote CLI copy by newest timestamp, with remote winning ties', async () => {
+  const filePath = path.join(root, 'cli.jsonl');
+  await fs.writeFile(filePath, [1, 2].map((n) => JSON.stringify({
+    type: 'session.usage_record', id: String(n), timestamp: `2026-06-0${n}T10:00:00Z`,
+    data: { usage: { model: 'gpt-5-mini', inputTokens: n * 100, outputTokens: 10 } },
+  })).join('\n'));
+  vi.spyOn(copilotCliSource, 'findCopilotCliFiles').mockResolvedValue([{ filePath, sessionId: 'copy' }]);
+  const remoteRoot = 'vscode-remote://ssh-remote+host/sessions';
+  const remoteUsage: RawUsage = {
+    sessionId: 'copy', provider: 'copilot-cli', repo: { name: 'remote-repo' },
+    timestamp: Date.parse('2026-06-02T10:00:00Z'), model: 'gpt-5-mini', inputTokens: 900,
+    outputTokens: 10, cachedTokens: 0, cacheWriteTokens: 0, estimated: false,
+  };
+  const remote = {
+    scan: vi.fn(async () => ({
+      scannedRoots: [remoteRoot], files: [{ uri: remoteRoot + '/copy.jsonl', usages: [remoteUsage] }],
+      errors: ['Remote file failed'],
+    })),
+    dispose: vi.fn(),
+  };
+  store.dispose();
+  store = new UsageStore({
+    ...config, copilotCliEnabled: true, remoteCopilotRoots: [remoteRoot],
+    repoAliases: { 'remote-repo': 'Remote alias' },
+  }, remote);
+  const tie = await store.refresh();
+  expect(tie.map((event) => event.inputTokens)).toEqual([900]);
+  expect(tie[0]!.repo).toEqual({ name: 'Remote alias' });
+  expect(remote.scan).toHaveBeenLastCalledWith([remoteRoot], 4);
+  expect(store.getStats()).toMatchObject({ filesParsed: 2, errors: ['Remote file failed'] });
+  expect(store.getStats().scannedRoots).toContain(remoteRoot);
+  remoteUsage.timestamp = Date.parse('2026-06-01T10:00:00Z');
+  expect((await store.refresh()).map((event) => event.inputTokens)).toEqual([100, 200]);
+  remoteUsage.timestamp = Date.parse('2026-06-03T10:00:00Z');
+  expect((await store.refresh()).map((event) => event.inputTokens)).toEqual([900]);
+  store.dispose();
+  expect(remote.dispose).toHaveBeenCalledOnce();
+});
+
+it('clears remote cache when collection is disabled or roots are empty and isolates failures', async () => {
+  const remote = {
+    scan: vi.fn(async (roots: string[]) => {
+      if (roots.length) throw new Error('Remote unavailable');
+      return { scannedRoots: [], files: [], errors: [] };
+    }),
+    dispose: vi.fn(),
+  };
+  store.dispose();
+  store = new UsageStore({ ...config, remoteCopilotRoots: ['remote'] }, remote);
+  await session();
+  expect(await store.refresh()).toHaveLength(1);
+  expect(remote.scan).toHaveBeenLastCalledWith([], 4);
+  vi.spyOn(copilotCliSource, 'findCopilotCliFiles').mockResolvedValue([]);
+  store.updateConfig({ ...config, copilotCliEnabled: true, remoteCopilotRoots: [] });
+  expect(await store.refresh()).toHaveLength(1);
+  expect(remote.scan).toHaveBeenLastCalledWith([], 4);
+  store.updateConfig({ ...config, copilotCliEnabled: true, remoteCopilotRoots: ['remote'] });
+  expect(await store.refresh()).toHaveLength(1);
+  expect(store.getStats().errors).toContain('remote-copilot: Remote unavailable');
 });
 
 describe('Copilot Chat global-storage debug logs (#17)', () => {
